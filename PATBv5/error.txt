@@ -2,7 +2,7 @@ Node.js v24.13.0
 (.venv-win) PS C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4> npm start
 
 > polymarket-trade-bot-ts-v4@1.0.0 start
-> node dist/index.js
+> node dist/index.j
 
 colorLevel 3
 colorLevel 3
