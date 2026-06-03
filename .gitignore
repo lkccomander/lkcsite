@@ -1,0 +1,51 @@
+# Root repo allowlist: only track these folders here.
+/*
+!/.gitignore
+!/PATBv5/
+!/PATBv5/**
+!/Evaluator/
+!/Evaluator/**
+
+# Python bytecode and caches
+**/__pycache__/
+**/*.py[codz]
+**/*$py.class
+
+# Build and packaging artifacts
+**/build/
+**/dist/
+**/*.egg-info/
+**/.eggs/
+**/*.egg
+
+# Test and coverage artifacts
+**/.coverage
+**/.coverage.*
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/htmlcov/
+**/.hypothesis/
+
+# Virtual environments and local env files
+**/.env
+**/.envrc
+**/.venv/
+**/.venv-win/
+**/env/
+**/venv/
+**/ENV/
+**/.python-version
+
+# Notebook and editor caches
+**/.ipynb_checkpoints/
+**/tempCodeRunnerFile.py
+
+# Runtime logs and local databases
+**/*.log
+**/*.pid
+**/*.sqlite3
+**/*.sqlite3-journal
+
+# JS dependencies
+**/node_modules/

@@ -1,0 +1,464 @@
+Node.js v24.13.0
+(.venv-win) PS C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4> npm start
+
+> polymarket-trade-bot-ts-v4@1.0.0 start
+> node dist/index.js
+
+colorLevel 3
+colorLevel 3
+Starting Polymarket Arbitrage Trading Bot V4
+This is the new bot built from the original baseline.
+Bot ID: polymarket-bot-v4
+Public key: 0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea
+Signature type: 2 (env) | Funder: 0x366256036425D2893656b40583B205ab78090e48
+Mode: LIVE
+Collateral guard: enabled | pUSD=0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB
+Strategy: trade_4 | Market: BTC 5m | Trade USD: $5
+Telemetry DB: C:\Projects\lkcsite\polydb\telemetry\events.jsonl
+Telemetry Sessions: C:\Projects\lkcsite\polydb\telemetry\sessions
+Session: da61f36d-f227-4429-8b61-7a66e4ce0090 @ 2026-05-09T19:16:26.773Z
+Repo: C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4
+Trend legend: UP 🟢 | DOWN 🔴 | FLAT ⚪
+Position legend: UP 🟩 | DOWN 🟥 | NONE ⬛
+Using manual Polymarket API credentials from hardened secret source
+Collateral guard allowlist: 0xe111180000d2663c0091e4f400237545b87b996b, 0xd91e80cf2e7be2e162c6513ced06f1dd0da35296, 0xe2222d279d744050d28e00520010520000310f59
+Market selected: btc-updown-5m-1778354100
+Window: 1778354187 -> 1778354400
+Resolved tokens | source=market_outcomes_labels | outcomes=Up / Down
+Resolved tokens | UP=8847862451182143815935126361371367799129078524986949247746113144046120901093 | DOWN=25655855029657734406504128784827840468524096822882466678600724932809046987289
+Market config | tickSize=0.01 | negRisk=false | minOrderSize=5
+Market | tMinus=211s/300s | up=0.99/0.01 spread=0.98 | down=0.99/0.01 spread=0.98 | upRatio=0.98 | timeRatio=0.30 | score=0.29 | observedTicks=1 | trend=UP 🟢 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=UP 🟢
+Market | tMinus=208s/300s | up=0.37/0.36 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.26 | timeRatio=0.31 | score=0.08 | observedTicks=6 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=205s/300s | up=0.35/0.34 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.30 | timeRatio=0.32 | score=0.10 | observedTicks=13 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=202s/300s | up=0.35/0.34 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.30 | timeRatio=0.33 | score=0.10 | observedTicks=15 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=199s/300s | up=0.35/0.34 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.30 | timeRatio=0.34 | score=0.10 | observedTicks=19 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=196s/300s | up=0.24/0.23 spread=0.01 | down=0.77/0.76 spread=0.01 | upRatio=0.52 | timeRatio=0.35 | score=0.18 | observedTicks=34 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=193s/300s | up=0.27/0.26 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.46 | timeRatio=0.36 | score=0.16 | observedTicks=39 | trend=UP 🟢 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=UP 🟢
+Market | tMinus=190s/300s | up=0.25/0.22 spread=0.03 | down=0.78/0.75 spread=0.03 | upRatio=0.50 | timeRatio=0.37 | score=0.18 | observedTicks=45 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=187s/300s | up=0.26/0.25 spread=0.01 | down=0.75/0.74 spread=0.01 | upRatio=0.48 | timeRatio=0.38 | score=0.18 | observedTicks=49 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=184s/300s | up=0.26/0.25 spread=0.01 | down=0.75/0.74 spread=0.01 | upRatio=0.48 | timeRatio=0.39 | score=0.19 | observedTicks=55 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=180s/300s | up=0.26/0.25 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.48 | timeRatio=0.40 | score=0.19 | observedTicks=67 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=177s/300s | up=0.28/0.27 spread=0.01 | down=0.73/0.72 spread=0.01 | upRatio=0.44 | timeRatio=0.41 | score=0.18 | observedTicks=75 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=174s/300s | up=0.29/0.28 spread=0.01 | down=0.72/0.71 spread=0.01 | upRatio=0.42 | timeRatio=0.42 | score=0.18 | observedTicks=79 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=171s/300s | up=0.31/0.30 spread=0.01 | down=0.70/0.68 spread=0.02 | upRatio=0.38 | timeRatio=0.43 | score=0.16 | observedTicks=86 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=168s/300s | up=0.30/0.29 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.40 | timeRatio=0.44 | score=0.18 | observedTicks=93 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=164s/300s | up=0.30/0.17 spread=0.13 | down=0.99/0.01 spread=0.98 | upRatio=0.40 | timeRatio=0.45 | score=0.18 | observedTicks=102 | trend=UP 🟢 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=UP 🟢
+buying down token {
+  tokenID: '25655855029657734406504128784827840468524096822882466678600724932809046987289',
+  price: 0.68,
+  size: 7
+}
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"gTUTXLMwCjxKt9NMcgSuz5tG96iXw-0e7s0zl_Cr7Zo=","POLY_TIMESTAMP":"1778354239","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"757","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":70071930290,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4690000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354239617\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x999b13e32d3674103be50d60adcb6a023637023d9998e9559c235d9ea2fe942b399bdd94836c6d7fe142dd2a42d4b163b2f466124907dfa1cb27ceec3b43ec0f1b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 1/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"zIVvkKXIs8boSyCn7jAd0KgKoeJzNHsr861YUNtCzYs=","POLY_TIMESTAMP":"1778354239","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":188874843991,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4690000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354239884\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xe29369d01723877c53140f5cf3daa76b2f187937b14d64c688029744dc54f925525f7a39b565d9fdddd2cee8e259fd42232fe0e71899964af77afeaaf9b7d3561b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 2/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"CA2aPF9SJscirN6mA6cyvHte4WZvDlIWjiCLxh6iLnU=","POLY_TIMESTAMP":"1778354240","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":658850152720,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4690000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354240120\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x593b260d015204f1e2e2a592ffd0da7443d7649474b4135e07dd9f059c9d33686fcced3e3bb7e51d8d6ad43579c939cf7840165289ad312918d4491b5d7d47fc1c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 3/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"Flw_2fP_DurKUN2BPheDTcrFOEI06VO6yLb0WwuOoLY=","POLY_TIMESTAMP":"1778354240","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1428734644032,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4690000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354240340\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xe6bf00d7fc2987b5bd7b9384b602a601d66fe2ad50f43642b28c5534918978c50ff5f032069987d20867a225dd4b0b124b4d7e375d1cdd5a1a5dd4a22e7d26981b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+❌ Buy Down Token failed after 4 attempts
+❌ Error buying down token: Error: ❌ Error buying down token: maker address not allowed, please use the deposit wallet flow
+    at C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1165:27
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async retryWithInstantRetry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\utils\retry.js:15:28)
+    at async TradeClass.buyDownToken (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1140:27)
+    at async attemptEntry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:189:9)
+    at async TradeClass.make_trading_decision (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:652:29)
+    at async processSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:352:17)
+    at async flushLatestSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:371:21)
+Market | tMinus=160s/300s | up=0.39/0.35 spread=0.04 | down=0.99/0.01 spread=0.98 | upRatio=0.22 | timeRatio=0.47 | score=0.10 | observedTicks=106 | trend=UP 🟢 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=UP 🟢
+Market | tMinus=157s/300s | up=0.40/0.39 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.20 | timeRatio=0.48 | score=0.10 | observedTicks=113 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+buying down token {
+  tokenID: '25655855029657734406504128784827840468524096822882466678600724932809046987289',
+  price: 0.61,
+  size: 8
+}
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"a1hRtFRCpMOH7T05DBbaQ2NFQK5G1wWpjrYBAmPJbK0=","POLY_TIMESTAMP":"1778354244","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":207571040417,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4720000\",\"takerAmount\":\"8000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354244371\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xae5def85b14a195b284ffdceb648fe638f73048def669f19b4036307c84bb75705838b712c734418ee7fab2dad6c30e0749b6a7db296133f0f3286f534d9e9f31c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 1/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"th-sIK5gQ3NcDD-aoqLaCt6l9qYJ_2sopW0igSXRn3o=","POLY_TIMESTAMP":"1778354244","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1480074118018,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4720000\",\"takerAmount\":\"8000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354244541\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xd2ab582307ee875da7ef51b05a418110c7170453d11735979f812825e4dd23e348526225b61414c8ad565894db10d8ec62092cc9060e34cf5aa135c0b61ce01a1b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 2/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"URh4pzTeeo-Tibf_XrXHGHrNtWp-DTWcxdjOVi0gBSw=","POLY_TIMESTAMP":"1778354244","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"757","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":92490777610,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4720000\",\"takerAmount\":\"8000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354244732\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x11fb17eb9baec57b8a2a422375915adf710717783f4ee958d46ca319700424017f6c9e63905620df09a8a57fd413e715635c0ae0a6c9c27f2c99b49cec6a75881b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 3/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"wSVBBoWfIw_eR_RPpO-brXFxa6GOwpWtYNBKXgYRd1w=","POLY_TIMESTAMP":"1778354244","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":464249654337,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4720000\",\"takerAmount\":\"8000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354244907\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xb06ab823bc964e0ec6d28d0c3f9900cb00d769c0bcf530a534218ee30b869900406ec93294527c4eeab639404e6a0fd7468f38c3f52071fed347d17bc3c4a4c61b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+❌ Buy Down Token failed after 4 attempts
+❌ Error buying down token: Error: ❌ Error buying down token: maker address not allowed, please use the deposit wallet flow
+    at C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1165:27
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async retryWithInstantRetry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\utils\retry.js:15:28)
+    at async TradeClass.buyDownToken (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1140:27)
+    at async attemptEntry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:189:9)
+    at async TradeClass.make_trading_decision (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:652:29)
+    at async processSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:352:17)
+    at async flushLatestSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:371:21)
+buying down token {
+  tokenID: '25655855029657734406504128784827840468524096822882466678600724932809046987289',
+  price: 0.67,
+  size: 7
+}
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"DAfSRQ2Wj4OZWImtAheIwurY3-_wF5717AakGVBbtl4=","POLY_TIMESTAMP":"1778354245","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1106158735920,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4550000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354245610\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xdeb547ec5cca4ca7f2ecebb9400088fb6bb73a08ac81a986c8fea831593d47530586a4661aeb11e0eea969105e3f44a9cdd1c0b8708a08ef4c23994ec722021b1c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 1/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"1zDtIeOJAGfDve9DPsRC2bA_fBfqqFQ2hJT9AQFICfA=","POLY_TIMESTAMP":"1778354245","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":601567095404,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4550000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354245890\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x7499cb590ffce1d7c295a3961c801a5e3d3a2771935cd0cd4e305bfa3606ea2d1bb521aef9ad41d77813ef2ebf7059547b6aac266ec5ee198eeb46fea47557471b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 2/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"tBx_InDrbRFxosImnLqmTb6rS8EWAJqiK4JpABDwKUg=","POLY_TIMESTAMP":"1778354246","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":909884988563,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4550000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354246088\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x3868231c787070e480702c449125e6fd08b1d0053a696fbae8cc085a5b2e8811247e743fb7cf296fe9b0da5ddcce16f0fb28ac3cb3d12581bfc3806f2fef84041c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 3/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"twL2iwaGwETzQijW-bbOQvmN1bQKP-uTFyvwmfWL-oY=","POLY_TIMESTAMP":"1778354246","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1620380343565,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4550000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354246278\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xab19a59c34577c2f6fb9135390bf2f8dde22b0b81c9c9bae026dfa36e4a2a77b13efb76505637f8bb699be816cc9d1b34355457356e8b02dce4d81f90eb8cc3a1b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+❌ Buy Down Token failed after 4 attempts
+❌ Error buying down token: Error: ❌ Error buying down token: maker address not allowed, please use the deposit wallet flow
+    at C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1165:27
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async retryWithInstantRetry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\utils\retry.js:15:28)
+    at async TradeClass.buyDownToken (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1140:27)
+    at async attemptEntry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:189:9)
+    at async TradeClass.make_trading_decision (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:652:29)
+    at async processSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:352:17)
+    at async flushLatestSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:371:21)
+Market | tMinus=154s/300s | up=0.42/0.41 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.16 | timeRatio=0.49 | score=0.08 | observedTicks=121 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+buying down token {
+  tokenID: '25655855029657734406504128784827840468524096822882466678600724932809046987289',
+  price: 0.64,
+  size: 7
+}
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"9QaKmI0VUU8phxN2e-u8eleB3VlArXpIJhpe-vBqyLA=","POLY_TIMESTAMP":"1778354248","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":544919256336,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4480000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354248452\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xc7b1543bccff4d1034e6c14e0925961c3267a72ad74a75726d4aaa5602c87b50325044a32684cb1fa6f225bb58e20b8ea17cc0d990848f6c868de615d02a9dac1b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 1/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"mUgyXL5J7aqcrhCMUEkyGiOoMSUFoZB4rCp7mXDoqco=","POLY_TIMESTAMP":"1778354248","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":145199202626,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4480000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354248623\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x96854b74c6436bfa5066f60c9176d7b964649331cd3349daa6f2fa78b22419b12f8e93fbb8c6a82c0f2e6f86d5dfb04c5b9a3adf3e179ac14e4641548cf109ae1b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 2/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"Kld425VEPo6ikYYJhiF70eXA_AoA0DFLa5rv0ZXzOz8=","POLY_TIMESTAMP":"1778354248","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1400472790776,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4480000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354248789\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x83f7572e543f4dca20403ff351f8aba9aae03c016ac1d00abaa528331927288b09ea748a22d46a003f4f9a6e738aa97e8c1b720f179cd884d5b34fbeee2b5c5a1c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 3/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"qls4NA1NrhW2GVmYqpPWl1k0mlIJbXtZQ_TlSsoimdY=","POLY_TIMESTAMP":"1778354248","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":800108063797,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4480000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354248960\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x90175c0385950dccae710b7b065c22a59be2b21796360547a59deece62f15e323289975348d749cc06a0582fc33a17c8946c7c3b5b9a8dd90580cab2646a6d3c1c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+❌ Buy Down Token failed after 4 attempts
+❌ Error buying down token: Error: ❌ Error buying down token: maker address not allowed, please use the deposit wallet flow
+    at C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1165:27
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async retryWithInstantRetry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\utils\retry.js:15:28)
+    at async TradeClass.buyDownToken (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1140:27)
+    at async attemptEntry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:189:9)
+    at async TradeClass.make_trading_decision (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:652:29)
+    at async processSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:352:17)
+    at async flushLatestSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:371:21)
+buying down token {
+  tokenID: '25655855029657734406504128784827840468524096822882466678600724932809046987289',
+  price: 0.63,
+  size: 7
+}
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"jGw7vmCpiuN5A7-MG3prnay1ZOUP1TcpjGJOaVZP-mQ=","POLY_TIMESTAMP":"1778354249","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"757","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":94487347395,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4410000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354249642\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x3dcd239605d54c2f78732bae22066b3e7d32a65fd2694f07315f445c334c06c5051f4371287eaa9da00162bb1d877e321ad51cfbbaed988d0b296f4480fd6ebe1b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 1/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"Ry0qDVecTUp25fWEaNJC9vAUZADH2zc39v_0AE24ZYI=","POLY_TIMESTAMP":"1778354249","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1258937293437,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4410000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354249811\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x574583ee245507d9b174d3d55006dbf14708dded16981ec44264b36f0359e6e50cb07f8299dcd1e5efcb061ae880b497e98cbfac12263e9b4bc2f5aafa727cd31c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 2/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"F0DNyq3SDUPWcNNYsnZFEbjzf5L7a2lVMaH3zQRJ47I=","POLY_TIMESTAMP":"1778354249","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1048417371175,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4410000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354249978\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x45857fcb8b634b428c0732c652d7b88cb52ced101bf75a5ba23791754155c3b5544d2d656bfd0747289776d189859051d358878692ffe488ce2226fb4e44e4881b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 3/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"IBPbQGjdbr9a8s0-6wa56qlehtN_BY_b5T3Cyv6RNCk=","POLY_TIMESTAMP":"1778354250","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1469553362665,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4410000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354250149\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xdf344a54cfe519257f9c7873d04ce1a978cd533f1dde9c76ddbfee9f7e182a7a43a5f3e805af7e12619296d7b7ffd8d310e30b5de5df11789e4d246b4e465da71c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+❌ Buy Down Token failed after 4 attempts
+❌ Error buying down token: Error: ❌ Error buying down token: maker address not allowed, please use the deposit wallet flow
+    at C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1165:27
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async retryWithInstantRetry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\utils\retry.js:15:28)
+    at async TradeClass.buyDownToken (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1140:27)
+    at async attemptEntry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:189:9)
+    at async TradeClass.make_trading_decision (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:652:29)
+    at async processSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:352:17)
+    at async flushLatestSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:371:21)
+Market | tMinus=150s/300s | up=0.35/0.34 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.30 | timeRatio=0.50 | score=0.15 | observedTicks=132 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+buying down token {
+  tokenID: '25655855029657734406504128784827840468524096822882466678600724932809046987289',
+  price: 0.67,
+  size: 7
+}
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"O0QuDbdyMws7u_Y_RMfywOVIq5Iwo7pUPdQoKFnfJwo=","POLY_TIMESTAMP":"1778354250","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":943745994323,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4690000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354250822\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x39b4ecd1ddd363c8fd5caa63e478dcbd8aaa96d75c63ada40167ae3c73b0dec34782aeb08a0df138a14f8d71e7dc1cb98101e1428d665d544db46e0a53903ed71c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 1/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"gibdTdhUXJpIeptuSOI53FdbrZslx8iN7-pVJ8NTtcw=","POLY_TIMESTAMP":"1778354250","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1311046020638,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4690000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354250984\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xe655fd1dd6e375e19ff57b788f3b2b55344e21b87ac030e8b22e0be5b5d51b0d7f8be87af7a5c5e511c2705c62e2c646db79498ca207cd34f5823d109cb787bf1c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 2/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"C2x_eAbf3R4_n_q_5maW-HI2ss5RKmKjxfTtUuCQ6PE=","POLY_TIMESTAMP":"1778354251","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1053960757140,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4690000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354251152\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x4806996e7bbdac37dbc2e16a2b1455bb58f51a96f528dd5f390156095b92badc49351df0fafc70226c8672c37f9df6d0b07f489b36106b5327d14245fb9fba2f1c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 3/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"XGRN5cehp84r9mGfm6cQ2vwcPQh1i-v2631qwgfi0YE=","POLY_TIMESTAMP":"1778354251","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":759117849038,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4690000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354251315\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xd0a6fd84446026719387208adfded0cc2d781b662b37435266c95e6a03e46c10481c6b12bac65d1dd58938b45f24438b703e9d342080e2a76d0c80ff08480b3a1b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+❌ Buy Down Token failed after 4 attempts
+❌ Error buying down token: Error: ❌ Error buying down token: maker address not allowed, please use the deposit wallet flow
+    at C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1165:27
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async retryWithInstantRetry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\utils\retry.js:15:28)
+    at async TradeClass.buyDownToken (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1140:27)
+    at async attemptEntry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:189:9)
+    at async TradeClass.make_trading_decision (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:652:29)
+    at async processSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:352:17)
+    at async flushLatestSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:371:21)
+Market loop error: Error: could not coalesce error (error={ "code": -32000, "message": "invalid block range params" }, payload={ "id": 80, "jsonrpc": "2.0", "method": "eth_getLogs", "params": [ { "address": "0xc011a7e12a19f7b1f670d46f03b03f3342e82dfb", "fromBlock": "0x529f952", "toBlock": "0x529f953", "topics": [ "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", "0x000000000000000000000000366256036425d2893656b40583b205ab78090e48" ] } ] }, code=UNKNOWN_ERROR, version=6.16.0)
+    at makeError (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\node_modules\ethers\lib.commonjs\utils\errors.js:137:21)
+    at JsonRpcProvider.getRpcError (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\node_modules\ethers\lib.commonjs\providers\provider-jsonrpc.js:749:41)
+    at C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\node_modules\ethers\lib.commonjs\providers\provider-jsonrpc.js:302:45
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  code: 'UNKNOWN_ERROR',
+  error: { code: -32000, message: 'invalid block range params' },
+  payload: {
+    method: 'eth_getLogs',
+    params: [ [Object] ],
+    id: 80,
+    jsonrpc: '2.0'
+  },
+  shortMessage: 'could not coalesce error'
+}
+buying down token {
+  tokenID: '25655855029657734406504128784827840468524096822882466678600724932809046987289',
+  price: 0.64,
+  size: 7
+}
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"Zeklf9vPVgIvlamHd9bD6Rw-THXa9EI1ycVCbttD7TQ=","POLY_TIMESTAMP":"1778354252","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1336848589060,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4480000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354252920\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xb7cb79706c059cfa02d0601219e7f5dcec76ae482239457d0110a04d1c7e0af77ce29cd4c47b2a6f5d04bd3d491fa1d78420cce7e01c80c6973de16b5ad9f54b1c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 1/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"ynyvVptViCOPHYcctJvzdqYLxmS00Yn5JGJLxtONYVc=","POLY_TIMESTAMP":"1778354253","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1197543410194,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4480000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354253120\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x0444091b1d373b6c633a569c97211c708988df614dc5f65b559ff3de42bf13776b30e27e8fd6b9423d1280fee37c7a81ccde215f2635afeeda09fb3469a91ea31c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 2/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"U3s-Y4LaEqI5cQwsR4iD94FW7rYenl_fi2vRVH8RNSM=","POLY_TIMESTAMP":"1778354253","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":646570667573,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4480000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354253316\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xd80fb8e963024d745feaa60c3aded62dcdc8418d853da694f8885687ad5ff1cd2b9b16b1c98c5526f4eb04ffaf0729fe87763744263dc5e11b2cf8ba96a105c01b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 3/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"XStEm6vO0iDoBY1KUbkI5_EnY3ZoJoNTCYi8NOOYGSo=","POLY_TIMESTAMP":"1778354253","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":116619165483,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4480000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354253486\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xf8cd972b8cc22a5fe0132f30e8e35c4356649d1670e8a4c2a53552d7115b82b675d77bd0d519988ab011a93b2ed8c9ec26e0839e156b7d8c201223fa91a61d9b1c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+❌ Buy Down Token failed after 4 attempts
+❌ Error buying down token: Error: ❌ Error buying down token: maker address not allowed, please use the deposit wallet flow
+    at C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1165:27
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async retryWithInstantRetry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\utils\retry.js:15:28)
+    at async TradeClass.buyDownToken (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1140:27)
+    at async attemptEntry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:189:9)
+    at async TradeClass.make_trading_decision (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:652:29)
+    at async processSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:352:17)
+    at async flushLatestSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:371:21)
+Market | tMinus=147s/300s | up=0.35/0.34 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.30 | timeRatio=0.51 | score=0.15 | observedTicks=140 | trend=DOWN 🔴 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=DOWN 🔴
+buying down token {
+  tokenID: '25655855029657734406504128784827840468524096822882466678600724932809046987289',
+  price: 0.66,
+  size: 7
+}
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"4IBcEaFZb8diovaNr5TNmn3-z39gp__r7JnPSDTywJ4=","POLY_TIMESTAMP":"1778354254","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":106090447183,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4620000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354254112\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x950c922ea820d87b0374aa65457849c98c4261d9d710fb3ebc650ede17a7333358419d328c91eff50988ac7e8684ad3beaf68a70c49b14411d307c9b5dd4988e1c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 1/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"-6QCUs9hoJTCn4ELBpSQ74Yjn0pFtynctCMagYkBC18=","POLY_TIMESTAMP":"1778354254","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":261547149614,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4620000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354254297\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0x3058a40a789b2919334c58d5fb1bbc983617fabe2f9c982a1a4d1ddecc6767ed553f5e7a2b75d6826739f90782f929951b9c1c4770b4ab79ffb53537f9e200701c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 2/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"xJcuyC8Ko1lTONJN6pFqNspJ2CchON-K1yS3CLY-3hg=","POLY_TIMESTAMP":"1778354254","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"758","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":942711860377,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4620000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354254488\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xf83c934f95644134cb16d78ec42b19984f3adec991298faea2a375e304b30efd2ec6ab03e1b78d88858fd9abe8e74c20ad59d934f3b04172e088d5fb7aea9e261b\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+🔄 Buy Down Token failed (attempt 3/4), retrying instantly...
+[CLOB Client] request error {"status":400,"statusText":"Bad Request","data":{"error":"maker address not allowed, please use the deposit wallet flow"},"config":{"transitional":{"silentJSONParsing":true,"forcedJSONParsing":true,"clarifyTimeoutError":false,"legacyInterceptorReqResOrdering":true},"adapter":["xhr","http","fetch"],"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1,"maxBodyLength":-1,"env":{},"headers":{"Accept":"*/*","Content-Type":"application/json","POLY_ADDRESS":"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea","POLY_SIGNATURE":"cPNFq3ZxMfFM3Jp7tmhQvu3C7s0XP7KojitVV7avTBU=","POLY_TIMESTAMP":"1778354254","POLY_API_KEY":"019e0dd4-859c-78a5-bc88-bdaddaa436a9","POLY_PASSPHRASE":"66da2ae10c46a2656c480c5fc0c4c69c4a9777d0b82bdcbecac33b22f73beb1b","User-Agent":"@polymarket/clob-client","Connection":"keep-alive","Content-Length":"759","Accept-Encoding":"gzip, compress, deflate, br"},"method":"post","url":"https://clob.polymarket.com/order","data":"{\"deferExec\":false,\"postOnly\":false,\"order\":{\"salt\":1140648259522,\"maker\":\"0x366256036425D2893656b40583B205ab78090e48\",\"signer\":\"0x43d03F6a32E6B24a28AF6C1BA0cAF63F29afD3Ea\",\"tokenId\":\"25655855029657734406504128784827840468524096822882466678600724932809046987289\",\"makerAmount\":\"4620000\",\"takerAmount\":\"7000000\",\"side\":\"BUY\",\"signatureType\":2,\"timestamp\":\"1778354254667\",\"expiration\":\"0\",\"metadata\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"builder\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"signature\":\"0xcd2bef0dc7bd5b1d52fc7ccac321e56cb73b9bf2305da6a5c429147a1786eb387cd3f079f7ef72c4b5df8ec8249feca9ea07014b3fd288e6e579ec853a5c2ab21c\"},\"owner\":\"019e0dd4-859c-78a5-bc88-bdaddaa436a9\",\"orderType\":\"GTC\"}","allowAbsoluteUrls":true}}
+❌ Buy Down Token failed after 4 attempts
+❌ Error buying down token: Error: ❌ Error buying down token: maker address not allowed, please use the deposit wallet flow
+    at C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1165:27
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async retryWithInstantRetry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\utils\retry.js:15:28)
+    at async TradeClass.buyDownToken (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\trade.js:1140:27)
+    at async attemptEntry (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:189:9)
+    at async TradeClass.make_trading_decision (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\trade\decision.js:652:29)
+    at async processSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:352:17)
+    at async flushLatestSnapshot (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\dist\index.js:371:21)
+Market | tMinus=143s/300s | up=0.23/0.22 spread=0.01 | down=0.78/0.77 spread=0.01 | upRatio=0.54 | timeRatio=0.52 | score=0.28 | observedTicks=148 | trend=DOWN 🔴 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=DOWN 🔴
+Market | tMinus=140s/300s | up=0.21/0.20 spread=0.01 | down=0.99/0.01 spread=0.98 | upRatio=0.58 | timeRatio=0.53 | score=0.31 | observedTicks=157 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market loop error: Error: could not coalesce error (error={ "code": -32000, "message": "invalid block range params" }, payload={ "id": 92, "jsonrpc": "2.0", "method": "eth_getLogs", "params": [ { "address": "0xc011a7e12a19f7b1f670d46f03b03f3342e82dfb", "fromBlock": "0x529f958", "toBlock": "0x529f959", "topics": [ "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", "0x000000000000000000000000366256036425d2893656b40583b205ab78090e48" ] } ] }, code=UNKNOWN_ERROR, version=6.16.0)
+    at makeError (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\node_modules\ethers\lib.commonjs\utils\errors.js:137:21)
+    at JsonRpcProvider.getRpcError (C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\node_modules\ethers\lib.commonjs\providers\provider-jsonrpc.js:749:41)
+    at C:\Projects\lkcsite\polymarket-arbitrage-trading-botv4\node_modules\ethers\lib.commonjs\providers\provider-jsonrpc.js:302:45
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  code: 'UNKNOWN_ERROR',
+  error: { code: -32000, message: 'invalid block range params' },
+  payload: {
+    method: 'eth_getLogs',
+    params: [ [Object] ],
+    id: 92,
+    jsonrpc: '2.0'
+  },
+  shortMessage: 'could not coalesce error'
+}
+
+# ===================================================== 
+
+
+You are fixing bugs in a Polymarket trading bot written in TypeScript.
+The bot trades BTC 5-minute Up/Down markets on Polymarket using the CLOB v2 API.
+
+## Files involved
+- src/trade/decision.ts  — entry and exit logic
+- src/trade/trade.ts     — order execution
+- trade.toml             — strategy configuration
+
+---
+
+## BUG 1 — inExitRange causes immediate sell after every buy [CRITICAL]
+
+In decision.ts, the trade_4 exit logic for both UP and DOWN positions contains:
+
+  if ((this.upSellPrice >= trade4.take_profit_price || inExitRange)
+      && secondsToClose > trade4.min_seconds_to_close) {
+    await this.sellUpToken();
+    break;
+  }
+
+The variable `inExitRange` is computed as:
+  const exitRanges = trade4.exit_price_ratio_range;
+  const inExitRange = exitRanges.some(([min, max]) =>
+    up_price_ratio >= min && up_price_ratio <= max
+  );
+
+Where `up_price_ratio = Math.abs(this.upBuyPrice - 0.5) / 0.5`
+
+With config `exit_price_ratio_range = [[0.0, 0.52], [0.86, 1.0]]`:
+- The range [0.0, 0.52] maps to buy prices 0.24–0.76 (the entire normal market range)
+- So inExitRange = true on virtually every tick
+- The bot sells immediately after buying on the next decision cycle
+
+FIX: Remove `|| inExitRange` from both the UP and DOWN exit conditions.
+Change:
+  if ((this.upSellPrice >= trade4.take_profit_price || inExitRange) && ...)
+To:
+  if (this.upSellPrice >= trade4.take_profit_price && ...)
+
+Do the same for the DOWN case with `this.downSellPrice`.
+Also remove the `inExitRange` variable declaration entirely as it is no longer used.
+
+---
+
+## BUG 2 — Stop loss fires on garbage orderbook ticks [CRITICAL]
+
+The orderbook frequently produces stale/illiquid snapshots where:
+  downSellPrice = 0.01, downBuyPrice = 0.99, spread = 0.98
+
+When this happens, `downSellPrice (0.01) <= stop_loss_price (0.50)` fires the
+stop loss on noise, not real price movement.
+
+In decision.ts, the current stop loss checks are:
+  if (this.upSellPrice <= trade4.stop_loss_price) { ... }
+  if (this.downSellPrice <= trade4.stop_loss_price) { ... }
+
+FIX: Add a spread validity guard before each stop loss check.
+Only fire the stop loss if the orderbook snapshot looks real (spread ≤ 0.20):
+
+  // UP stop loss
+  const upSpreadValid = (this.upBuyPrice - this.upSellPrice) <= 0.20;
+  if (upSpreadValid && this.upSellPrice <= trade4.stop_loss_price) {
+    ...
+  }
+
+  // DOWN stop loss
+  const downSpreadValid = (this.downBuyPrice - this.downSellPrice) <= 0.20;
+  if (downSpreadValid && this.downSellPrice <= trade4.stop_loss_price) {
+    ...
+  }
+
+---
+
+## BUG 3 — Sell execution at garbage prices [CRITICAL]
+
+In trade.ts, both sellUpToken() and sellDownToken() execute sell orders even
+when the orderbook snapshot is clearly invalid (e.g. sellPrice = 0.01 with
+spread = 0.98). In the previous live session, this placed a resting GTC order
+at 0.01 which locked all tokens for the rest of the market.
+
+FIX: Add a spread guard at the top of the live sell path in both
+sellUpToken() and sellDownToken(), before any order is placed.
+
+For sellDownToken(), add after the existing balance checks:
+  const downSellSpread = this.downBuyPrice - this.downSellPrice;
+  if (downSellSpread > 0.20) {
+    console.warn(`⚠️  Skipping sell: stale snapshot | spread=${downSellSpread.toFixed(2)} | sellPrice=${this.downSellPrice}`);
+    await writeTelemetryEventSafe("trade.exit_skipped_stale_snapshot", {
+      strategy: globalThis.__CONFIG__.strategy,
+      side: "DOWN",
+      downBuyPrice: this.downBuyPrice,
+      downSellPrice: this.downSellPrice,
+      spread: downSellSpread,
+    });
+    return false;
+  }
+
+Apply the same pattern in sellUpToken() using upBuyPrice - upSellPrice.
+
+---
+
+## BUG 4 — Polygon RPC eth_getLogs timeouts [OPERATIONAL]
+
+Logs show repeated errors:
+  Market loop error: could not coalesce error
+  { "code": -32002, "message": "request timed out" }
+  method: "eth_getLogs"
+
+These are Polygon RPC timeouts when watching for on-chain events.
+They occur mid-trade and could cause missed exits.
+
+FIX: Wrap all eth_getLogs / Polygon RPC calls in a try-catch with a
+timeout guard. If the RPC call fails with code -32002 or UNKNOWN_ERROR,
+log a telemetry event and skip that cycle rather than crashing the market loop.
+
+Also: consider switching to a more reliable RPC provider such as:
+- Alchemy (https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY)
+- QuickNode
+- Ankr public endpoint: https://rpc.ankr.com/polygon
+
+The current RPC endpoint appears to be the default public one which
+rate-limits and times out under load.
+
+---
+
+## BUG 5 — entry_price_ratio window is too narrow [CONFIG]
+
+In trade.toml, `entry_price_ratio = [0.10, 0.28]`
+
+The formula in decision.ts is:
+  up_price_ratio = Math.abs(this.upBuyPrice - 0.5) / 0.5
+
+So [0.10, 0.28] only allows buy prices in the range 0.55–0.64 (a 9-cent window),
+causing ~491 rejections per session. This conflicts with min_entry_price = 0.52
+which allows prices from 0.52 — those are always rejected by the ratio check.
+
+FIX in trade.toml:
+  entry_price_ratio = [0.10, 0.36]   # allows prices 0.55–0.68
+  min_entry_price   = 0.55           # align with ratio lower bound
+  max_entry_price   = 0.68           # align with ratio upper bound
+
+---
+
+## BUG 6 — max_rtt_ms is below observed average RTT [CONFIG]
+
+In trade.toml, `max_rtt_ms = 300`
+Telemetry shows avg RTT = 322ms, causing 91 unnecessary rejections per session.
+
+FIX in trade.toml:
+  max_rtt_ms = 500
+
+---
+
+## Summary of all changes
+
+decision.ts:
+  1. Remove `|| inExitRange` from UP exit condition
+  2. Remove `|| inExitRange` from DOWN exit condition
+  3. Remove the `inExitRange` variable declaration
+  4. Add spread guard (≤ 0.20) before UP stop loss check
+  5. Add spread guard (≤ 0.20) before DOWN stop loss check
+
+trade.ts:
+  6. Add spread guard (> 0.20 = skip) at top of live sell path
+     in both sellUpToken() and sellDownToken()
+  7. Wrap eth_getLogs / Polygon RPC calls in try-catch with
+     telemetry event on timeout (code -32002)
+
+trade.toml:
+  8. entry_price_ratio = [0.10, 0.36]
+  9. min_entry_price   = 0.55
+  10. max_entry_price  = 0.68
+  11. max_rtt_ms       = 500
+
+Please apply all changes. For each change, show the before and after code.
+Do not change anything else — only the specific lines described above.
+The goal is to make the bot: enter trades correctly, not exit immediately
+after buying, not execute sells on stale orderbook data, and not crash
+on RPC timeouts.

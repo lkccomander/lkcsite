@@ -1,0 +1,279 @@
+strategy = "trade_5x"
+trade_usd = 5
+max_retries = 3
+
+[market]
+market_coin = "btc"
+market_period = "5"
+
+
+[trade_5x]
+entry_price_ratio = [0.10, 0.36]
+entry_time_ratio = 0.01
+
+min_entry_price = 0.45
+max_entry_price = 0.86
+
+up_min_entry_price = 0.10
+up_max_entry_price = 0.74
+down_min_entry_price = 0.45
+down_max_entry_price = 0.96
+
+paper_disable_up_entries = true
+allow_up_trades = false
+allow_down_trades = true
+
+min_seconds_to_close = 45
+
+take_profit_price = 0.86
+stop_loss_offset = 0.13
+stop_loss_max_spread = 0.035
+stop_loss_spread_wait_ms = 2000
+
+exit_price_ratio_range = [[0.0, 0.45], [0.86, 1.0]]
+emergency_swap_price = [0.0, 0.20]
+
+max_trades_per_market = 1
+max_open_positions = 1
+cooldown_after_loss_markets = 0
+
+session_stop_loss_usd = 50
+daily_stop_loss_usd = 150
+
+require_fee_adjusted_edge = true
+min_fee_adjusted_edge = 0.01
+
+require_websocket = true
+reject_on_missing_websocket = true
+reject_if_recent_ws_fallback = true
+recent_ws_fallback_cooldown_ms = 2000
+
+max_entry_feed_latency_ms = 400
+max_entry_feed_rtt_ms = 650
+max_entry_feed_age_ms = 700
+max_feed_age_ms = 500
+max_rtt_ms = 500
+max_allowed_spread = 0.05
+
+down_require_directional_momentum = false
+down_block_neutral_momentum = true
+down_require_mc_direction_agreement = false
+down_min_mc_convergence = 0.62
+down_block_if_btc_trend_up = true
+
+up_require_directional_momentum = false
+up_require_mc_direction_agreement = true
+up_requires_btc_momentum = true
+up_min_btc_delta1m = 0.001
+up_min_momentum_confidence = 0.6
+up_min_mc_convergence = 0.70
+
+latest_entry_seconds_before_close = 15
+forced_exit_seconds_before_close = 8
+
+exit_reprice_enabled = true
+exit_reprice_after_ms = 1500
+exit_reprice_max_attempts = 2
+
+max_market_transition_grace_ms = 1000
+
+require_reject_reason = true
+min_observed_markets_before_trade = 5
+
+reject_if_price_moves_against_us_fast = true
+max_price_change_after_signal = 0.025
+
+prevent_opposite_side_reentry = true
+opposite_side_cooldown_seconds = 120
+
+
+[trade_4]
+
+# ── Entry filters ─────────────────────────────────────────────────────────────
+# Emergency brake after live losses: require a later, narrower signal window.
+entry_price_ratio   = [0.10, 0.36]
+entry_time_ratio    = 0.35
+
+# ── Price window ──────────────────────────────────────────────────────────────
+# Avoid buying weak/overpriced contracts until paper data proves edge.
+min_entry_price     = 0.55
+max_entry_price     = 0.68
+
+# ── Time window ───────────────────────────────────────────────────────────────
+# DOWN-only timing experiment:
+# widen the effective late-entry window without touching price bands. Keep a
+# small buffer before close, but stop requiring entries as early as 80s out.
+min_seconds_to_close = 30
+# REMOVED: max_seconds_to_close = 230  ← dead, entry_time_ratio already ensures ≤195s
+
+# ── Risk controls ─────────────────────────────────────────────────────────────
+take_profit_price   = 0.86
+
+# CHANGED: stop loss is now a RELATIVE OFFSET, not a fixed floor.
+# stop fires at: entryPrice - stop_loss_offset
+#   entry 0.55 → stop at 0.45  (old fixed 0.50 was only 0.05 away — noise-level)
+#   entry 0.68 → stop at 0.58  (old fixed 0.50 gave R:R = 0.5:1)
+# NOTE: update decision.ts to compute stop = entryPrice - stop_loss_offset
+stop_loss_offset    = 0.13
+stop_loss_max_spread = 0.035
+stop_loss_spread_wait_ms = 2000
+
+# Lower bound aligned with new stop_loss (~0.45 at min entry).
+exit_price_ratio_range  = [[0.0, 0.45], [0.86, 1.0]]
+# Widened from [0.0, 0.06] — old range was unreachable in any real scenario.
+emergency_swap_price    = [0.0, 0.20]
+# REMOVED: hold_to_end_price = 0.90  ← dead, entry range always < 0.90
+
+# ── Anti-overtrade ────────────────────────────────────────────────────────────
+max_trades_per_market   = 1
+max_open_positions      = 1
+# Reduced from 4 → 2 markets (20 min → 10 min idle after a loss).
+cooldown_after_loss_markets = 2
+
+# ── Loss limits ───────────────────────────────────────────────────────────────
+session_stop_loss_usd   = 3
+daily_stop_loss_usd     = 6
+
+# ── Edge validation ───────────────────────────────────────────────────────────
+require_fee_adjusted_edge = true
+# Raised from 0.02 → 0.03. Round-trip taker fee at p=0.60 ≈ 0.035/share.
+# 0.02 barely covered one leg of the trade.
+min_fee_adjusted_edge   = 0.06
+
+# ── Feed quality ──────────────────────────────────────────────────────────────
+require_websocket           = true
+reject_on_missing_websocket = true
+reject_if_recent_ws_fallback = true
+recent_ws_fallback_cooldown_ms = 2000
+max_entry_feed_latency_ms   = 400
+max_entry_feed_rtt_ms       = 400
+max_entry_feed_age_ms       = 500
+# Reduced from 900ms — too stale for a 300s market.
+max_feed_age_ms             = 500
+# Raised from 300 → 500. Telemetry avg RTT = 322ms, so 300 caused
+# 91 unnecessary latency rejections per session.
+max_rtt_ms                  = 500
+max_allowed_spread          = 0.03
+
+# ── Timing ────────────────────────────────────────────────────────────────────
+latest_entry_seconds_before_close = 80
+forced_exit_seconds_before_close  = 25
+exit_reprice_enabled    = true
+exit_reprice_after_ms   = 1500
+exit_reprice_max_attempts = 2
+
+# ── Market transition protection ──────────────────────────────────────────────
+max_market_transition_grace_ms = 1000
+
+# ── Telemetry quality ─────────────────────────────────────────────────────────
+require_reject_reason           = true
+min_observed_markets_before_trade = 5
+
+# ── Stale execution protection ────────────────────────────────────────────────
+reject_if_price_moves_against_us_fast = true
+max_price_change_after_signal   = 0.025
+
+# ── Signal flip protection ────────────────────────────────────────────────────
+prevent_opposite_side_reentry   = true
+opposite_side_cooldown_seconds  = 120
+
+# ── Side bias ────────────────────────────────────────────────────────────────
+up_requires_btc_momentum   = true
+up_min_btc_delta1m         = 0.001
+up_min_momentum_confidence = 0.6
+down_bias_filter           = false
+
+
+[trade_4_old_v1]
+
+# ── Entry filters ─────────────────────────────────────────────────────────────
+# Aligned with min/max entry price: preferred prices 0.55-0.68.
+entry_price_ratio   = [0.10, 0.36]
+entry_time_ratio    = 0.35
+
+# ── Price window ──────────────────────────────────────────────────────────────
+# Raised from 0.52 to align with the new entry_price_ratio lower bound.
+min_entry_price     = 0.55
+# Lowered from 0.74 — at 0.74 the old config had R:R = 0.5:1 (negative EV).
+max_entry_price     = 0.68
+
+# ── Time window ───────────────────────────────────────────────────────────────
+min_seconds_to_close = 80
+# REMOVED: max_seconds_to_close = 230  ← dead, entry_time_ratio already ensures ≤195s
+
+# ── Risk controls ─────────────────────────────────────────────────────────────
+take_profit_price   = 0.86
+
+# CHANGED: stop loss is now a RELATIVE OFFSET, not a fixed floor.
+# stop fires at: entryPrice - stop_loss_offset
+#   entry 0.55 → stop at 0.45  (old fixed 0.50 was only 0.05 away — noise-level)
+#   entry 0.68 → stop at 0.58  (old fixed 0.50 gave R:R = 0.5:1)
+# NOTE: update decision.ts to compute stop = entryPrice - stop_loss_offset
+stop_loss_offset    = 0.13
+stop_loss_max_spread = 0.035
+stop_loss_spread_wait_ms = 2000
+
+# Lower bound aligned with new stop_loss (~0.45 at min entry).
+exit_price_ratio_range  = [[0.0, 0.45], [0.86, 1.0]]
+# Widened from [0.0, 0.06] — old range was unreachable in any real scenario.
+emergency_swap_price    = [0.0, 0.20]
+# REMOVED: hold_to_end_price = 0.90  ← dead, entry range always < 0.90
+
+# ── Anti-overtrade ────────────────────────────────────────────────────────────
+max_trades_per_market   = 1
+max_open_positions      = 1
+# Reduced from 4 → 2 markets (20 min → 10 min idle after a loss).
+cooldown_after_loss_markets = 2
+
+# ── Loss limits ───────────────────────────────────────────────────────────────
+session_stop_loss_usd   = 3
+daily_stop_loss_usd     = 6
+
+# ── Edge validation ───────────────────────────────────────────────────────────
+require_fee_adjusted_edge = true
+# Raised from 0.02 → 0.03. Round-trip taker fee at p=0.60 ≈ 0.035/share.
+# 0.02 barely covered one leg of the trade.
+min_fee_adjusted_edge   = 0.03
+
+# ── Feed quality ──────────────────────────────────────────────────────────────
+require_websocket           = true
+reject_on_missing_websocket = true
+reject_if_recent_ws_fallback = true
+recent_ws_fallback_cooldown_ms = 2000
+max_entry_feed_latency_ms   = 400
+max_entry_feed_rtt_ms       = 400
+max_entry_feed_age_ms       = 500
+# Reduced from 900ms — too stale for a 300s market.
+max_feed_age_ms             = 500
+# Raised from 300 → 500. Telemetry avg RTT = 322ms, so 300 caused
+# 91 unnecessary latency rejections per session.
+max_rtt_ms                  = 500
+max_allowed_spread          = 0.04
+
+# ── Timing ────────────────────────────────────────────────────────────────────
+latest_entry_seconds_before_close = 80
+forced_exit_seconds_before_close  = 25
+exit_reprice_enabled    = true
+exit_reprice_after_ms   = 1500
+exit_reprice_max_attempts = 2
+
+# ── Market transition protection ──────────────────────────────────────────────
+max_market_transition_grace_ms = 1000
+
+# ── Telemetry quality ─────────────────────────────────────────────────────────
+require_reject_reason           = true
+min_observed_markets_before_trade = 5
+
+# ── Stale execution protection ────────────────────────────────────────────────
+reject_if_price_moves_against_us_fast = true
+max_price_change_after_signal   = 0.025
+
+# ── Signal flip protection ────────────────────────────────────────────────────
+prevent_opposite_side_reentry   = true
+opposite_side_cooldown_seconds  = 120
+
+# ── Side bias ────────────────────────────────────────────────────────────────
+up_requires_btc_momentum   = true
+up_min_btc_delta1m         = 0.001
+up_min_momentum_confidence = 0.6
+down_bias_filter           = false

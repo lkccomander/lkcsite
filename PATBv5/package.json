@@ -1,0 +1,62 @@
+{
+  "name": "polymarket-trade-bot-ts-v5",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "Polymarket trading bot v5 scaffold for guarded real-money trading research",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:ui": "node -e \"process.env.UI_SERVER_ENABLED='1'; require('./dist/index.js')\"",
+    "ui:install": "npm install --prefix newGui",
+    "ui:dev": "npm run dev --prefix newGui",
+    "ui:build": "npm run build --prefix newGui",
+    "builder-auth:check": "tsx scripts/check_builder_auth.ts",
+    "deposit-wallet:check": "tsx scripts/deploy_deposit_wallet.ts",
+    "deposit-wallet:deploy": "tsx scripts/deploy_deposit_wallet.ts --deploy",
+    "analyze:trades": "tsx scripts/analyze_trades.ts",
+    "validate:signals": "tsx scripts/validate_signal_modules.ts",
+    "check:live-readiness": "tsx scripts/live_readiness.ts",
+    "test:feedgate": "tsx tests/feedgate.test.ts",
+    "test:montecarlo": "tsx tests/montecarlo.test.ts",
+    "test:momentum": "tsx tests/momentum.test.ts",
+    "polymarket-api-creds:refresh": "python scripts/derive_polymarket_api_creds.py --store",
+    "test": "tsx scripts/check3_lifecycle_harness.ts",
+    "report": "tsx src/report/index.ts",
+    "report:serve": "tsx src/report/index.ts --serve"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@iarna/toml": "^2.2.5",
+    "@polymarket/builder-relayer-client": "^0.0.9",
+    "@polymarket/builder-signing-sdk": "^0.0.8",
+    "@polymarket/clob-client-v2": "^1.0.3",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tsjunk/chalk": "^5.6.2",
+    "@types/ws": "^8.18.1",
+    "ccxt": "^4.5.36",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.16.0",
+    "viem": "^2.48.8",
+    "ws": "^8.19.0",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^8.2.3",
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.11.0",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "express": "^5.2.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

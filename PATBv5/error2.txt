@@ -1,0 +1,255 @@
+Market selected: btc-updown-5m-1780206300
+Window: 1780206577 -> 1780206600
+Resolved tokens | source=market_outcomes_labels | outcomes=Up / Down
+Resolved tokens | UP=56005297446522222348845107348834670775544262157525183611359045294823165098995 | DOWN=5321155477363165200832612691912816172755455993504933167242738689219917542275
+Market config | tickSize=0.01 | negRisk=false | minOrderSize=5
+Market benchmark | priceToBeat=n/a | source=n/a | finalPrice=n/a
+Market | tMinus=22s/300s | up=0.99/0.01 spread=0.98 | down=0.99/0.01 spread=0.98 | priceToBeat=n/a | upRatio=0.98 | timeRatio=0.93 | score=0.91 | observedTicks=1 | trend=UP 🟢 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=UP 🟢
+Market benchmark refreshed | priceToBeat=73996.18495139014 | source=polymarket_page_crypto_prices_open | finalPrice=n/a
+Market | tMinus=19s/300s | up=0.81/0.80 spread=0.01 | down=0.99/0.01 spread=0.98 | priceToBeat=$73996.18 | upRatio=0.62 | timeRatio=0.94 | score=0.58 | observedTicks=6 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=16s/300s | up=0.70/0.69 spread=0.01 | down=0.31/0.30 spread=0.01 | priceToBeat=$73996.18 | upRatio=0.40 | timeRatio=0.95 | score=0.38 | observedTicks=13 | trend=DOWN 🔴 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=DOWN 🔴
+Market | tMinus=3s/300s | up=0.99/0.01 spread=0.98 | down=0.19/0.18 spread=0.01 | priceToBeat=$73996.18 | upRatio=0.98 | timeRatio=0.99 | score=0.97 | observedTicks=15 | trend=UP 🟢 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=UP 🟢
+Market selected: btc-updown-5m-1780206600
+Window: 1780206642 -> 1780206900
+Resolved tokens | source=market_outcomes_labels | outcomes=Up / Down
+Resolved tokens | UP=48890758779567113323436509756425108520507425658483745742234063624496687569842 | DOWN=41288579308826983503432575387602155303451742745269051570625304696537455659230
+Market config | tickSize=0.01 | negRisk=false | minOrderSize=5
+Market benchmark | priceToBeat=n/a | source=n/a | finalPrice=n/a
+Market | tMinus=169s/300s | up=0.99/0.01 spread=0.98 | down=0.99/0.01 spread=0.98 | priceToBeat=n/a | upRatio=0.98 | timeRatio=0.44 | score=0.43 | observedTicks=1 | trend=UP 🟢 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=UP 🟢
+Market benchmark refreshed | priceToBeat=73985.07187280107 | source=polymarket_page_crypto_prices_open | finalPrice=n/a
+Collateral guard unavailable (before_websocket_decision); skipping trading action: request timeout (code=TIMEOUT, version=6.16.0)
+
+
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+Market | tMinus=138s/300s | up=0.20/0.19 spread=0.01 | down=0.99/0.01 spread=0.98 | priceToBeat=$73948.92 | upRatio=0.60 | timeRatio=0.54 | score=0.32 | observedTicks=92 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0252 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0020 < minEdge=$0.0300
+Market | tMinus=135s/300s | up=0.17/0.16 spread=0.01 | down=0.84/0.83 spread=0.01 | priceToBeat=$73948.92 | upRatio=0.66 | timeRatio=0.55 | score=0.36 | observedTicks=98 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0020 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0020 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0020 < minEdge=$0.0300
+Market | tMinus=132s/300s | up=0.17/0.16 spread=0.01 | down=0.99/0.01 spread=0.98 | priceToBeat=$73948.92 | upRatio=0.66 | timeRatio=0.56 | score=0.37 | observedTicks=103 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0092 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0092 < minEdge=$0.0300
+Market | tMinus=129s/300s | up=0.16/0.15 spread=0.01 | down=0.85/0.84 spread=0.01 | priceToBeat=$73948.92 | upRatio=0.68 | timeRatio=0.57 | score=0.39 | observedTicks=108 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0092 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0092 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0092 < minEdge=$0.0300
+Market | tMinus=125s/300s | up=0.16/0.15 spread=0.01 | down=0.99/0.01 spread=0.98 | priceToBeat=$73948.92 | upRatio=0.68 | timeRatio=0.58 | score=0.40 | observedTicks=113 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0092 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0092 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0092 < minEdge=$0.0300
+Market | tMinus=121s/300s | up=0.99/0.01 spread=0.98 | down=0.99/0.01 spread=0.98 | priceToBeat=$73948.92 | upRatio=0.98 | timeRatio=0.60 | score=0.58 | observedTicks=119 | trend=UP 🟢 | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=UP 🟢
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0092 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0252 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0252 < minEdge=$0.0300
+Market | tMinus=118s/300s | up=0.19/0.18 spread=0.01 | down=0.99/0.01 spread=0.98 | priceToBeat=$73948.92 | upRatio=0.62 | timeRatio=0.61 | score=0.38 | observedTicks=125 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0252 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0135 < minEdge=$0.0300
+Market | tMinus=115s/300s | up=0.18/0.17 spread=0.01 | down=0.83/0.82 spread=0.01 | priceToBeat=$73948.92 | upRatio=0.64 | timeRatio=0.62 | score=0.39 | observedTicks=130 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0135 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0020 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0020 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0020 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0020 < minEdge=$0.0300
+Market | tMinus=112s/300s | up=0.17/0.16 spread=0.01 | down=0.84/0.83 spread=0.01 | priceToBeat=$73948.92 | upRatio=0.66 | timeRatio=0.63 | score=0.41 | observedTicks=139 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0020 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0135 < minEdge=$0.0300
+Market | tMinus=109s/300s | up=0.20/0.19 spread=0.01 | down=0.81/0.80 spread=0.01 | priceToBeat=$73948.92 | upRatio=0.60 | timeRatio=0.64 | score=0.38 | observedTicks=144 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0252 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0135 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$0.0020 < minEdge=$0.0300
+Market | tMinus=106s/300s | up=0.16/0.15 spread=0.01 | down=0.85/0.84 spread=0.01 | priceToBeat=$73948.92 | upRatio=0.68 | timeRatio=0.65 | score=0.44 | observedTicks=149 | trend=FLAT ⚪ | position=NONE ⬛ | engine=IDLE
+Portfolio | cash=$5.00 | shares=0.00 | position=NONE ⬛ | shareValue=$0.00 | total=$5.00 | engine=IDLE | trend=FLAT ⚪
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0092 < minEdge=$0.0300
+⏭️  Trade 4 skipped | feeAdjustedEdge=$-0.0202 < minEdge=$0.0300
+
+
+
+BOT CHECKER:
+Enter session ID: b9b608d5-8c78-42cd-a3bf-4c10577dd095
+
+Running commands:
+npx tsx tests/entry_ratio.test.ts
+npm run validate:signals -- --bot-id polymarket-bot-v5 --session-id b9b608d5-8c78-42cd-a3bf-4c10577dd095
+npm run analyze:trades -- --bot-id polymarket-bot-v5 --session-id b9b608d5-8c78-42cd-a3bf-4c10577dd095
+
+
+> polymarket-trade-bot-ts-v5@1.0.0 validate:signals
+> tsx scripts/validate_signal_modules.ts --bot-id polymarket-bot-v5 --session-id ***
+
+Bot: polymarket-bot-v5
+Session: b9b608d5-8c78-42cd-a3bf-4c10577dd095
+Telemetry file: C:\Projects\lkcsite\polydb\telemetry\events.jsonl
+Paper buys: 33
+Paper sells: 33
+Live buys: 0
+Live sells: 0
+Fallback events: 59
+Fallback recoveries: 31
+Fallback diagnostics:
+  sessionHours: 3.6474
+  marketsCovered: 45
+  fallbackEventsPerHour: 16.18
+  fallbackEventsPerMarket: 1.31
+  avgFallbackRecoveryMs: 3246.129
+  maxFallbackRecoveryMs: 8047
+Fallback events by reason:
+  stale_snapshot: 50
+  missing_snapshot: 9
+[PASS] Every paper_trade.buy has feedLatencyMs, momentumScore, mcConvergence: 33/33 buys covered
+[PASS] Every paper_trade.sell has a reason: 33/33 sells covered
+[SKIP] momentum_mismatch rejection observed (optional): 0 found
+[PASS] low_convergence rejection observed (optional): 145 found
+[FAIL] Fallback events <= 20: 59 fallback events
+[PASS] Fallback events per market <= 2: 1.31 fallbacks/market
+[FAIL] Average fallback recovery <= 1000ms: 3246.129 ms
+[FAIL] Max fallback recovery <= 5000ms: 8047 ms
+[PASS] signal.momentum events present: 54 found
+[PASS] signal.montecarlo events present: 183 found
+
+> polymarket-trade-bot-ts-v5@1.0.0 analyze:trades
+> tsx scripts/analyze_trades.ts --bot-id polymarket-bot-v5 --session-id ***
+
+Bot filter: polymarket-bot-v5
+Session filter: b9b608d5-8c78-42cd-a3bf-4c10577dd095
+Telemetry file: C:\Projects\lkcsite\polydb\telemetry\events.jsonl
+Total trades: 33
+BUY events: 33
+SELL events: 33
+Signal rejection events: 11383
+Momentum events: 54
+Monte Carlo events: 183
+Fallback events: 59
+Fallback recoveries: 31
+Stop-loss eval events: 28
+Stop-loss wait results: 7
+down_blocked_neutral_momentum count: 0
+DOWN trades executed with momentum NEUTRAL count: 33
+Win rate: 24.24%
+Winning trades: 8
+Losing trades: 25
+Flat trades: 0
+Net PnL after fees: -4.61
+Avg hold time (s): 68.0285
+Avg entry latency winners (ms): 0
+Avg entry latency losers (ms): 0
+Max latency on losers (ms): 0
+Avg spread at entry: 0.0118
+Avg spread at exit: 0.0212
+Avg slippage at entry: -0.0003
+Avg slippage at exit: 0.0036
+Avg momentum score: -0.0002
+Avg momentum confidence: 0.1397
+Avg MC convergence: 0.7092
+Avg feed ticks last 10s: 15.0606
+Feed healthy entries: 33
+Forced exits: 0
+Stop losses: 25
+Take profits: 8
+Stop-loss avg spread at eval: 0.0268
+Stop-loss avg spread at exit: 0.0236
+Stop-loss avg slippage estimate: 0.0143
+Stop-loss wait recovery rate: 42.86%
+Stop-loss avg spread after wait: 0.0671
+
+Win Rate By Exit Reason
+  stop_loss: trades=25 winRate=0% avgPnl=-1.0988
+  take_profit: trades=8 winRate=100% avgPnl=2.8575
+
+Fallback Events By Reason
+  stale_snapshot: count=50
+  missing_snapshot: count=9
+
+Fallback Recovery Durations
+  stale_snapshot: recoveries=31 avgDurationMs=3246.129 maxDurationMs=8047
+
+Win Rate By Side
+  DOWN: trades=33 winRate=24.24% avgPnl=-0.1397
+
+Win Rate By BTC Trend Direction
+  DOWN: trades=6 winRate=0% avgPnl=-1.065
+  FLAT: trades=27 winRate=29.63% avgPnl=0.0659
+
+Win Rate By Momentum Direction
+  NEUTRAL: trades=33 winRate=24.24% avgPnl=-0.1397
+
+Win Rate By Monte Carlo Direction
+  DOWN: trades=7 winRate=28.57% avgPnl=0.1829
+  UP: trades=26 winRate=23.08% avgPnl=-0.2265
+
+BTC Delta 30s Correlation
+  UP trades when btcDelta30s > 0: trades=0 winRate=n/a% avgPnl=n/a
+  UP trades when btcDelta30s < 0: trades=0 winRate=n/a% avgPnl=n/a
+  DOWN trades when btcDelta30s < 0: trades=6 winRate=0% avgPnl=-1.065
+  DOWN trades when btcDelta30s > 0: trades=0 winRate=n/a% avgPnl=n/a
+
+Win Rate By Monte Carlo Convergence
+  MC convergence >= 0.62: trades=33 winRate=24.24% avgPnl=-0.1397
+  MC convergence < 0.62: trades=0 winRate=n/a% avgPnl=n/a
+
+Win Rate By Side And BTC Trend
+  UP trades when BTC trending UP: trades=0 winRate=n/a% avgPnl=n/a
+  UP trades when BTC trending DOWN: trades=0 winRate=n/a% avgPnl=n/a
+  DOWN trades when BTC trending DOWN: trades=6 winRate=0% avgPnl=-1.065
+  DOWN trades when BTC trending UP: trades=0 winRate=n/a% avgPnl=n/a
+
+Average PnL By Side And BTC Trend
+  UP trades when BTC trending UP: trades=0 avgPnl=n/a avgPnlPct=n/a
+  UP trades when BTC trending DOWN: trades=0 avgPnl=n/a avgPnlPct=n/a
+  DOWN trades when BTC trending DOWN: trades=6 avgPnl=-1.065 avgPnlPct=-21.9534
+  DOWN trades when BTC trending UP: trades=0 avgPnl=n/a avgPnlPct=n/a
+
+Win Rate By Momentum Alignment
+  Momentum aligned with side: trades=0 winRate=n/a% avgPnl=n/a
+  Momentum neutral: trades=33 winRate=24.24% avgPnl=-0.1397
+
+DOWN Trades Executed With Momentum NEUTRAL
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=108780553058772569351833155244747708545353963270157080231216285931591896293461 entry=0.54 pnl=-1.17 mc=0.755
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=22023363272696277337678897216846691926954557476323499422774497631744406190760 entry=0.64 pnl=-0.15 mc=0.621
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=88449702524277242805210156127168821244223645923426997844730195487737464336078 entry=0.57 pnl=-1.19 mc=0.642
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=82030446510049479428349796748006240284465501398882574915358302939487959292874 entry=0.55 pnl=-1.06 mc=0.62
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=22546410446030151084890313028605132445583951758882273977153363909907597919260 entry=0.63 pnl=-1.16 mc=0.639
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=6581387669072417026353738308433117994207533229895873282881867759308509773536 entry=0.54 pnl=3.05 mc=0.743
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=110294806815705733920338070792209914602054572556341793858256117352242397395623 entry=0.46 pnl=-1.57 mc=0.639
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=61267134971104346913244974523364566246447896771711068278028494917838084150628 entry=0.59 pnl=2.39 mc=0.621
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=83949962330408686719811635812729728568130245368880706489594581197274131331651 entry=0.59 pnl=-0.99 mc=0.947
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=2292650618962968176130873297203671147439413891703891119945194672269375347800 entry=0.46 pnl=-1.25 mc=0.631
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=107878925090454692264481081841464938638910686017309636388293255249022137474549 entry=0.65 pnl=-0.9 mc=0.621
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=27673599573007736055264099667250590153973784460343458583611380438130221103242 entry=0.64 pnl=-0.91 mc=0.661
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=8343359566759565149857792168527243234738329029257399051296345372244346831850 entry=0.66 pnl=1.63 mc=0.995
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=18781840661401746210633552515939744203290148253196164538843224126951232531164 entry=0.47 pnl=4.1 mc=0.638
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=89072490737735643048536678198971473305476685847085803771918650720852397158680 entry=0.54 pnl=-1.08 mc=0.671
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=67718876322157959858550305297901033177147051587221320289753564533972333359484 entry=0.6 pnl=-1.13 mc=0.67
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=89816922783345025583202146885868813385394828244489992339463808444475432521896 entry=0.59 pnl=-0.99 mc=0.691
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=49163183754012177011987633398059467809767133445334352968249792506596566876078 entry=0.59 pnl=-0.99 mc=0.933
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=61183381217850576595813836674060359735209856206782817385342660119701269404497 entry=0.56 pnl=-1.3 mc=0.766
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=32853314335757308952005351594039075704588919685227924689018536338627611611804 entry=0.48 pnl=3.92 mc=0.651
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=51563244898332801146587939099158878076576393324169039677288847537553165447414 entry=0.57 pnl=-1.11 mc=0.644
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=73460259718918621864023453465765895401521607844053277516637074701936376394752 entry=0.49 pnl=-1.38 mc=0.624
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=90645875863551267236782979865797907265348004116884952206496662656423261234579 entry=0.57 pnl=-1.02 mc=0.672
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=89057322014527779281223555389363208613303287647870292179895335944500791111165 entry=0.55 pnl=2.9 mc=0.649
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=56796114398942961955673971681877350105131962490650806766354291585526991443060 entry=0.44 pnl=-1.31 mc=0.64
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=98579026678482549680023569115996344245129492497440398436584042199900550927468 entry=0.57 pnl=-1.02 mc=0.63
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=104564115074839584323453101977370959016226739933768106852300987712887262742413 entry=0.63 pnl=2.01 mc=0.845
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=16655716030604324814722365784624609785990714540797883426983172775333422092846 entry=0.63 pnl=-1.08 mc=0.65
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=19873072633488121937962216711303731113191586354619566198391165659953975853504 entry=0.68 pnl=-0.86 mc=0.999
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=95315725421012276902086257416284264170892095585482063110882598372106555685738 entry=0.56 pnl=-1.56 mc=0.653
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=79285058543825925429239579497218480426530756881658472801945439937022770042744 entry=0.55 pnl=-1.06 mc=0.697
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=101564936011362073866042069577227073839821700255278185566761468219947569127128 entry=0.56 pnl=2.86 mc=0.843
+  session=b9b608d5-8c78-42cd-a3bf-4c10577dd095 token=29687371186865714780563572213414545763314669866826974046855549576569281762226 entry=0.47 pnl=-1.23 mc=0.701

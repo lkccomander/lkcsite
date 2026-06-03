@@ -1,0 +1,11 @@
+ALTER TABLE trades ADD COLUMN feed_latency_ms REAL;
+ALTER TABLE trades ADD COLUMN feed_rtt_ms REAL;
+ALTER TABLE trades ADD COLUMN feed_healthy INTEGER;
+ALTER TABLE trades ADD COLUMN momentum_score REAL;
+ALTER TABLE trades ADD COLUMN momentum_direction TEXT;
+ALTER TABLE trades ADD COLUMN momentum_confidence REAL;
+ALTER TABLE trades ADD COLUMN mc_convergence REAL;
+ALTER TABLE trades ADD COLUMN mc_sim_direction TEXT;
+ALTER TABLE trades ADD COLUMN mc_bull_paths INTEGER;
+ALTER TABLE trades ADD COLUMN mc_bear_paths INTEGER;
+ALTER TABLE trades ADD COLUMN sell_reason TEXT;

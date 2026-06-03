@@ -1,0 +1,20 @@
+[Unit]
+Description=PATBv5 Polymarket Paper Trading Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/lkcsite/PATBv5
+Environment=NODE_ENV=production
+Environment=PROJECT_ROOT=/home/pi/lkcsite/PATBv5
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/pi/lkcsite/PATBv5/deploy/raspberry-pi/run-bot.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+node_modules
+.env
+*-lock.json
+log.txt
+package-lock.json
+polydb/telemetry/sessions
+polydb/telemetry/events.jsonl
+polydb/telemetry/archive/
+polydb/reports/
+graphify-out/
+*.tsbuildinfo
