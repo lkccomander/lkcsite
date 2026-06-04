@@ -1,0 +1,20 @@
+{
+  "name": "patbv5-evaluator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Independent evaluator for PATBv5 telemetry sessions",
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "evaluate:session": "tsx scripts/evaluate_session.ts",
+    "compare:strategies": "tsx scripts/compare_strategies.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

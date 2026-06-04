@@ -36,11 +36,13 @@ import {
   getTelemetryDbPath,
   getTelemetrySession,
   getTelemetrySessionsDir,
+  setTelemetryVersionContext,
   loadPersistedPaperBalance,
   savePersistedPaperBalance,
   startTelemetrySession,
   writeTelemetryEventSafe,
 } from "./telemetry";
+import { initializeVersionContext } from "./telemetry/versioning";
 import { getTrade4LikeConfig, loadConfig } from "./config/toml";
 import { readOptionalConfigEnv } from "./config/secrets";
 import { Trade } from "./trade";
@@ -305,6 +307,8 @@ async function main() {
   const signerAddress = PAPER_TRADING ? "paper-trading" : SIGNER_ADDRESS ?? "unknown";
   const runtimeMode = PAPER_TRADING ? "PAPER" : "LIVE";
   await startTelemetrySession(runtimeMode);
+  const versionContext = await initializeVersionContext(globalThis.__CONFIG__);
+  setTelemetryVersionContext(versionContext);
 
   let paperBalance = PAPER_TRADING
     ? await loadPersistedPaperBalance(PAPER_STARTING_USD)
@@ -517,6 +521,11 @@ async function main() {
   console.log(chalk.gray(`Telemetry Sessions: ${getTelemetrySessionsDir()}`));
   console.log(chalk.gray(`Session: ${getTelemetrySession()?.id} @ ${getTelemetrySession()?.startedAt}`));
   console.log(chalk.gray(`Repo: ${process.cwd()}`));
+  console.log(
+    chalk.gray(
+      `Version Context: strategy=${versionContext.strategyVersionId} | build=${versionContext.botBuildVersionId} | commit=${versionContext.gitCommit} | branch=${versionContext.gitBranch} | dirty=${versionContext.gitDirty}`
+    )
+  );
   console.log(chalk.gray("Momentum raw telemetry debug: enabled"));
   console.log(chalk.gray("Trend legend: UP 🟢 | DOWN 🔴 | FLAT ⚪"));
   console.log(chalk.gray("Position legend: UP 🟩 | DOWN 🟥 | NONE ⬛"));

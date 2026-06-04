@@ -1,57 +1,138 @@
 param(
-  [string]$SessionID
+    [Parameter(Mandatory = $true)]
+    [string]$SessionID,
+
+    [string]$OutputFile = "results.md"
 )
+
+$ErrorActionPreference = "Stop"
 
 $SessionsDir = Join-Path $PSScriptRoot "..\polydb\telemetry\sessions"
 
-# Ask for session ID when not provided
-Write-Host "`nBOT CHECKER:"
-if (-not $SessionID) {
-  $SessionID = Read-Host "Enter session ID"
-}
+Write-Host ""
+Write-Host ("BOT CHECKER: " + $SessionID)
 
-$TelemetryArg = ""
-$SessionArg = ""
+$ResolvedTelemetryPath = $null
 $DisplayTarget = $SessionID
 
-if ($SessionID -and ($SessionID.ToLower().EndsWith(".jsonl") -or (Test-Path $SessionID))) {
-  $ResolvedTelemetryPath = (Resolve-Path $SessionID).Path
-  $TelemetryArg = "--telemetry-file `"$ResolvedTelemetryPath`""
-  $DisplayTarget = $ResolvedTelemetryPath
-} else {
-  $ResolvedSessionFile = $null
-  if ($SessionID -and (Test-Path $SessionsDir)) {
-    $ResolvedSessionFile = Get-ChildItem -Path $SessionsDir -Filter "*__$SessionID.jsonl" -File -ErrorAction SilentlyContinue |
-      Sort-Object Name -Descending |
-      Select-Object -First 1
-  }
+# Resolve telemetry/session
+if ($SessionID.ToLower().EndsWith(".jsonl") -or (Test-Path $SessionID)) {
+    $ResolvedTelemetryPath = (Resolve-Path $SessionID).Path
+    $DisplayTarget = $ResolvedTelemetryPath
+}
+else {
+    $ResolvedSessionFile = $null
 
-  if ($ResolvedSessionFile) {
-    $TelemetryArg = "--telemetry-file `"$($ResolvedSessionFile.FullName)`""
-    $SessionArg = "--session-id $SessionID"
-    $DisplayTarget = $ResolvedSessionFile.FullName
-  } else {
-    $SessionArg = "--session-id $SessionID"
-  }
+    if (Test-Path $SessionsDir) {
+        $ResolvedSessionFile = Get-ChildItem -Path $SessionsDir -Filter "*__$SessionID.jsonl" -File -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+    }
+
+    if ($ResolvedSessionFile) {
+        $ResolvedTelemetryPath = $ResolvedSessionFile.FullName
+        $DisplayTarget = $ResolvedSessionFile.FullName
+    }
 }
 
-# Build commands
-$cmd0 = "npx tsx tests/entry_ratio.test.ts"
-$cmd1 = "npm run validate:signals -- --bot-id polymarket-bot-v5 $SessionArg $TelemetryArg"
-$cmd2 = "npm run analyze:trades -- --bot-id polymarket-bot-v5 $SessionArg $TelemetryArg"
-$cmd3 = "npm run check:live-readiness -- --bot-id polymarket-bot-v5 $SessionArg $TelemetryArg"
+function Format-CommandForLog {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Exe,
 
-# Show commands
-Write-Host "`nRunning commands:"
-Write-Host "Target: $DisplayTarget"
-Write-Host $cmd0
-Write-Host $cmd1
-Write-Host $cmd2
-Write-Host $cmd3
-Write-Host ""
+        [Parameter(Mandatory = $true)]
+        [string[]]$Args
+    )
 
-# Execute commands
-Invoke-Expression $cmd0
-Invoke-Expression $cmd1
-Invoke-Expression $cmd2
-Invoke-Expression $cmd3
+    $parts = @($Exe)
+
+    foreach ($arg in $Args) {
+        if ($arg -match '\s') {
+            $parts += ('"' + $arg + '"')
+        }
+        else {
+            $parts += $arg
+        }
+    }
+
+    return ($parts -join ' ')
+}
+
+function Run-And-Append {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$OutputFilePath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Exe,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Args
+    )
+
+    $cmdText = Format-CommandForLog -Exe $Exe -Args $Args
+    Write-Host ("Running: " + $cmdText)
+
+    Add-Content -Path $OutputFilePath -Value ("### Command: " + $cmdText)
+
+    try {
+        $output = & $Exe @Args 2>&1 | Out-String
+    }
+    catch {
+        $output = $_ | Out-String
+    }
+
+    Add-Content -Path $OutputFilePath -Value '```text'
+    Add-Content -Path $OutputFilePath -Value ($output.TrimEnd())
+    Add-Content -Path $OutputFilePath -Value '```'
+    Add-Content -Path $OutputFilePath -Value ''
+}
+
+# Markdown header
+$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+Add-Content -Path $OutputFile -Value ("## Session: " + $SessionID)
+Add-Content -Path $OutputFile -Value ("- Time: " + $timestamp)
+Add-Content -Path $OutputFile -Value ("- Target: " + $DisplayTarget)
+Add-Content -Path $OutputFile -Value ''
+
+# Command 0
+Run-And-Append `
+    -OutputFilePath $OutputFile `
+    -Exe "npx" `
+    -Args @("tsx", "tests/entry_ratio.test.ts")
+
+# Shared args for npm commands
+$commonArgs = @("--bot-id", "polymarket-bot-v5")
+
+if (-not [string]::IsNullOrWhiteSpace($SessionID)) {
+    $commonArgs += @("--session-id", $SessionID)
+}
+
+if (-not [string]::IsNullOrWhiteSpace($ResolvedTelemetryPath)) {
+    $commonArgs += @("--telemetry-file", $ResolvedTelemetryPath)
+}
+
+# Command 1
+Run-And-Append `
+    -OutputFilePath $OutputFile `
+    -Exe "npm" `
+    -Args @("run", "validate:signals", "--") + $commonArgs
+
+# Command 2
+Run-And-Append `
+    -OutputFilePath $OutputFile `
+    -Exe "npm" `
+    -Args @("run", "analyze:trades", "--") + $commonArgs
+
+# Command 3
+Run-And-Append `
+    -OutputFilePath $OutputFile `
+    -Exe "npm" `
+    -Args @("run", "check:live-readiness", "--") + $commonArgs
+
+Add-Content -Path $OutputFile -Value '---'
+Add-Content -Path $OutputFile -Value ''
+
+Write-Host ("Completed session " + $SessionID)
+``

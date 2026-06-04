@@ -67,6 +67,7 @@ export interface TelemetryEvent<TPayload = Record<string, unknown>> {
     botId?: string;
     sessionId?: string;
     sessionStartedAt?: string;
+    versionContext?: Record<string, unknown>;
 }
 
 interface TelemetrySession {
@@ -104,6 +105,7 @@ const LEGACY_PAPER_BALANCE_STATE_PATH = resolve(TELEMETRY_ROOT, "paper-balance.j
 
 let telemetryReady: Promise<void> | null = null;
 let telemetrySession: TelemetrySession | null = null;
+let telemetryVersionContext: Record<string, unknown> | null = null;
 
 async function ensureTelemetryStore(): Promise<void> {
     if (!telemetryReady) {
@@ -157,6 +159,14 @@ export function getTelemetryBotId(): string {
     return BOT_ID;
 }
 
+export function setTelemetryVersionContext(versionContext: Record<string, unknown> | null): void {
+    telemetryVersionContext = versionContext;
+}
+
+export function getTelemetryVersionContext(): Record<string, unknown> | null {
+    return telemetryVersionContext;
+}
+
 export async function writeTelemetryEvent<TPayload = Record<string, unknown>>(
     type: TelemetryEventType,
     payload: TPayload
@@ -170,6 +180,7 @@ export async function writeTelemetryEvent<TPayload = Record<string, unknown>>(
         botId: telemetrySession?.botId ?? BOT_ID,
         sessionId: telemetrySession?.id,
         sessionStartedAt: telemetrySession?.startedAt,
+        versionContext: telemetryVersionContext ?? undefined,
     };
 
     const serialized = `${JSON.stringify(event)}\n`;
