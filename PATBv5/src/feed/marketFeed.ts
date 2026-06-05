@@ -44,6 +44,18 @@ interface ActiveFallbackState {
     reconnectAttempt: number;
 }
 
+interface SnapshotTelemetryShape {
+    source: "websocket" | "rest";
+    staleMs: number;
+    latencyMs: number | null;
+    marketTimestampMs: number | null;
+    receivedAt: string;
+    upBuyPrice: number;
+    upSellPrice: number;
+    downBuyPrice: number;
+    downSellPrice: number;
+}
+
 function toFiniteNumber(value: unknown): number {
     const parsed = typeof value === "number" ? value : Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -553,7 +565,7 @@ export class PolymarketMarketFeed implements MarketFeed {
             return;
         }
 
-        await this.maybeEmitFallbackRecovered(eventType);
+        await this.maybeEmitFallbackRecovered(eventType, snapshot);
 
         this.recordSnapshot(snapshot, "websocket", eventType);
         await this.emitTickTelemetry(eventType, snapshot);
@@ -691,6 +703,7 @@ export class PolymarketMarketFeed implements MarketFeed {
     private buildFallbackDiagnostics(now = Date.now(), fallbackReason?: string): Record<string, unknown> {
         const upState = this.stateByAsset[this.upTokenId];
         const downState = this.stateByAsset[this.downTokenId];
+        const websocketSnapshot = this.buildWebsocketSnapshot();
         const upAgeMs = upState.receivedAtMs > 0 ? now - upState.receivedAtMs : null;
         const downAgeMs = downState.receivedAtMs > 0 ? now - downState.receivedAtMs : null;
         const newestWsMessageAtMs = Math.max(upState.receivedAtMs || 0, downState.receivedAtMs || 0);
@@ -726,15 +739,38 @@ export class PolymarketMarketFeed implements MarketFeed {
             upFirstWebsocketSeenAtMs: upState.firstWebsocketSeenAtMs,
             downFirstWebsocketSeenAtMs: downState.firstWebsocketSeenAtMs,
             startupGraceActive: this.wsConnected && Date.now() - this.lastConnectedAtMs < FEED_STARTUP_GRACE_MS,
+            staleThresholdMs: FEED_STALE_MS,
+            websocketSnapshotGraceMs: FEED_WEBSOCKET_SNAPSHOT_GRACE_MS,
+            websocketSnapshotPresent: Boolean(websocketSnapshot),
+            websocketSnapshotStaleMs: websocketSnapshot?.staleMs ?? null,
+            websocketSnapshotLatencyMs: websocketSnapshot?.latencyMs ?? null,
+            websocketSnapshotMarketTimestampMs: websocketSnapshot?.marketTimestampMs ?? null,
+            websocketSnapshotReceivedAt: websocketSnapshot?.receivedAt ?? null,
+            lastSnapshotSource: this.stats.lastSnapshotSource,
         };
     }
 
-    private async maybeEmitFallbackRecovered(eventType: string): Promise<void> {
+    private snapshotTelemetryShape(snapshot: PriceSnapshot): SnapshotTelemetryShape {
+        return {
+            source: snapshot.source,
+            staleMs: snapshot.staleMs,
+            latencyMs: snapshot.latencyMs,
+            marketTimestampMs: snapshot.marketTimestampMs,
+            receivedAt: snapshot.receivedAt,
+            upBuyPrice: snapshot.upBuyPrice,
+            upSellPrice: snapshot.upSellPrice,
+            downBuyPrice: snapshot.downBuyPrice,
+            downSellPrice: snapshot.downSellPrice,
+        };
+    }
+
+    private async maybeEmitFallbackRecovered(eventType: string, snapshot?: PriceSnapshot | null): Promise<void> {
         if (!this.activeFallback) {
             return;
         }
         const now = Date.now();
         const fallbackDurationMs = Math.max(0, now - this.activeFallback.startedAtMs);
+        const diagnostics = this.buildFallbackDiagnostics(now, this.activeFallback.reason);
         await writeTelemetryEventSafe("feed.fallback_recovered", {
             slug: this.slug,
             marketSlug: this.slug,
@@ -750,6 +786,12 @@ export class PolymarketMarketFeed implements MarketFeed {
             recovered: true,
             recoveryEventType: eventType,
             recoveredAt: new Date(now).toISOString(),
+            recoverySource: snapshot?.source ?? "websocket",
+            recoverySnapshot: snapshot ? this.snapshotTelemetryShape(snapshot) : null,
+            diagnostics: {
+                ...diagnostics,
+                recovered: true,
+            },
         });
         this.activeFallback = null;
     }

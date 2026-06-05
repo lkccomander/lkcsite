@@ -9,3 +9,10 @@ polydb/telemetry/archive/
 polydb/reports/
 graphify-out/
 *.tsbuildinfo
+
+# Generated local JSON state / analysis artifacts
+checker_history.json
+sessions_fresh_comparable_report.json
+polydb/evaluation/session_evaluations/*.json
+polydb/evaluation/diagnostics/*.json
+polydb/evaluation/scoreboards/*.json

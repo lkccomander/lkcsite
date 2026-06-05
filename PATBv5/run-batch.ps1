@@ -11,11 +11,13 @@
 
 param(
   [string]$SessionsFile = (Join-Path $PSScriptRoot "sessions.txt"),
-  [switch]$StopOnError
+  [switch]$StopOnError,
+  [switch]$IncludeAlreadyAnalyzed
 )
 
-$CheckerScript = Join-Path $PSScriptRoot "checker_old.ps1"
+$CheckerScript = Join-Path $PSScriptRoot "checker.ps1"
 $LogFile       = Join-Path $PSScriptRoot "batch_checker_results.log"
+$CheckerHistoryFile = Join-Path $PSScriptRoot "checker_history.json"
 
 # --- Guards ---
 if (-not (Test-Path $CheckerScript)) {
@@ -35,6 +37,22 @@ if ($Sessions.Count -eq 0) {
   exit 1
 }
 
+$AnalyzedSessionIds = @{}
+if ((-not $IncludeAlreadyAnalyzed) -and (Test-Path $CheckerHistoryFile)) {
+  try {
+    $History = Get-Content $CheckerHistoryFile -Raw | ConvertFrom-Json
+    foreach ($Entry in @($History)) {
+      if ($Entry.sessionId) {
+        $AnalyzedSessionIds[[string]$Entry.sessionId] = $true
+      }
+    }
+  } catch {
+    Write-Warning "Could not parse checker_history.json. Continuing without skip cache."
+  }
+}
+
+$Skipped = 0
+
 # --- Batch loop ---
 $Total   = $Sessions.Count
 $Passed  = 0
@@ -53,6 +71,30 @@ $Index = 0
 foreach ($SessionID in $Sessions) {
   $Index++
   $SessionID = $SessionID.Trim()
+
+  if ((-not $IncludeAlreadyAnalyzed) -and $AnalyzedSessionIds.ContainsKey($SessionID)) {
+    $Skipped++
+    Write-Host "---------------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host "[$Index/$Total] Session: $SessionID" -ForegroundColor Yellow
+    Write-Host "[SKIP] Already analyzed according to checker_history.json" -ForegroundColor DarkYellow
+    Write-Host ""
+
+    $Results += [PSCustomObject]@{
+      Index     = $Index
+      SessionID = $SessionID
+      Status    = "SKIP"
+      Elapsed   = 0
+    }
+
+    "" | Add-Content -Path $LogFile
+    "---------------------------------------------------------" | Add-Content -Path $LogFile
+    "[$Index/$Total] Session: $SessionID" | Add-Content -Path $LogFile
+    "---------------------------------------------------------" | Add-Content -Path $LogFile
+    "$([datetime]::Now.ToString('HH:mm:ss'))  [$Index/$Total]  SKIP  (0s)  $SessionID" |
+      Add-Content -Path $LogFile
+
+    continue
+  }
 
   Write-Host "---------------------------------------------------------" -ForegroundColor DarkGray
   Write-Host "[$Index/$Total] Session: $SessionID" -ForegroundColor Yellow
@@ -111,6 +153,7 @@ Write-Host "=========================================================" -Foregrou
 Write-Host "BATCH COMPLETE" -ForegroundColor Cyan
 Write-Host "  Sessions : $Total"
 Write-Host "  Passed   : $Passed" -ForegroundColor Green
+Write-Host "  Skipped  : $Skipped" -ForegroundColor DarkYellow
 
 if ($Failed -gt 0) {
   Write-Host "  Failed   : $Failed (see log for details)" -ForegroundColor Red
@@ -126,7 +169,7 @@ Write-Host ""
 "=== SUMMARY ===" | Add-Content $LogFile
 "=========================================================" | Add-Content $LogFile
 $Results | Format-Table -AutoSize | Out-String | Add-Content $LogFile
-"Total: $Total  Passed: $Passed  Failed: $Failed  Elapsed: ${TotalElapsed}s" | Add-Content $LogFile
+"Total: $Total  Passed: $Passed  Failed: $Failed  Skipped: $Skipped  Elapsed: ${TotalElapsed}s" | Add-Content $LogFile
 "=== Batch run ended: $(Get-Date) ===" | Add-Content $LogFile
 
 exit $Failed

@@ -781,3 +781,205 @@
 - Target: C:\Projects\lkcsite\polydb\telemetry\sessions\2026-05-31T08-18-48-475Z__48c6c756-1f9c-4f4b-b07f-02d132fa4f4b.jsonl
 
 ### Command: npx tsx tests/entry_ratio.test.ts
+## Session: 6f2b2a7d-486d-4560-849d-68c4d4665a4b
+- Time: 2026-06-04 23:00:44
+- Target: C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+
+### Command: npx tsx tests/entry_ratio.test.ts
+## Session: 6f2b2a7d-486d-4560-849d-68c4d4665a4b
+- Time: 2026-06-04 23:12:41
+- Target: C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+- Command timeout seconds: 60
+
+### Command: npx tsx tests/entry_ratio.test.ts
+## Session: 6f2b2a7d-486d-4560-849d-68c4d4665a4b
+- Time: 2026-06-04 23:14:53
+- Target: C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+- Command timeout seconds: 60
+
+### Command: npx tsx tests/entry_ratio.test.ts
+ExitCode: 
+```text
+
+```
+
+### Command: npm run validate:signals -- --bot-id polymarket-bot-v5 --session-id 6f2b2a7d-486d-4560-849d-68c4d4665a4b --telemetry-file C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+ExitCode: 
+```text
+> polymarket-trade-bot-ts-v5@1.0.0 validate:signals
+> tsx scripts/validate_signal_modules.ts --bot-id polymarket-bot-v5 --session-id *** --telemetry-file C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+
+Bot: polymarket-bot-v5
+Session: 6f2b2a7d-486d-4560-849d-68c4d4665a4b
+Telemetry file: C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+Paper buys: 3
+Paper sells: 3
+Live buys: 0
+Live sells: 0
+Fallback events: 160
+Fallback recoveries: 245
+Fallback diagnostics:
+  sessionHours: 1.1205
+  marketsCovered: 15
+  fallbackEventsPerHour: 142.8
+  fallbackEventsPerMarket: 10.67
+  avgFallbackRecoveryMs: 2359.1673
+  maxFallbackRecoveryMs: 65229
+Fallback events by reason:
+  stale_snapshot: 123
+  missing_snapshot: 37
+[PASS] Every paper_trade.buy has feedLatencyMs, momentumScore, mcConvergence: 3/3 buys covered
+[PASS] Every paper_trade.sell has a reason: 3/3 sells covered
+[PASS] momentum_mismatch rejection observed (optional): 60 found
+[PASS] low_convergence rejection observed (optional): 269 found
+[FAIL] Fallback events <= 20: 160 fallback events
+[FAIL] Fallback events per market <= 2: 10.67 fallbacks/market
+[FAIL] Average fallback recovery <= 1000ms: 2359.1673 ms
+[FAIL] Max fallback recovery <= 5000ms: 65229 ms
+[PASS] signal.momentum events present: 89 found
+[PASS] signal.montecarlo events present: 486 found
+```
+
+### Command: npm run analyze:trades -- --bot-id polymarket-bot-v5 --session-id 6f2b2a7d-486d-4560-849d-68c4d4665a4b --telemetry-file C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+ExitCode: 
+```text
+> polymarket-trade-bot-ts-v5@1.0.0 analyze:trades
+> tsx scripts/analyze_trades.ts --bot-id polymarket-bot-v5 --session-id *** --telemetry-file C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+
+Bot filter: polymarket-bot-v5
+Session filter: 6f2b2a7d-486d-4560-849d-68c4d4665a4b
+Telemetry file: C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+Total trades: 3
+BUY events: 3
+SELL events: 3
+Signal rejection events: 6245
+Momentum events: 89
+Monte Carlo events: 486
+Fallback events: 160
+Fallback recoveries: 245
+Stop-loss eval events: 0
+Stop-loss wait results: 0
+down_blocked_neutral_momentum count: 214
+DOWN trades executed with momentum NEUTRAL count: 0
+Win rate: 100%
+Winning trades: 3
+Losing trades: 0
+Flat trades: 0
+Net PnL after fees: 6.61
+Avg hold time (s): 71.7667
+Avg entry latency winners (ms): 0
+Avg entry latency losers (ms): n/a
+Max latency on losers (ms): n/a
+Avg spread at entry: 0.0133
+Avg spread at exit: 0.01
+Avg slippage at entry: 0
+Avg slippage at exit: 0
+Avg momentum score: -0.0021
+Avg momentum confidence: 0.4264
+Avg MC convergence: 0.675
+Avg feed ticks last 10s: 15.3333
+Feed healthy entries: 3
+Forced exits: 0
+Stop losses: 0
+Take profits: 3
+Stop-loss avg spread at eval: n/a
+Stop-loss avg spread at exit: n/a
+Stop-loss avg slippage estimate: n/a
+Stop-loss wait recovery rate: n/a%
+Stop-loss avg spread after wait: n/a
+
+Win Rate By Exit Reason
+  take_profit: trades=3 winRate=100% avgPnl=2.2033
+
+Fallback Events By Reason
+  stale_snapshot: count=123
+  missing_snapshot: count=37
+
+Fallback Recovery Durations
+  stale_snapshot: recoveries=245 avgDurationMs=2359.1673 maxDurationMs=65229
+
+Win Rate By Side
+  DOWN: trades=3 winRate=100% avgPnl=2.2033
+
+Win Rate By BTC Trend Direction
+  DOWN: trades=2 winRate=100% avgPnl=1.42
+  FLAT: trades=1 winRate=100% avgPnl=3.77
+
+Win Rate By Momentum Direction
+  DOWN: trades=3 winRate=100% avgPnl=2.2033
+
+Win Rate By Monte Carlo Direction
+  UP: trades=3 winRate=100% avgPnl=2.2033
+
+BTC Delta 30s Correlation
+  UP trades when btcDelta30s > 0: trades=0 winRate=n/a% avgPnl=n/a
+  UP trades when btcDelta30s < 0: trades=0 winRate=n/a% avgPnl=n/a
+  DOWN trades when btcDelta30s < 0: trades=2 winRate=100% avgPnl=1.42
+  DOWN trades when btcDelta30s > 0: trades=0 winRate=n/a% avgPnl=n/a
+
+Win Rate By Monte Carlo Convergence
+  MC convergence >= 0.62: trades=3 winRate=100% avgPnl=2.2033
+  MC convergence < 0.62: trades=0 winRate=n/a% avgPnl=n/a
+
+Win Rate By Side And BTC Trend
+  UP trades when BTC trending UP: trades=0 winRate=n/a% avgPnl=n/a
+  UP trades when BTC trending DOWN: trades=0 winRate=n/a% avgPnl=n/a
+  DOWN trades when BTC trending DOWN: trades=2 winRate=100% avgPnl=1.42
+  DOWN trades when BTC trending UP: trades=0 winRate=n/a% avgPnl=n/a
+
+Average PnL By Side And BTC Trend
+  UP trades when BTC trending UP: trades=0 avgPnl=n/a avgPnlPct=n/a
+  UP trades when BTC trending DOWN: trades=0 avgPnl=n/a avgPnlPct=n/a
+  DOWN trades when BTC trending DOWN: trades=2 avgPnl=1.42 avgPnlPct=29.1215
+  DOWN trades when BTC trending UP: trades=0 avgPnl=n/a avgPnlPct=n/a
+
+Win Rate By Momentum Alignment
+  Momentum aligned with side: trades=3 winRate=100% avgPnl=2.2033
+  Momentum neutral: trades=0 winRate=n/a% avgPnl=n/a
+```
+
+### Command: npm run check:live-readiness -- --bot-id polymarket-bot-v5 --session-id 6f2b2a7d-486d-4560-849d-68c4d4665a4b --telemetry-file C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+ExitCode: 
+```text
+> polymarket-trade-bot-ts-v5@1.0.0 check:live-readiness
+> tsx scripts/live_readiness.ts --bot-id polymarket-bot-v5 --session-id *** --telemetry-file C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+
+Bot: polymarket-bot-v5
+Session: 6f2b2a7d-486d-4560-849d-68c4d4665a4b
+Telemetry file: C:\Projects\lkcsite\polydb\telemetry\sessions\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl
+Accepted signals: 3
+Rejected signals: 6248
+Live buys: 0
+Live sells: 0
+Paper buys: 3
+Paper sells: 3
+Momentum events: 89
+Monte Carlo events: 486
+Fallback events: 160
+Fallback recoveries: 245
+Exit pending events: 0
+Exit skipped existing live order: 0
+Exit filled events: 0
+Exit failed events: 0
+Position resolved events: 0
+Position unresolved events: 0
+
+Readiness Checks
+[PASS] Momentum events present: 89 signal.momentum events
+[PASS] Monte Carlo events present: 486 signal.montecarlo events
+[PASS] Momentum raw telemetry present: 89/89 signal.momentum events include raw fields
+[PASS] No unresolved buy/sell mismatches in telemetry: all buy lots matched by sell lots inside telemetry
+[PASS] No exit failures: 0 exit failure events
+[PASS] No explicit unresolved positions at market close: 0 position_unresolved events
+[FAIL] Fallback recovery average <= 1000ms: 2359.17 ms average
+[PASS] Exit skipped existing live order is controlled: 0 skip events vs 0 filled/closed exit events
+[PASS] At least one completion path exists when entries exist: 3 buys vs 3 sell/exit-filled events
+
+Verdict
+Passed checks: 8
+Failed checks: 1
+LIVE readiness verdict: NOT READY
+```
+
+---
+

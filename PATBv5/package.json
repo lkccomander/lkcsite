@@ -21,6 +21,7 @@
     "analyze:trades": "tsx scripts/analyze_trades.ts",
     "validate:signals": "tsx scripts/validate_signal_modules.ts",
     "check:live-readiness": "tsx scripts/live_readiness.ts",
+    "cohort:fresh": "tsx scripts/build_fresh_cohort.ts",
     "test:feedgate": "tsx tests/feedgate.test.ts",
     "test:montecarlo": "tsx tests/montecarlo.test.ts",
     "test:momentum": "tsx tests/momentum.test.ts",

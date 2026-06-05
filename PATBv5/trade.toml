@@ -7,6 +7,7 @@ market_coin = "btc"
 market_period = "5"
 
 
+
 [trade_5x]
 entry_price_ratio = [0.10, 0.36]
 entry_time_ratio = 0.01
