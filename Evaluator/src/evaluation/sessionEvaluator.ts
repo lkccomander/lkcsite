@@ -1,9 +1,26 @@
 import { basename, resolve } from "path";
 import { readdir } from "fs/promises";
-import { readJsonLines, writeJsonFile, ensureDir } from "../lib/fs";
+import { createReadStream } from "fs";
+import * as readline from "readline";
+import { writeJsonFile, ensureDir } from "../lib/fs";
 import { DIAGNOSTICS_DIR, SESSION_EVALUATIONS_DIR, TELEMETRY_SESSIONS_DIR } from "../paths";
 import { SessionEvaluation, TelemetryEvent, TradeRecord } from "../types";
 import { normalizeVersionContext } from "./versionContext";
+
+function normalizeCliPath(input: string): string {
+  if (process.platform === "win32" && /^\/mnt\/[a-zA-Z]\//.test(input)) {
+    const [, drive, rest] = input.match(/^\/mnt\/([a-zA-Z])\/(.*)$/) ?? [];
+    if (drive && rest) {
+      return `${drive.toUpperCase()}:\\${rest.replace(/\//g, "\\")}`;
+    }
+  }
+  if (process.platform !== "win32" && /^[a-zA-Z]:\\/.test(input)) {
+    const drive = input[0].toLowerCase();
+    const rest = input.slice(3).replace(/\\/g, "/");
+    return `/mnt/${drive}/${rest}`;
+  }
+  return input;
+}
 
 function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -49,7 +66,7 @@ export async function resolveSessionFile(input: {
   telemetryFile?: string | null;
 }): Promise<string> {
   if (input.telemetryFile) {
-    return resolve(input.telemetryFile);
+    return resolve(normalizeCliPath(input.telemetryFile));
   }
 
   if (!input.sessionId) {
@@ -69,29 +86,14 @@ export async function resolveSessionFile(input: {
 }
 
 export async function evaluateSessionFile(sessionFile: string): Promise<SessionEvaluation> {
-  const lines = await readJsonLines(sessionFile);
-  const events: TelemetryEvent[] = lines
-    .map((line) => {
-      try {
-        return JSON.parse(line) as TelemetryEvent;
-      } catch {
-        return null;
-      }
-    })
-    .filter((event): event is TelemetryEvent => Boolean(event));
-
-  if (events.length === 0) {
-    throw new Error(`No readable telemetry events found in ${sessionFile}`);
-  }
-
-  const firstEvent = events[0];
-  const startup = events.find((event) => event.type === "bot.startup");
-  const startupConfig = events.find((event) => event.type === "bot.startup_config");
-  const shutdown = [...events].reverse().find((event) => event.type === "bot.shutdown");
-  const botError = [...events].reverse().find((event) => event.type === "bot.error");
-  const versionContext = normalizeVersionContext(
-    events.find((event) => event.versionContext)?.versionContext
-  );
+  let totalEvents = 0;
+  let firstEvent: TelemetryEvent | null = null;
+  let startup: TelemetryEvent | null = null;
+  let startupConfig: TelemetryEvent | null = null;
+  let shutdown: TelemetryEvent | null = null;
+  let botError: TelemetryEvent | null = null;
+  let lastEvent: TelemetryEvent | null = null;
+  let rawVersionContext: TelemetryEvent["versionContext"] | null = null;
 
   const trades: TradeRecord[] = [];
   let paperBuys = 0;
@@ -112,8 +114,47 @@ export async function evaluateSessionFile(sessionFile: string): Promise<SessionE
   let endBalance: number | null = null;
   let netPnl: number | null = null;
   let openTradeCount = 0;
+  let lastSellTrade: TradeRecord | null = null;
 
-  for (const event of events) {
+  const rl = readline.createInterface({
+    input: createReadStream(sessionFile, { encoding: "utf8" }),
+    crlfDelay: Infinity,
+  });
+
+  for await (const line of rl) {
+    if (!line.trim()) {
+      continue;
+    }
+
+    let event: TelemetryEvent | null = null;
+    try {
+      event = JSON.parse(line) as TelemetryEvent;
+    } catch {
+      continue;
+    }
+
+    totalEvents += 1;
+    if (!firstEvent) {
+      firstEvent = event;
+    }
+    lastEvent = event;
+
+    if (event.type === "bot.startup" && !startup) {
+      startup = event;
+    }
+    if (event.type === "bot.startup_config" && !startupConfig) {
+      startupConfig = event;
+    }
+    if (event.type === "bot.shutdown") {
+      shutdown = event;
+    }
+    if (event.type === "bot.error") {
+      botError = event;
+    }
+    if (!rawVersionContext && event.versionContext) {
+      rawVersionContext = event.versionContext;
+    }
+
     const payload = event.payload ?? {};
     const tradeSide = getTradeSide(event.type);
 
@@ -141,6 +182,9 @@ export async function evaluateSessionFile(sessionFile: string): Promise<SessionE
       if (tradeSide === "PAPER_SELL") paperSells += 1;
       if (tradeSide === "LIVE_BUY") liveBuys += 1;
       if (tradeSide === "LIVE_SELL") liveSells += 1;
+      if (tradeSide === "PAPER_SELL" || tradeSide === "LIVE_SELL") {
+        lastSellTrade = trade;
+      }
     }
 
     switch (event.type) {
@@ -185,17 +229,22 @@ export async function evaluateSessionFile(sessionFile: string): Promise<SessionE
     }
   }
 
+  if (!firstEvent) {
+    throw new Error(`No readable telemetry events found in ${sessionFile}`);
+  }
+
+  const versionContext = normalizeVersionContext(rawVersionContext ?? undefined);
+
   const status: SessionEvaluation["status"] = shutdown ? "COMPLETED" : "INCOMPLETE";
   const startedAt = firstEvent.sessionStartedAt ?? firstEvent.timestamp ?? null;
-  const endedAt = shutdown?.timestamp ?? botError?.timestamp ?? events[events.length - 1]?.timestamp ?? null;
+  const endedAt = shutdown?.timestamp ?? botError?.timestamp ?? lastEvent?.timestamp ?? null;
   const durationSeconds = startedAt && endedAt
     ? Math.max(0, Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000))
     : null;
 
   if (endBalance == null) {
-    const lastSell = [...trades].reverse().find((trade) => trade.side === "PAPER_SELL" || trade.side === "LIVE_SELL");
-    if (lastSell?.pnl != null && startBalance != null) {
-      endBalance = startBalance + lastSell.pnl;
+    if (lastSellTrade?.pnl != null && startBalance != null) {
+      endBalance = startBalance + lastSellTrade.pnl;
     }
   }
 
@@ -260,7 +309,7 @@ export async function evaluateSessionFile(sessionFile: string): Promise<SessionE
     startedAt,
     endedAt,
     durationSeconds,
-    totalEvents: events.length,
+    totalEvents,
     totalTrades: trades.length,
     paperBuys,
     paperSells,

@@ -1,7 +1,24 @@
-import { resolve } from "path";
+import { basename, resolve } from "path";
+import { readdir } from "fs/promises";
 import { listJsonFiles, writeJsonFile } from "../lib/fs";
-import { SCOREBOARDS_DIR, SESSION_EVALUATIONS_DIR } from "../paths";
+import { DIAGNOSTICS_DIR, SCOREBOARDS_DIR, SESSION_EVALUATIONS_DIR, TELEMETRY_SESSIONS_DIR } from "../paths";
 import { ScoreboardRow, SessionEvaluation } from "../types";
+
+export type ScoreboardCoverage = {
+  telemetrySessions: number;
+  completedEvaluations: number;
+  diagnosticEvaluations: number;
+  missingEvaluations: number;
+  telemetrySessionIds: string[];
+  completedEvaluationIds: string[];
+  diagnosticEvaluationIds: string[];
+  missingSessionIds: string[];
+};
+
+function extractSessionIdFromName(name: string): string | null {
+  const match = name.match(/__([0-9a-f-]{36})\.jsonl$/i) ?? name.match(/^([0-9a-f-]{36})\.json$/i);
+  return match ? match[1] : null;
+}
 
 function parseEvaluationVerdict(
   current: ScoreboardRow["evaluatorVerdict"],
@@ -30,6 +47,41 @@ export async function loadCompletedEvaluations(): Promise<SessionEvaluation[]> {
   }
 
   return results;
+}
+
+export async function loadScoreboardCoverage(): Promise<ScoreboardCoverage> {
+  const telemetryEntries = await readdir(TELEMETRY_SESSIONS_DIR, { withFileTypes: true });
+  const telemetrySessionIds = telemetryEntries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".jsonl"))
+    .map((entry) => extractSessionIdFromName(entry.name))
+    .filter((value): value is string => Boolean(value))
+    .sort();
+
+  const completedEvaluationIds = (await listJsonFiles(SESSION_EVALUATIONS_DIR))
+    .map((file) => basename(file))
+    .map((name) => extractSessionIdFromName(name))
+    .filter((value): value is string => Boolean(value))
+    .sort();
+
+  const diagnosticEvaluationIds = (await listJsonFiles(DIAGNOSTICS_DIR))
+    .map((file) => basename(file))
+    .map((name) => extractSessionIdFromName(name))
+    .filter((value): value is string => Boolean(value))
+    .sort();
+
+  const evaluated = new Set([...completedEvaluationIds, ...diagnosticEvaluationIds]);
+  const missingSessionIds = telemetrySessionIds.filter((sessionId) => !evaluated.has(sessionId));
+
+  return {
+    telemetrySessions: telemetrySessionIds.length,
+    completedEvaluations: completedEvaluationIds.length,
+    diagnosticEvaluations: diagnosticEvaluationIds.length,
+    missingEvaluations: missingSessionIds.length,
+    telemetrySessionIds,
+    completedEvaluationIds,
+    diagnosticEvaluationIds,
+    missingSessionIds,
+  };
 }
 
 export function buildScoreboard(evaluations: SessionEvaluation[]): ScoreboardRow[] {
@@ -134,5 +186,15 @@ export function renderScoreboardTable(rows: ScoreboardRow[]): string {
     formatRow(headers),
     widths.map((width) => "-".repeat(width)).join("-|-"),
     ...tableRows.map(formatRow),
+  ].join("\n");
+}
+
+export function renderCoverageSummary(coverage: ScoreboardCoverage): string {
+  return [
+    "Coverage",
+    `  Telemetry sessions found : ${coverage.telemetrySessions}`,
+    `  Completed evaluations   : ${coverage.completedEvaluations}`,
+    `  Diagnostics             : ${coverage.diagnosticEvaluations}`,
+    `  Missing evaluations     : ${coverage.missingEvaluations}`,
   ].join("\n");
 }

@@ -765,23 +765,28 @@ export class PolymarketMarketFeed implements MarketFeed {
     }
 
     private async maybeEmitFallbackRecovered(eventType: string, snapshot?: PriceSnapshot | null): Promise<void> {
-        if (!this.activeFallback) {
+        const activeFallback = this.activeFallback;
+        if (!activeFallback) {
             return;
         }
+        // Clear first so overlapping websocket updates cannot emit duplicate recoveries
+        // for the same fallback window while telemetry I/O is still in flight.
+        this.activeFallback = null;
+
         const now = Date.now();
-        const fallbackDurationMs = Math.max(0, now - this.activeFallback.startedAtMs);
-        const diagnostics = this.buildFallbackDiagnostics(now, this.activeFallback.reason);
+        const fallbackDurationMs = Math.max(0, now - activeFallback.startedAtMs);
+        const diagnostics = this.buildFallbackDiagnostics(now, activeFallback.reason);
         await writeTelemetryEventSafe("feed.fallback_recovered", {
             slug: this.slug,
             marketSlug: this.slug,
             source: "websocket",
-            reason: this.activeFallback.reason,
+            reason: activeFallback.reason,
             wsConnected: this.wsConnected,
             msSinceLastWsMessage: 0,
             msSinceLastReconnectAttempt: this.lastReconnectScheduledAtMs !== null
                 ? Math.max(0, now - this.lastReconnectScheduledAtMs)
                 : null,
-            reconnectAttempt: this.activeFallback.reconnectAttempt,
+            reconnectAttempt: activeFallback.reconnectAttempt,
             fallbackDurationMs,
             recovered: true,
             recoveryEventType: eventType,
@@ -793,7 +798,6 @@ export class PolymarketMarketFeed implements MarketFeed {
                 recovered: true,
             },
         });
-        this.activeFallback = null;
     }
 
     private hasReceivedBothSidesOverWebsocket(): boolean {
