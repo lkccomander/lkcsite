@@ -20,8 +20,8 @@ up_max_entry_price = 0.74
 down_min_entry_price = 0.45
 down_max_entry_price = 0.96
 
-paper_disable_up_entries = true
-allow_up_trades = false
+paper_disable_up_entries = false
+allow_up_trades = true
 allow_down_trades = true
 
 min_seconds_to_close = 45
