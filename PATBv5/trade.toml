@@ -7,7 +7,6 @@ market_coin = "btc"
 market_period = "5"
 
 
-
 [trade_5x]
 entry_price_ratio = [0.10, 0.36]
 entry_time_ratio = 0.01
@@ -18,7 +17,7 @@ max_entry_price = 0.86
 up_min_entry_price = 0.10
 up_max_entry_price = 0.74
 down_min_entry_price = 0.45
-down_max_entry_price = 0.96
+down_max_entry_price = 0.86
 
 paper_disable_up_entries = false
 allow_up_trades = true
@@ -38,11 +37,11 @@ max_trades_per_market = 1
 max_open_positions = 1
 cooldown_after_loss_markets = 0
 
-session_stop_loss_usd = 50
-daily_stop_loss_usd = 150
+session_stop_loss_usd = 10
+daily_stop_loss_usd = 25
 
 require_fee_adjusted_edge = true
-min_fee_adjusted_edge = 0.01
+min_fee_adjusted_edge = 0.02
 
 require_websocket = true
 reject_on_missing_websocket = true
@@ -54,7 +53,7 @@ max_entry_feed_rtt_ms = 650
 max_entry_feed_age_ms = 700
 max_feed_age_ms = 500
 max_rtt_ms = 500
-max_allowed_spread = 0.05
+max_allowed_spread = 0.04
 
 down_require_directional_momentum = false
 down_block_neutral_momentum = true
