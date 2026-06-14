@@ -29,6 +29,7 @@ import {
   SIGNATURE_TYPE_SOURCE,
   SIGNER,
   SIGNER_ADDRESS,
+  writeLiveBalanceCheckpoint,
 } from "./services";
 import { getCurrentTime, retryWithInstantRetry, sleep } from "./utils";
 import {
@@ -497,6 +498,15 @@ async function main() {
         console.error(chalk.yellow(`Manual exit attempt failed during ${signal}: ${error instanceof Error ? error.message : String(error)}`));
       }
     }
+    if (!PAPER_TRADING && activeTrade?.authorizedClob) {
+      await writeLiveBalanceCheckpoint({
+        client: activeTrade.authorizedClob,
+        reason: `shutdown_${signal}`,
+        marketSlug: activeTrade.marketSlug,
+        upTokenId: activeTrade.upTokenId,
+        downTokenId: activeTrade.downTokenId,
+      });
+    }
     await persistPaperBalance(signal);
     process.exit(0);
   };
@@ -585,6 +595,19 @@ async function main() {
       await collateralGuard.start();
       console.log(chalk.gray(`Collateral guard allowlist: ${collateralGuard.getAllowedRecipients().join(", ")}`));
     }
+
+    const startupBalanceClient = new ClobClient({
+      host: HOST,
+      chain: CHAIN_ID,
+      signer: SIGNER,
+      creds: apiKey,
+      signatureType: SIGNATURE_TYPE,
+      funderAddress: FUNDER,
+    });
+    await writeLiveBalanceCheckpoint({
+      client: startupBalanceClient,
+      reason: "startup_pre_market",
+    });
   }
 
   while (true) {
@@ -683,6 +706,15 @@ async function main() {
       );
     activeTrade = trade;
     await trade.hydrateOpenExitOrders();
+    if (!PAPER_TRADING) {
+      await writeLiveBalanceCheckpoint({
+        client: trade.authorizedClob,
+        reason: "startup_market_ready",
+        marketSlug: slug,
+        upTokenId,
+        downTokenId,
+      });
+    }
     const trade4Like = getTrade4LikeConfig(globalThis.__CONFIG__);
     const marketTransitionGraceMs = Number(
       trade4Like?.max_market_transition_grace_ms
@@ -993,6 +1025,19 @@ async function main() {
 main().catch(async (error) => {
   const blockedCollateral = isCollateralEgressViolation(error);
   console.error(chalk.red(blockedCollateral ? "Fatal collateral guard stop:" : "Fatal runtime error:"), error);
+  if (!PAPER_TRADING) {
+    const startupBalanceClient = new ClobClient({
+      host: HOST,
+      chain: CHAIN_ID,
+      signer: SIGNER,
+      signatureType: SIGNATURE_TYPE,
+      funderAddress: FUNDER,
+    });
+    await writeLiveBalanceCheckpoint({
+      client: startupBalanceClient,
+      reason: blockedCollateral ? "fatal_collateral_guard" : "fatal_runtime_error",
+    });
+  }
   if (PAPER_TRADING) {
     const sessionBalance = await loadPersistedPaperBalance(PAPER_STARTING_USD);
     await savePersistedPaperBalance(sessionBalance);

@@ -6,6 +6,7 @@ import { readOptionalConfigEnv } from "../config/secrets";
 export type TelemetryEventType =
     | "bot.startup"
     | "bot.startup_config"
+    | "live_balance.checkpoint"
     | "operator.manual_trade_requested"
     | "operator.manual_trade_rejected"
     | "operator.manual_trade_executed"

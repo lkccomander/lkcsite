@@ -10,7 +10,7 @@ import type {
 } from "./types";
 
 const WS_MARKET_ENDPOINT = "wss://ws-subscriptions-clob.polymarket.com/ws/market";
-const FEED_STALE_MS = 5000;
+const FEED_STALE_MS = 1000;
 const FEED_CONNECT_TIMEOUT_MS = 10000;
 const FEED_STARTUP_GRACE_MS = 5000;
 const FEED_TICK_TELEMETRY_INTERVAL_MS = 1000;
@@ -75,6 +75,18 @@ function emptyFeedState(): FeedState {
         lastEventType: null,
         websocketMessageCount: 0,
         firstWebsocketSeenAtMs: null,
+    };
+}
+
+function resetFeedStatePreservingCounters(state: FeedState): FeedState {
+    return {
+        buyPrice: 0,
+        sellPrice: 0,
+        marketTimestampMs: null,
+        receivedAtMs: 0,
+        lastEventType: state.lastEventType,
+        websocketMessageCount: state.websocketMessageCount,
+        firstWebsocketSeenAtMs: state.firstWebsocketSeenAtMs,
     };
 }
 
@@ -327,8 +339,11 @@ export class PolymarketMarketFeed implements MarketFeed {
                 this.stats.wsReconnectedAtMs = now;
                 this.pendingReconnectReason = null;
                 this.stats.reconnectAttemptCount = 0;
+                this.stateByAsset[this.upTokenId] = resetFeedStatePreservingCounters(this.stateByAsset[this.upTokenId]);
+                this.stateByAsset[this.downTokenId] = resetFeedStatePreservingCounters(this.stateByAsset[this.downTokenId]);
                 this.sendSubscription("initial_open");
                 this.startPingLoop();
+                void this.fetchRestSnapshot("missing_websocket");
                 void writeTelemetryEventSafe("feed.connected", {
                     slug: this.slug,
                     source: "websocket",
@@ -420,6 +435,9 @@ export class PolymarketMarketFeed implements MarketFeed {
 
         if (websocketSnapshot && websocketSnapshot.staleMs > FEED_STALE_MS) {
             await this.emitStaleTelemetry(websocketSnapshot.staleMs);
+            if (this.wsConnected) {
+                this.refreshSubscriptionIfNeeded("stale_snapshot");
+            }
         }
 
         const connectedForMs = this.wsConnected ? Date.now() - this.lastConnectedAtMs : 0;
@@ -572,6 +590,46 @@ export class PolymarketMarketFeed implements MarketFeed {
         await this.notifyListeners(snapshot, "websocket");
     }
 
+    private async maybeEmitFallbackRecovered(
+        eventType: string,
+        snapshot?: PriceSnapshot | null,
+        recoverySource: "websocket" | "rest" = "websocket",
+    ): Promise<void> {
+        const activeFallback = this.activeFallback;
+        if (!activeFallback) {
+            return;
+        }
+        // Clear first so overlapping updates cannot emit duplicate recoveries
+        // for the same fallback window while telemetry I/O is still in flight.
+        this.activeFallback = null;
+
+        const now = Date.now();
+        const fallbackDurationMs = Math.max(0, now - activeFallback.startedAtMs);
+        const diagnostics = this.buildFallbackDiagnostics(now, activeFallback.reason);
+        await writeTelemetryEventSafe("feed.fallback_recovered", {
+            slug: this.slug,
+            marketSlug: this.slug,
+            source: recoverySource,
+            reason: activeFallback.reason,
+            wsConnected: this.wsConnected,
+            msSinceLastWsMessage: recoverySource === "websocket" ? 0 : diagnostics.msSinceLastWsMessage,
+            msSinceLastReconnectAttempt: this.lastReconnectScheduledAtMs !== null
+                ? Math.max(0, now - this.lastReconnectScheduledAtMs)
+                : null,
+            reconnectAttempt: activeFallback.reconnectAttempt,
+            fallbackDurationMs,
+            recovered: true,
+            recoveryEventType: eventType,
+            recoveredAt: new Date(now).toISOString(),
+            recoverySource: snapshot?.source ?? recoverySource,
+            recoverySnapshot: snapshot ? this.snapshotTelemetryShape(snapshot) : null,
+            diagnostics: {
+                ...diagnostics,
+                recovered: true,
+            },
+        });
+    }
+
     private async fetchRestSnapshot(reason: string): Promise<PriceSnapshot | null> {
         const now = Date.now();
         const fallbackReason = this.deriveFallbackReason(reason);
@@ -633,6 +691,7 @@ export class PolymarketMarketFeed implements MarketFeed {
 
         const snapshot = buildSnapshot(upState, downState, "rest");
         if (snapshot) {
+            await this.maybeEmitFallbackRecovered("rest_fallback", snapshot, "rest");
             this.recordSnapshot(snapshot, "rest", "rest_fallback");
             await this.emitTickTelemetry("rest_fallback", snapshot);
             await this.notifyListeners(snapshot, "rest");
@@ -762,42 +821,6 @@ export class PolymarketMarketFeed implements MarketFeed {
             downBuyPrice: snapshot.downBuyPrice,
             downSellPrice: snapshot.downSellPrice,
         };
-    }
-
-    private async maybeEmitFallbackRecovered(eventType: string, snapshot?: PriceSnapshot | null): Promise<void> {
-        const activeFallback = this.activeFallback;
-        if (!activeFallback) {
-            return;
-        }
-        // Clear first so overlapping websocket updates cannot emit duplicate recoveries
-        // for the same fallback window while telemetry I/O is still in flight.
-        this.activeFallback = null;
-
-        const now = Date.now();
-        const fallbackDurationMs = Math.max(0, now - activeFallback.startedAtMs);
-        const diagnostics = this.buildFallbackDiagnostics(now, activeFallback.reason);
-        await writeTelemetryEventSafe("feed.fallback_recovered", {
-            slug: this.slug,
-            marketSlug: this.slug,
-            source: "websocket",
-            reason: activeFallback.reason,
-            wsConnected: this.wsConnected,
-            msSinceLastWsMessage: 0,
-            msSinceLastReconnectAttempt: this.lastReconnectScheduledAtMs !== null
-                ? Math.max(0, now - this.lastReconnectScheduledAtMs)
-                : null,
-            reconnectAttempt: activeFallback.reconnectAttempt,
-            fallbackDurationMs,
-            recovered: true,
-            recoveryEventType: eventType,
-            recoveredAt: new Date(now).toISOString(),
-            recoverySource: snapshot?.source ?? "websocket",
-            recoverySnapshot: snapshot ? this.snapshotTelemetryShape(snapshot) : null,
-            diagnostics: {
-                ...diagnostics,
-                recovered: true,
-            },
-        });
     }
 
     private hasReceivedBothSidesOverWebsocket(): boolean {

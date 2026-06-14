@@ -105,20 +105,42 @@ foreach ($SessionID in $Sessions) {
   # Capture all output streams (stdout + stderr) while still printing to console
   $CheckerOutput = & pwsh -NoProfile -File $CheckerScript -SessionID $SessionID *>&1
   $ExitCode = $LASTEXITCODE
+  $ReadinessVerdict = $null
+
+  foreach ($Line in @($CheckerOutput)) {
+    if ("$Line" -match 'LIVE readiness verdict:\s+(.+)$') {
+      $ReadinessVerdict = $matches[1].Trim()
+    }
+  }
 
   # Print captured output to console
   $CheckerOutput | ForEach-Object { Write-Host $_ }
 
   $Elapsed = [math]::Round(((Get-Date) - $SessionStart).TotalSeconds, 1)
+  $BatchFailed = ($ExitCode -ne 0) -or ($null -ne $ReadinessVerdict -and $ReadinessVerdict -ne "READY")
 
-  if ($ExitCode -eq 0) {
+  if (-not $BatchFailed) {
     $Status = "PASS"
     $Passed++
     Write-Host "[$Index/$Total] PASS  (${Elapsed}s)" -ForegroundColor Green
   } else {
-    $Status = "FAIL (exit $ExitCode)"
+    if ($ExitCode -ne 0 -and $null -ne $ReadinessVerdict -and $ReadinessVerdict -ne "READY") {
+      $Status = "FAIL (exit $ExitCode, $ReadinessVerdict)"
+    } elseif ($ExitCode -ne 0) {
+      $Status = "FAIL (exit $ExitCode)"
+    } elseif ($null -ne $ReadinessVerdict) {
+      $Status = "FAIL ($ReadinessVerdict)"
+    } else {
+      $Status = "FAIL"
+    }
     $Failed++
-    Write-Host "[$Index/$Total] FAIL  exit=$ExitCode  (${Elapsed}s)" -ForegroundColor Red
+    if ($ExitCode -ne 0) {
+      Write-Host "[$Index/$Total] FAIL  exit=$ExitCode  (${Elapsed}s)" -ForegroundColor Red
+    } elseif ($null -ne $ReadinessVerdict) {
+      Write-Host "[$Index/$Total] FAIL  verdict=$ReadinessVerdict  (${Elapsed}s)" -ForegroundColor Red
+    } else {
+      Write-Host "[$Index/$Total] FAIL  (${Elapsed}s)" -ForegroundColor Red
+    }
   }
 
   $Results += [PSCustomObject]@{
@@ -137,7 +159,7 @@ foreach ($SessionID in $Sessions) {
   "$([datetime]::Now.ToString('HH:mm:ss'))  [$Index/$Total]  $Status  (${Elapsed}s)  $SessionID" |
     Add-Content -Path $LogFile
 
-  if ($StopOnError -and $ExitCode -ne 0) {
+  if ($StopOnError -and $BatchFailed) {
     Write-Host ""
     Write-Warning "-StopOnError set - aborting batch after first failure."
     break

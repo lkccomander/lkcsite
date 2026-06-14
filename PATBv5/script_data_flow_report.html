@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PATBv5 Script Data Flow Report</title>
+  <style>
+    :root {
+      --bg: #f6f1e8;
+      --panel: #fffaf2;
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9cbb5;
+      --accent: #8c3b2a;
+      --accent-soft: #f6ddd5;
+      --good: #1f6f43;
+      --warn: #8a5a00;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background:
+        radial-gradient(circle at top right, rgba(140, 59, 42, 0.10), transparent 28%),
+        linear-gradient(180deg, #fdf9f2 0%, var(--bg) 100%);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    h1, h2, h3 {
+      font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+      line-height: 1.15;
+      margin: 0 0 12px;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      letter-spacing: 0.01em;
+    }
+
+    h2 {
+      font-size: 1.35rem;
+      margin-top: 28px;
+    }
+
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 16px 40px rgba(31, 41, 51, 0.08);
+    }
+
+    .hero strong {
+      color: var(--ink);
+    }
+
+    .pillbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .pill {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(140, 59, 42, 0.18);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.92rem;
+    }
+
+    .panel {
+      background: rgba(255, 250, 242, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 22px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      background: #fffdf8;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 12px 10px;
+      vertical-align: top;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    th {
+      background: #f3e5d3;
+      color: #54311d;
+    }
+
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.93em;
+      background: #f4ede2;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    ul {
+      margin: 10px 0 0 20px;
+      padding: 0;
+    }
+
+    li {
+      margin: 0 0 8px;
+      color: var(--muted);
+    }
+
+    .note {
+      border-left: 4px solid var(--warn);
+      background: #fff5db;
+      padding: 12px 14px;
+      border-radius: 8px;
+      color: #6a4a00;
+      margin-top: 14px;
+    }
+
+    .ok {
+      border-left-color: var(--good);
+      background: #eaf8ef;
+      color: #195a36;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .card {
+      background: #fffdf8;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .small {
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>PATBv5 Script Data Flow Report</h1>
+      <p>This report compares the PowerShell wrappers in <code>PATBv5</code> and shows, for each one, <strong>where it extracts data from</strong>, <strong>what controls or filters it applies</strong>, and <strong>where it saves results</strong>.</p>
+      <div class="pillbar">
+        <div class="pill">Scope: 5 PowerShell scripts</div>
+        <div class="pill">Support file checked: <code>scripts/build_fresh_cohort.ts</code></div>
+        <div class="pill">Report file: <code>PATBv5/script_data_flow_report.html</code></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Quick Summary</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Script</th>
+            <th>Primary Data Source</th>
+            <th>Control / Decision Logic</th>
+            <th>Where Results Go</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>checker_old.ps1</code></td>
+            <td>Either a direct <code>.jsonl</code> path passed as <code>SessionID</code> or a resolved file in <code>..\polydb\telemetry\sessions</code>.</td>
+            <td>Chooses between explicit telemetry path vs session-id lookup; then runs four commands in sequence.</td>
+            <td>No file output of its own. Results only print to console.</td>
+          </tr>
+          <tr>
+            <td><code>checker.ps1</code></td>
+            <td>Same telemetry resolution behavior as <code>checker_old.ps1</code>.</td>
+            <td>Same command chain, plus <code>try/catch/finally</code> around execution and history recording.</td>
+            <td>Writes run metadata to <code>checker_history.json</code>; command results still go to console.</td>
+          </tr>
+          <tr>
+            <td><code>run-batch_old.ps1</code></td>
+            <td>Reads session IDs from <code>sessions.txt</code>, then maps each ID to a telemetry file in <code>..\polydb\telemetry\sessions</code>.</td>
+            <td>Parses timestamp from the telemetry filename, sorts sessions chronologically, then invokes the checker for each.</td>
+            <td>Does not save batch output itself. It passes <code>-OutputFile results.md</code>, but the called checker scripts do not define that parameter.</td>
+          </tr>
+          <tr>
+            <td><code>run-batch.ps1</code></td>
+            <td>Reads session IDs from <code>sessions.txt</code>; optionally reads <code>checker_history.json</code> to skip already analyzed sessions.</td>
+            <td>Per-session loop, optional skip cache, optional <code>-StopOnError</code>, captures all checker output streams, then classifies session by checker process exit code.</td>
+            <td>Appends full output and summary lines to <code>batch_checker_results.log</code>; checker subprocess also updates <code>checker_history.json</code>.</td>
+          </tr>
+          <tr>
+            <td><code>run-fresh-batch.ps1</code></td>
+            <td>Starts by building a fresh cohort from telemetry sessions via <code>npm run cohort:fresh</code>, then reads <code>sessions_fresh_comparable.txt</code>.</td>
+            <td>Controls cohort generation with <code>Since</code>, <code>Mode</code>, and <code>Strategy</code>, then forwards the resulting list into <code>run-batch.ps1</code>.</td>
+            <td>Cohort builder writes <code>sessions_fresh_comparable.txt</code> and <code>sessions_fresh_comparable_report.json</code>; batch phase writes to <code>batch_checker_results.log</code> and <code>checker_history.json</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Per-Script Details</h2>
+
+      <div class="card">
+        <h3><code>checker_old.ps1</code></h3>
+        <ul>
+          <li><strong>Extracts data from:</strong> <code>..\polydb\telemetry\sessions</code>, or from a direct telemetry file path if the supplied argument already points to a <code>.jsonl</code> file. Source resolution is implemented at lines 5 and 17-35.</li>
+          <li><strong>Control:</strong> If the argument ends with <code>.jsonl</code> or matches an existing path, it uses that path directly. Otherwise it searches the sessions directory for <code>*__{SessionID}.jsonl</code>, sorts descending by filename, and picks the first match at lines 23-26.</li>
+          <li><strong>Commands executed:</strong> <code>tests/entry_ratio.test.ts</code>, <code>validate_signal_modules.ts</code>, <code>analyze_trades.ts</code>, and <code>live_readiness.ts</code> via the npm scripts shown at lines 39-42.</li>
+          <li><strong>Saves results to:</strong> Nowhere. It prints the target and all command output to the terminal only at lines 45-57.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><code>checker.ps1</code></h3>
+        <ul>
+          <li><strong>Extracts data from:</strong> The same places and with the same lookup logic as <code>checker_old.ps1</code>, at lines 5, 68-87.</li>
+          <li><strong>Control:</strong> Same four-command sequence at lines 90-93, wrapped in <code>try/catch/finally</code> at lines 104-119.</li>
+          <li><strong>Extra control file:</strong> Reads and rewrites <code>checker_history.json</code> through <code>Read-CheckerHistory</code> and <code>Write-CheckerHistory</code> at lines 9-56.</li>
+          <li><strong>Saves results to:</strong> <code>checker_history.json</code>, storing <code>sessionId</code>, timestamp, target, and a coarse status string at lines 46-55 and 114-118. Command analysis output still only goes to stdout.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><code>run-batch_old.ps1</code></h3>
+        <ul>
+          <li><strong>Extracts data from:</strong> <code>sessions.txt</code> at line 22 and telemetry files under <code>..\polydb\telemetry\sessions</code> at lines 7 and 26-27.</li>
+          <li><strong>Control:</strong> Uses the filename prefix timestamp if present, otherwise falls back to file last-write time at lines 9-18 and 29-31. Sessions are sorted by that derived time at line 41.</li>
+          <li><strong>Execution flow:</strong> Iterates the ordered sessions and calls the checker once per session at lines 48-50.</li>
+          <li><strong>Saves results to:</strong> No batch-owned output file. It passes <code>-OutputFile results.md</code> to the checker at line 49, but neither <code>checker.ps1</code> nor <code>checker_old.ps1</code> defines an <code>OutputFile</code> parameter, so this script does not actually wire result saving through the checker.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><code>run-batch.ps1</code></h3>
+        <ul>
+          <li><strong>Extracts data from:</strong> <code>sessions.txt</code> by default at lines 12-16 and 33, and optionally <code>checker_history.json</code> at lines 20 and 40-52 to build a skip cache.</li>
+          <li><strong>Control:</strong> Optional <code>-IncludeAlreadyAnalyzed</code> toggles use of the history skip list. Optional <code>-StopOnError</code> aborts after the first non-zero checker exit at lines 140-144.</li>
+          <li><strong>Session status rule:</strong> It captures all output from <code>checker.ps1</code> at line 106, but marks batch <code>PASS</code>/<code>FAIL</code> strictly from the checker process exit code at lines 114-121.</li>
+          <li><strong>Saves results to:</strong> Appends raw per-session checker output plus batch summaries into <code>batch_checker_results.log</code> at lines 63, 89-94, 131-138, and 167-173. The checker child process separately saves history into <code>checker_history.json</code>.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><code>run-fresh-batch.ps1</code></h3>
+        <ul>
+          <li><strong>Extracts data from:</strong> It does not read telemetry files directly. It first launches <code>npm run cohort:fresh</code> with <code>Since</code>, <code>Mode</code>, and <code>Strategy</code> at lines 1-17 and 24.</li>
+          <li><strong>Control:</strong> After cohort generation succeeds, it reads the resulting <code>sessions_fresh_comparable.txt</code> list at lines 11 and 35, then hands that list to <code>run-batch.ps1</code> at lines 41-55.</li>
+          <li><strong>Fresh cohort rules:</strong> The underlying builder reads every <code>.jsonl</code> in <code>..\polydb\telemetry\sessions</code> by default, scans JSONL events, and filters by date, mode, strategy, raw momentum coverage, Monte Carlo coverage, and zero-signal coverage in <code>scripts/build_fresh_cohort.ts</code> lines 39-53, 128-179, 185-223, and 233-257.</li>
+          <li><strong>Saves results to:</strong> Cohort stage writes <code>sessions_fresh_comparable.txt</code> and <code>sessions_fresh_comparable_report.json</code> in <code>build_fresh_cohort.ts</code> lines 50-52 and 256-293. The subsequent batch stage saves into <code>batch_checker_results.log</code> and <code>checker_history.json</code>.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Controls Used By The Fresh Cohort Builder</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Telemetry Source</h3>
+          <p class="small"><code>scripts/build_fresh_cohort.ts</code> defaults to <code>../polydb/telemetry/sessions</code> as its session directory at lines 39-40.</p>
+        </div>
+        <div class="card">
+          <h3>CLI Filters</h3>
+          <p class="small">Supported controls include <code>--since</code>, <code>--mode</code>, <code>--strategy</code>, <code>--sessions-dir</code>, <code>--out-file</code>, and <code>--report-file</code> at lines 42-88.</p>
+        </div>
+        <div class="card">
+          <h3>Event Fields Read</h3>
+          <p class="small">It inspects <code>bot.startup</code>, <code>bot.startup_config</code>, <code>signal.momentum</code>, <code>signal.montecarlo</code>, <code>trade.signal_accepted</code>, trade events, and <code>feed.fallback</code> at lines 147-179.</p>
+        </div>
+        <div class="card">
+          <h3>Inclusion Criteria</h3>
+          <p class="small">A session is excluded if it fails date, mode, strategy, raw momentum coverage, Monte Carlo presence, or useful coverage checks at lines 185-223.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Important Findings</h2>
+      <div class="note">
+        <strong><code>run-batch.ps1</code> does not judge “readiness” directly.</strong> It only checks whether <code>checker.ps1</code> exited with code <code>0</code>. A session can therefore be counted as batch <code>PASS</code> even when the captured checker output contains <code>LIVE readiness verdict: NOT READY</code>.
+      </div>
+      <div class="note">
+        <strong><code>run-batch_old.ps1</code> appears partially stale.</strong> It passes an <code>-OutputFile</code> argument to the checker, but the current checker scripts only accept <code>SessionID</code>. That means result-file handling is not implemented through this path.
+      </div>
+      <div class="note ok">
+        <strong>Most actual persistence happens in three files:</strong> <code>checker_history.json</code> for run history, <code>batch_checker_results.log</code> for batch console capture, and the fresh cohort pair <code>sessions_fresh_comparable.txt</code> plus <code>sessions_fresh_comparable_report.json</code>.
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Files Referenced</h2>
+      <ul>
+        <li><code>PATBv5/checker_old.ps1</code></li>
+        <li><code>PATBv5/checker.ps1</code></li>
+        <li><code>PATBv5/run-batch_old.ps1</code></li>
+        <li><code>PATBv5/run-batch.ps1</code></li>
+        <li><code>PATBv5/run-fresh-batch.ps1</code></li>
+        <li><code>PATBv5/scripts/build_fresh_cohort.ts</code></li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

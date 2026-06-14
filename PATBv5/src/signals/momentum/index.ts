@@ -224,6 +224,7 @@ export async function getMomentumSignal(): Promise<MomentumSignal> {
         await writeTelemetryEventSafe("signal.momentum", {
             symbol: ticker?.symbol ?? BINANCE_SYMBOL,
             ...signal,
+            rawFieldsAvailable: true,
             rawLatestOneMinuteClose: roundMetric(raw.latestOneMinuteClose, 2),
             rawFiveMinutesAgoClose: roundMetric(raw.fiveMinutesAgoClose, 2),
             rawLatestFiveMinuteClose: roundMetric(raw.latestFiveMinuteClose, 2),
@@ -251,6 +252,16 @@ export async function getMomentumSignal(): Promise<MomentumSignal> {
             ...fallbackSignal,
             error: error instanceof Error ? error.message : String(error),
             degraded: true,
+            rawFieldsAvailable: false,
+            rawLatestOneMinuteClose: null,
+            rawFiveMinutesAgoClose: null,
+            rawLatestFiveMinuteClose: null,
+            rawFifteenMinutesAgoClose: null,
+            rawLatestVolume: null,
+            rawAveragePriorVolume: null,
+            rawDelta1m: null,
+            rawDelta5m: null,
+            rawVolRatio: null,
         });
         console.warn(`Momentum signal unavailable; using neutral fallback: ${error instanceof Error ? error.message : String(error)}`);
 

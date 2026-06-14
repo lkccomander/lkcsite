@@ -22,6 +22,7 @@ type SessionSummary = {
   liveSells: number;
   fallbackEvents: number;
   reasonsExcluded: string[];
+  warnings: string[];
 };
 
 type CliOptions = {
@@ -123,6 +124,7 @@ async function summarizeSession(filePath: string): Promise<SessionSummary> {
     liveSells: 0,
     fallbackEvents: 0,
     reasonsExcluded: [],
+    warnings: [],
   };
 
   const rl = readline.createInterface({
@@ -196,7 +198,7 @@ function applyFilters(session: SessionSummary, opts: CliOptions, since: string):
   }
 
   if (opts.requireRawMomentum && session.momentumEvents > 0 && session.momentumRawEvents !== session.momentumEvents) {
-    session.reasonsExcluded.push(`raw_momentum:${session.momentumRawEvents}/${session.momentumEvents}`);
+    session.warnings.push(`raw_momentum:${session.momentumRawEvents}/${session.momentumEvents}`);
   }
 
   if (opts.requireRawMomentum && session.momentumEvents === 0) {
@@ -247,9 +249,15 @@ async function main() {
   const excluded = sessions.filter((session) => session.reasonsExcluded.length > 0);
 
   const reasonCounts = new Map<string, number>();
+  const warningCounts = new Map<string, number>();
   for (const session of excluded) {
     for (const reason of session.reasonsExcluded) {
       reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + 1);
+    }
+  }
+  for (const session of sessions) {
+    for (const warning of session.warnings) {
+      warningCounts.set(warning, (warningCounts.get(warning) ?? 0) + 1);
     }
   }
 
@@ -281,6 +289,7 @@ async function main() {
       paperBuys: session.paperBuys,
       liveBuys: session.liveBuys,
       fallbackEvents: session.fallbackEvents,
+      warnings: session.warnings,
     })),
     excludedSessions: excluded.map((session) => ({
       sessionId: session.sessionId,
@@ -288,8 +297,10 @@ async function main() {
       mode: session.mode,
       strategy: session.strategy,
       reasonsExcluded: session.reasonsExcluded,
+      warnings: session.warnings,
     })),
     exclusionReasonCounts: Object.fromEntries([...reasonCounts.entries()].sort((a, b) => b[1] - a[1])),
+    warningCounts: Object.fromEntries([...warningCounts.entries()].sort((a, b) => b[1] - a[1])),
   }, null, 2), "utf8");
 
   console.log(`Fresh cohort written: ${opts.outFile}`);
@@ -307,6 +318,12 @@ async function main() {
     console.log("Top exclusion reasons:");
     for (const [reason, count] of [...reasonCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)) {
       console.log(`  - ${reason}: ${count}`);
+    }
+  }
+  if (warningCounts.size) {
+    console.log("Top warnings:");
+    for (const [warning, count] of [...warningCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)) {
+      console.log(`  - ${warning}: ${count}`);
     }
   }
 }

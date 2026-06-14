@@ -1,4 +1,4 @@
-import { createWalletClient, http } from "viem";
+import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { Chain, SignatureTypeV2 } from "@polymarket/clob-client-v2";
 import { POLYGON_RPC_URL, POLYMARKET_FUNDER_ADDRESS, POLYMARKET_PRIVATE_KEY, POLYMARKET_SIGNATURE_TYPE } from "../config";
@@ -10,6 +10,10 @@ export const RPC_URL = POLYGON_RPC_URL || DEFAULT_POLYGON_RPC_URL;
 export const ACCOUNT = privateKeyToAccount(POLYMARKET_PRIVATE_KEY as `0x${string}`);
 export const SIGNER = createWalletClient({
   account: ACCOUNT,
+  chain: undefined,
+  transport: http(RPC_URL),
+});
+export const PUBLIC_CLIENT = createPublicClient({
   chain: undefined,
   transport: http(RPC_URL),
 });
