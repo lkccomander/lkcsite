@@ -20,6 +20,43 @@ echo Repo: %SCRIPT_DIR%
 echo Bot ID: %BOT_ID%
 echo.
 
+@rem Warn if TypeScript sources are newer than dist output.
+set "DIST_ENTRY=%SCRIPT_DIR%dist\index.js"
+set "STALE_DIST_FLAG="
+if not exist "%DIST_ENTRY%" (
+    echo WARNING: dist\index.js was not found.
+    echo FAST MODE cannot guarantee current code. Run launch_patbv5_cli_and_review.bat instead.
+    echo.
+    set "STALE_DIST_FLAG=1"
+) else (
+    for %%F in (
+        "%SCRIPT_DIR%src\index.ts"
+        "%SCRIPT_DIR%src\telemetry\db.ts"
+        "%SCRIPT_DIR%src\services\liveBalance.ts"
+        "%SCRIPT_DIR%src\services\clob.ts"
+        "%SCRIPT_DIR%src\trade\decision.ts"
+        "%SCRIPT_DIR%src\trade\trade.ts"
+    ) do (
+        if exist "%%~fF" (
+            for %%A in ("%DIST_ENTRY%") do set "DIST_MTIME=%%~tA"
+            for %%B in ("%%~fF") do set "SRC_MTIME=%%~tB"
+            powershell.exe -NoProfile -Command ^
+              "if ((Get-Item '%DIST_ENTRY%').LastWriteTime -lt (Get-Item '%%~fF').LastWriteTime) { exit 10 } else { exit 0 }"
+            if errorlevel 10 (
+                echo WARNING: dist output looks older than %%~nxF
+                set "STALE_DIST_FLAG=1"
+            )
+        )
+    )
+)
+
+if defined STALE_DIST_FLAG (
+    echo.
+    echo FAST MODE warning: source changes may not be reflected in dist\index.js.
+    echo Recommended: run launch_patbv5_cli_and_review.bat for a fresh build.
+    echo.
+)
+
 set "LAUNCH_UI_AFTER_REVIEW=N"
 choice /C YN /M "Enable embedded live-data UI for this bot run"
 if errorlevel 2 goto ui_choice_done

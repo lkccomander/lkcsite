@@ -9,15 +9,15 @@ market_period = "5"
 
 [trade_5x]
 entry_price_ratio = [0.10, 0.36]
-entry_time_ratio = 0.01
+entry_time_ratio = 0.08
 
 min_entry_price = 0.45
-max_entry_price = 0.86
+max_entry_price = 0.85
 
 up_min_entry_price = 0.10
-up_max_entry_price = 0.74
+up_max_entry_price = 0.78
 down_min_entry_price = 0.45
-down_max_entry_price = 0.86
+down_max_entry_price = 0.85
 
 paper_disable_up_entries = false
 allow_up_trades = true

@@ -1,289 +1,443 @@
 [
   {
+    "sessionId": "ef552696-fe1b-4bc7-b62c-82d1385f3446",
+    "checkedAt": "2026-06-14T11:00:23.4241067-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-14T16-25-20-724Z__ef552696-fe1b-4bc7-b62c-82d1385f3446.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\ef552696-fe1b-4bc7-b62c-82d1385f3446.json"
+  },
+  {
+    "sessionId": "26f897e1-5d8c-4a6b-9cce-21f40cd6e2ec",
+    "checkedAt": "2026-06-14T11:00:20.7003178-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-14T15-39-34-383Z__26f897e1-5d8c-4a6b-9cce-21f40cd6e2ec.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\26f897e1-5d8c-4a6b-9cce-21f40cd6e2ec.json"
+  },
+  {
+    "sessionId": "e82f16e7-6d9d-4699-a004-957b17bfe99a",
+    "checkedAt": "2026-06-14T11:00:16.7592108-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-14T14-42-06-939Z__e82f16e7-6d9d-4699-a004-957b17bfe99a.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\e82f16e7-6d9d-4699-a004-957b17bfe99a.json"
+  },
+  {
+    "sessionId": "ab6c0ccc-d8c4-4707-acc4-ca6f39ad200a",
+    "checkedAt": "2026-06-14T11:00:13.4744898-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-14T14-29-46-392Z__ab6c0ccc-d8c4-4707-acc4-ca6f39ad200a.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\ab6c0ccc-d8c4-4707-acc4-ca6f39ad200a.json"
+  },
+  {
+    "sessionId": "0159ec8b-d53b-44fd-ae3d-9569d371de18",
+    "checkedAt": "2026-06-14T11:00:09.4543423-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-14T14-08-36-013Z__0159ec8b-d53b-44fd-ae3d-9569d371de18.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\0159ec8b-d53b-44fd-ae3d-9569d371de18.json"
+  },
+  {
+    "sessionId": "83a2521c-a160-44ed-9095-9515b646048d",
+    "checkedAt": "2026-06-14T11:00:05.4199768-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-14T14-00-17-534Z__83a2521c-a160-44ed-9095-9515b646048d.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\83a2521c-a160-44ed-9095-9515b646048d.json"
+  },
+  {
+    "sessionId": "a92d3015-759d-46f6-a031-cc1b06e717a1",
+    "checkedAt": "2026-06-14T11:00:01.0350415-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-13T20-18-29-075Z__a92d3015-759d-46f6-a031-cc1b06e717a1.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\a92d3015-759d-46f6-a031-cc1b06e717a1.json"
+  },
+  {
+    "sessionId": "e75cc840-a7ab-4b6f-b749-c4850f1de65a",
+    "checkedAt": "2026-06-14T10:59:47.8852447-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-13T18-59-50-506Z__e75cc840-a7ab-4b6f-b749-c4850f1de65a.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\e75cc840-a7ab-4b6f-b749-c4850f1de65a.json"
+  },
+  {
+    "sessionId": "a094de93-43a4-4277-a0c9-3166da174c1c",
+    "checkedAt": "2026-06-14T10:59:43.3651594-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-13T18-23-54-568Z__a094de93-43a4-4277-a0c9-3166da174c1c.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\a094de93-43a4-4277-a0c9-3166da174c1c.json"
+  },
+  {
+    "sessionId": "c1304ab1-2015-46b9-872d-9d34fd9849b3",
+    "checkedAt": "2026-06-14T10:59:40.2675134-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-13T02-56-58-548Z__c1304ab1-2015-46b9-872d-9d34fd9849b3.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\c1304ab1-2015-46b9-872d-9d34fd9849b3.json"
+  },
+  {
+    "sessionId": "5af2700e-06dc-4993-8391-c98be8638d33",
+    "checkedAt": "2026-06-14T10:59:34.1344432-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-12T18-54-20-928Z__5af2700e-06dc-4993-8391-c98be8638d33.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\5af2700e-06dc-4993-8391-c98be8638d33.json"
+  },
+  {
+    "sessionId": "406c2eaa-cbdd-47d5-b138-5a241bf46569",
+    "checkedAt": "2026-06-14T10:59:29.0837816-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-11T14-39-59-789Z__406c2eaa-cbdd-47d5-b138-5a241bf46569.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\406c2eaa-cbdd-47d5-b138-5a241bf46569.json"
+  },
+  {
+    "sessionId": "6ff19d62-048d-4884-8be7-43a7b68a8d1a",
+    "checkedAt": "2026-06-14T10:59:20.3923526-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-11T01-27-41-501Z__6ff19d62-048d-4884-8be7-43a7b68a8d1a.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\6ff19d62-048d-4884-8be7-43a7b68a8d1a.json"
+  },
+  {
+    "sessionId": "d75dd467-207d-4902-a1ea-a36151d7c9d6",
+    "checkedAt": "2026-06-14T10:59:13.1006471-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-10T01-12-56-303Z__d75dd467-207d-4902-a1ea-a36151d7c9d6.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\d75dd467-207d-4902-a1ea-a36151d7c9d6.json"
+  },
+  {
+    "sessionId": "41ec2a4b-6d76-493b-b06d-bc269625de2c",
+    "checkedAt": "2026-06-14T10:59:08.0018757-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-09T19-23-14-576Z__41ec2a4b-6d76-493b-b06d-bc269625de2c.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\41ec2a4b-6d76-493b-b06d-bc269625de2c.json"
+  },
+  {
+    "sessionId": "414155fb-14f5-4053-83fa-a4993ca1310a",
+    "checkedAt": "2026-06-14T10:59:05.0924562-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-09T17-36-23-703Z__414155fb-14f5-4053-83fa-a4993ca1310a.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\414155fb-14f5-4053-83fa-a4993ca1310a.json"
+  },
+  {
+    "sessionId": "d21f358e-0085-4c05-a970-c7f1ac09ba4a",
+    "checkedAt": "2026-06-14T10:59:01.4829581-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-09T04-46-26-875Z__d21f358e-0085-4c05-a970-c7f1ac09ba4a.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\d21f358e-0085-4c05-a970-c7f1ac09ba4a.json"
+  },
+  {
+    "sessionId": "7f84128e-454b-4373-b580-727f25109dac",
+    "checkedAt": "2026-06-14T10:58:55.4416812-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-08T17-55-10-893Z__7f84128e-454b-4373-b580-727f25109dac.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\7f84128e-454b-4373-b580-727f25109dac.json"
+  },
+  {
+    "sessionId": "9958b308-ae6a-4590-bab6-cee6fc2813bc",
+    "checkedAt": "2026-06-14T10:58:47.3388575-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-08T15-16-22-371Z__9958b308-ae6a-4590-bab6-cee6fc2813bc.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\9958b308-ae6a-4590-bab6-cee6fc2813bc.json"
+  },
+  {
+    "sessionId": "42ed55a4-fd3f-47e1-a129-ef9034f8d446",
+    "checkedAt": "2026-06-14T10:58:43.2940978-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-08T04-52-24-193Z__42ed55a4-fd3f-47e1-a129-ef9034f8d446.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\42ed55a4-fd3f-47e1-a129-ef9034f8d446.json"
+  },
+  {
+    "sessionId": "7bd31ee8-3d4d-48ee-891c-ab42c76dbfb2",
+    "checkedAt": "2026-06-14T10:58:31.0258351-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-08T03-24-35-266Z__7bd31ee8-3d4d-48ee-891c-ab42c76dbfb2.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\7bd31ee8-3d4d-48ee-891c-ab42c76dbfb2.json"
+  },
+  {
+    "sessionId": "d0a2a405-ba81-438d-9663-26c4344c300b",
+    "checkedAt": "2026-06-14T10:58:26.8804297-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-08T01-30-30-597Z__d0a2a405-ba81-438d-9663-26c4344c300b.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\d0a2a405-ba81-438d-9663-26c4344c300b.json"
+  },
+  {
     "sessionId": "0574ad38-4fe2-4e95-9594-adb7bffdee9d",
-    "checkedAt": "2026-06-07T16:42:15.7242632-06:00",
+    "checkedAt": "2026-06-14T10:58:21.1684939-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-07T21-14-31-679Z__0574ad38-4fe2-4e95-9594-adb7bffdee9d.jsonl",
     "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\0574ad38-4fe2-4e95-9594-adb7bffdee9d.json"
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\0574ad38-4fe2-4e95-9594-adb7bffdee9d.json"
   },
   {
     "sessionId": "0e878dac-d884-4494-b05f-8969368cbf97",
-    "checkedAt": "2026-06-07T16:42:04.9466141-06:00",
+    "checkedAt": "2026-06-14T10:58:12.9242457-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-07T19-19-07-516Z__0e878dac-d884-4494-b05f-8969368cbf97.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\0e878dac-d884-4494-b05f-8969368cbf97.json"
   },
   {
     "sessionId": "f3396380-6333-4f5d-b8d5-87cfe275835f",
-    "checkedAt": "2026-06-07T13:18:54.8922994-06:00",
+    "checkedAt": "2026-06-14T10:58:06.4931403-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-07T17-49-37-435Z__f3396380-6333-4f5d-b8d5-87cfe275835f.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\f3396380-6333-4f5d-b8d5-87cfe275835f.json"
   },
   {
     "sessionId": "c03f2964-9218-4576-a74d-1c266b9dc127",
-    "checkedAt": "2026-06-07T13:18:49.3293585-06:00",
+    "checkedAt": "2026-06-14T10:58:00.1028534-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-07T15-50-21-286Z__c03f2964-9218-4576-a74d-1c266b9dc127.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\c03f2964-9218-4576-a74d-1c266b9dc127.json"
   },
   {
     "sessionId": "df470eba-c54c-4cda-8394-4d290e8c54ce",
-    "checkedAt": "2026-06-07T10:12:18.8385946-06:00",
+    "checkedAt": "2026-06-14T10:57:54.0190857-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-07T07-12-22-060Z__df470eba-c54c-4cda-8394-4d290e8c54ce.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\df470eba-c54c-4cda-8394-4d290e8c54ce.json"
   },
   {
     "sessionId": "ed1841f8-46b3-49c5-8c50-f899d999ee0a",
-    "checkedAt": "2026-06-07T10:11:55.3580723-06:00",
+    "checkedAt": "2026-06-14T10:57:47.0964964-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-07T07-06-12-953Z__ed1841f8-46b3-49c5-8c50-f899d999ee0a.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\ed1841f8-46b3-49c5-8c50-f899d999ee0a.json"
   },
   {
     "sessionId": "a4f9f4d7-2b4f-4165-b59c-6d87849b351a",
-    "checkedAt": "2026-06-07T10:11:33.7756405-06:00",
+    "checkedAt": "2026-06-14T10:57:42.9062588-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-07T06-45-19-880Z__a4f9f4d7-2b4f-4165-b59c-6d87849b351a.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\a4f9f4d7-2b4f-4165-b59c-6d87849b351a.json"
   },
   {
     "sessionId": "cc898379-b715-4bb3-994d-e88a9f326c50",
-    "checkedAt": "2026-06-07T10:11:28.6434292-06:00",
+    "checkedAt": "2026-06-14T10:57:38.6259947-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-07T02-56-11-084Z__cc898379-b715-4bb3-994d-e88a9f326c50.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\cc898379-b715-4bb3-994d-e88a9f326c50.json"
   },
   {
     "sessionId": "285f315a-96d2-46f7-a6eb-67a7187dec34",
-    "checkedAt": "2026-06-07T10:11:22.7920952-06:00",
+    "checkedAt": "2026-06-14T10:57:33.7018395-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-06T23-43-20-087Z__285f315a-96d2-46f7-a6eb-67a7187dec34.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\285f315a-96d2-46f7-a6eb-67a7187dec34.json"
   },
   {
     "sessionId": "69049ac5-4969-4c41-b903-88dbe0c9ea1e",
-    "checkedAt": "2026-06-07T10:11:18.4770128-06:00",
+    "checkedAt": "2026-06-14T10:57:28.6775271-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-06T06-58-59-097Z__69049ac5-4969-4c41-b903-88dbe0c9ea1e.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\69049ac5-4969-4c41-b903-88dbe0c9ea1e.json"
   },
   {
     "sessionId": "8380c38d-07ef-4f3b-a089-e18472f16cbd",
-    "checkedAt": "2026-06-07T10:11:10.959164-06:00",
+    "checkedAt": "2026-06-14T10:57:20.6658434-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-05T08-25-01-970Z__8380c38d-07ef-4f3b-a089-e18472f16cbd.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\8380c38d-07ef-4f3b-a089-e18472f16cbd.json"
   },
   {
     "sessionId": "c3db92a6-329f-4b87-8b70-ebde8e979945",
-    "checkedAt": "2026-06-07T10:10:58.6067934-06:00",
+    "checkedAt": "2026-06-14T10:57:10.3397286-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-05T08-13-02-795Z__c3db92a6-329f-4b87-8b70-ebde8e979945.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\c3db92a6-329f-4b87-8b70-ebde8e979945.json"
   },
   {
     "sessionId": "32b124b8-ce17-4478-9e8d-2831328ff593",
-    "checkedAt": "2026-06-05T02:11:23.7178989-06:00",
+    "checkedAt": "2026-06-14T10:57:06.6933119-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-05T07-22-39-379Z__32b124b8-ce17-4478-9e8d-2831328ff593.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\32b124b8-ce17-4478-9e8d-2831328ff593.json"
   },
   {
-    "sessionId": "a830afd0-5089-4272-a97a-8da4fa1d2086",
-    "checkedAt": "2026-06-05T01:04:55.4142488-06:00",
-    "target": "/mnt/c/Projects/lkcsite/polydb/telemetry/sessions/2026-06-01T19-27-25-965Z__a830afd0-5089-4272-a97a-8da4fa1d2086.jsonl",
-    "status": "passed",
-    "outputPath": "/mnt/c/Projects/lkcsite/PATBv5/polydb/evaluation/session_evaluations/a830afd0-5089-4272-a97a-8da4fa1d2086.json"
-  },
-  {
     "sessionId": "a744bc1a-97c6-4a1b-b1ba-d8681dbbcf6f",
-    "checkedAt": "2026-06-05T00:59:32.9496862-06:00",
-    "target": "/mnt/c/Projects/lkcsite/polydb/telemetry/sessions/2026-06-05T06-33-00-903Z__a744bc1a-97c6-4a1b-b1ba-d8681dbbcf6f.jsonl",
+    "checkedAt": "2026-06-14T10:57:03.6011808-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-05T06-33-00-903Z__a744bc1a-97c6-4a1b-b1ba-d8681dbbcf6f.jsonl",
     "status": "passed",
-    "outputPath": "/mnt/c/Projects/lkcsite/PATBv5/polydb/evaluation/diagnostics/a744bc1a-97c6-4a1b-b1ba-d8681dbbcf6f.json"
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\a744bc1a-97c6-4a1b-b1ba-d8681dbbcf6f.json"
   },
   {
-    "sessionId": "48c6c756-1f9c-4f4b-b07f-02d132fa4f4b",
-    "checkedAt": "2026-06-05T00:47:27.3739444-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T08-18-48-475Z__48c6c756-1f9c-4f4b-b07f-02d132fa4f4b.jsonl",
+    "sessionId": "ed18129e-1417-498d-91b7-b9b29fcd3c5d",
+    "checkedAt": "2026-06-14T10:56:59.6400657-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-05T06-20-55-131Z__ed18129e-1417-498d-91b7-b9b29fcd3c5d.jsonl",
     "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\48c6c756-1f9c-4f4b-b07f-02d132fa4f4b.json"
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\ed18129e-1417-498d-91b7-b9b29fcd3c5d.json"
   },
   {
-    "sessionId": "aafcd096-4ebc-40b8-b704-c861c10c4087",
-    "checkedAt": "2026-06-05T00:47:22.8929469-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T08-19-39-134Z__aafcd096-4ebc-40b8-b704-c861c10c4087.jsonl",
+    "sessionId": "6f2b2a7d-486d-4560-849d-68c4d4665a4b",
+    "checkedAt": "2026-06-14T10:56:56.0330065-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl",
     "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\aafcd096-4ebc-40b8-b704-c861c10c4087.json"
-  },
-  {
-    "sessionId": "8ce84cf9-87fb-4136-a3fb-a70f157eba7c",
-    "checkedAt": "2026-06-05T00:47:17.0997686-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T12-40-02-084Z__8ce84cf9-87fb-4136-a3fb-a70f157eba7c.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\8ce84cf9-87fb-4136-a3fb-a70f157eba7c.json"
-  },
-  {
-    "sessionId": "4edfc6a6-6ba2-42ba-a075-f62b82628579",
-    "checkedAt": "2026-06-05T00:47:13.2926799-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T13-05-52-083Z__4edfc6a6-6ba2-42ba-a075-f62b82628579.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\4edfc6a6-6ba2-42ba-a075-f62b82628579.json"
-  },
-  {
-    "sessionId": "21679361-81c7-4149-ac81-8708f8dfdd5b",
-    "checkedAt": "2026-06-05T00:47:09.3455391-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T13-17-42-581Z__21679361-81c7-4149-ac81-8708f8dfdd5b.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\21679361-81c7-4149-ac81-8708f8dfdd5b.json"
-  },
-  {
-    "sessionId": "b9b608d5-8c78-42cd-a3bf-4c10577dd095",
-    "checkedAt": "2026-06-05T00:47:05.2321539-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T14-09-24-631Z__b9b608d5-8c78-42cd-a3bf-4c10577dd095.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\b9b608d5-8c78-42cd-a3bf-4c10577dd095.json"
-  },
-  {
-    "sessionId": "c7900287-a032-4bd4-9a9b-6982dd76a9cb",
-    "checkedAt": "2026-06-05T00:46:59.5583492-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T17-54-51-210Z__c7900287-a032-4bd4-9a9b-6982dd76a9cb.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\c7900287-a032-4bd4-9a9b-6982dd76a9cb.json"
-  },
-  {
-    "sessionId": "2651e3d6-acd7-495c-abee-c974759be929",
-    "checkedAt": "2026-06-05T00:46:55.4525727-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T19-41-41-350Z__2651e3d6-acd7-495c-abee-c974759be929.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\2651e3d6-acd7-495c-abee-c974759be929.json"
-  },
-  {
-    "sessionId": "f274a631-a80e-43b7-a741-f111137772f4",
-    "checkedAt": "2026-06-05T00:46:51.6857312-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T20-24-15-185Z__f274a631-a80e-43b7-a741-f111137772f4.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\f274a631-a80e-43b7-a741-f111137772f4.json"
-  },
-  {
-    "sessionId": "6ffebad6-8461-41b2-acc2-461202f12897",
-    "checkedAt": "2026-06-05T00:46:47.4752851-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T21-55-04-547Z__6ffebad6-8461-41b2-acc2-461202f12897.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\6ffebad6-8461-41b2-acc2-461202f12897.json"
-  },
-  {
-    "sessionId": "880ca2df-a389-4d3e-ac4c-5568172ce857",
-    "checkedAt": "2026-06-05T00:46:43.0593161-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T23-22-10-630Z__880ca2df-a389-4d3e-ac4c-5568172ce857.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\880ca2df-a389-4d3e-ac4c-5568172ce857.json"
-  },
-  {
-    "sessionId": "90bdc8d1-3059-47d1-8bc8-d8ca67909bfb",
-    "checkedAt": "2026-06-05T00:46:39.0154728-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T23-59-59-337Z__90bdc8d1-3059-47d1-8bc8-d8ca67909bfb.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\90bdc8d1-3059-47d1-8bc8-d8ca67909bfb.json"
-  },
-  {
-    "sessionId": "4f0d23a4-dd9c-4fe5-a789-c227388b652b",
-    "checkedAt": "2026-06-05T00:46:34.65243-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T01-38-09-161Z__4f0d23a4-dd9c-4fe5-a789-c227388b652b.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\4f0d23a4-dd9c-4fe5-a789-c227388b652b.json"
-  },
-  {
-    "sessionId": "6fe9da5f-6caf-4938-a980-fc9d2ef90213",
-    "checkedAt": "2026-06-05T00:46:30.2364522-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T04-15-24-272Z__6fe9da5f-6caf-4938-a980-fc9d2ef90213.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\6fe9da5f-6caf-4938-a980-fc9d2ef90213.json"
-  },
-  {
-    "sessionId": "4ab5a567-9b57-4653-b02b-d27c8d8d768a",
-    "checkedAt": "2026-06-05T00:46:24.9674007-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T04-28-51-802Z__4ab5a567-9b57-4653-b02b-d27c8d8d768a.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\4ab5a567-9b57-4653-b02b-d27c8d8d768a.json"
-  },
-  {
-    "sessionId": "d107b65c-af36-4512-8d6d-3bf49bc00f66",
-    "checkedAt": "2026-06-05T00:46:19.1187211-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T05-02-14-879Z__d107b65c-af36-4512-8d6d-3bf49bc00f66.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\d107b65c-af36-4512-8d6d-3bf49bc00f66.json"
-  },
-  {
-    "sessionId": "6471f2fd-c680-4f3d-82b9-30476d7caaf2",
-    "checkedAt": "2026-06-05T00:46:09.3107062-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T15-11-53-914Z__6471f2fd-c680-4f3d-82b9-30476d7caaf2.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\6471f2fd-c680-4f3d-82b9-30476d7caaf2.json"
-  },
-  {
-    "sessionId": "39215d04-6270-416c-8a82-6a03418a7b54",
-    "checkedAt": "2026-06-05T00:45:57.2968803-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-03T02-10-18-930Z__39215d04-6270-416c-8a82-6a03418a7b54.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\39215d04-6270-416c-8a82-6a03418a7b54.json"
-  },
-  {
-    "sessionId": "c5ecf330-1320-4199-af57-a6380267f195",
-    "checkedAt": "2026-06-05T00:45:46.447242-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-03T16-24-43-348Z__c5ecf330-1320-4199-af57-a6380267f195.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\c5ecf330-1320-4199-af57-a6380267f195.json"
-  },
-  {
-    "sessionId": "2491f4a3-b7a4-4891-a580-920d26cebcc6",
-    "checkedAt": "2026-06-05T00:45:37.4643504-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-04T03-50-01-221Z__2491f4a3-b7a4-4891-a580-920d26cebcc6.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\2491f4a3-b7a4-4891-a580-920d26cebcc6.json"
-  },
-  {
-    "sessionId": "44e63b9e-d172-4c03-acbf-a1aa10834475",
-    "checkedAt": "2026-06-05T00:45:33.3128845-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-04T04-57-20-129Z__44e63b9e-d172-4c03-acbf-a1aa10834475.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\44e63b9e-d172-4c03-acbf-a1aa10834475.json"
-  },
-  {
-    "sessionId": "afa55cb1-6cb8-4d41-b555-99a841847071",
-    "checkedAt": "2026-06-05T00:45:23.8154984-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-04T13-05-57-214Z__afa55cb1-6cb8-4d41-b555-99a841847071.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\afa55cb1-6cb8-4d41-b555-99a841847071.json"
-  },
-  {
-    "sessionId": "34710e59-5f0c-4636-bcab-575e6df62536",
-    "checkedAt": "2026-06-05T00:45:19.1367876-06:00",
-    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-04T14-59-19-282Z__34710e59-5f0c-4636-bcab-575e6df62536.jsonl",
-    "status": "passed",
-    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\34710e59-5f0c-4636-bcab-575e6df62536.json"
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\6f2b2a7d-486d-4560-849d-68c4d4665a4b.json"
   },
   {
     "sessionId": "46d2cf93-c5ac-4521-a75a-18493ee4515b",
-    "checkedAt": "2026-06-05T00:45:13.2596292-06:00",
+    "checkedAt": "2026-06-14T10:56:52.6947049-06:00",
     "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-04T20-51-20-967Z__46d2cf93-c5ac-4521-a75a-18493ee4515b.jsonl",
     "status": "passed",
     "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\46d2cf93-c5ac-4521-a75a-18493ee4515b.json"
   },
   {
-    "sessionId": "ed18129e-1417-498d-91b7-b9b29fcd3c5d",
-    "checkedAt": "2026-06-05T00:34:03.2923618-06:00",
-    "target": "/mnt/c/Projects/lkcsite/polydb/telemetry/sessions/2026-06-05T06-20-55-131Z__ed18129e-1417-498d-91b7-b9b29fcd3c5d.jsonl",
+    "sessionId": "34710e59-5f0c-4636-bcab-575e6df62536",
+    "checkedAt": "2026-06-14T10:56:46.4564691-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-04T14-59-19-282Z__34710e59-5f0c-4636-bcab-575e6df62536.jsonl",
     "status": "passed",
-    "outputPath": "/mnt/c/Projects/lkcsite/PATBv5/polydb/evaluation/session_evaluations/ed18129e-1417-498d-91b7-b9b29fcd3c5d.json"
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\34710e59-5f0c-4636-bcab-575e6df62536.json"
   },
   {
-    "sessionId": "6f2b2a7d-486d-4560-849d-68c4d4665a4b",
-    "checkedAt": "2026-06-05T00:33:56.8312675-06:00",
-    "target": "/mnt/c/Projects/lkcsite/polydb/telemetry/sessions/2026-06-05T04-07-55-423Z__6f2b2a7d-486d-4560-849d-68c4d4665a4b.jsonl",
+    "sessionId": "afa55cb1-6cb8-4d41-b555-99a841847071",
+    "checkedAt": "2026-06-14T10:56:42.6926531-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-04T13-05-57-214Z__afa55cb1-6cb8-4d41-b555-99a841847071.jsonl",
     "status": "passed",
-    "outputPath": "/mnt/c/Projects/lkcsite/PATBv5/polydb/evaluation/session_evaluations/6f2b2a7d-486d-4560-849d-68c4d4665a4b.json"
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\afa55cb1-6cb8-4d41-b555-99a841847071.json"
+  },
+  {
+    "sessionId": "44e63b9e-d172-4c03-acbf-a1aa10834475",
+    "checkedAt": "2026-06-14T10:56:38.6490507-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-04T04-57-20-129Z__44e63b9e-d172-4c03-acbf-a1aa10834475.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\44e63b9e-d172-4c03-acbf-a1aa10834475.json"
+  },
+  {
+    "sessionId": "2491f4a3-b7a4-4891-a580-920d26cebcc6",
+    "checkedAt": "2026-06-14T10:56:31.9587465-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-04T03-50-01-221Z__2491f4a3-b7a4-4891-a580-920d26cebcc6.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\2491f4a3-b7a4-4891-a580-920d26cebcc6.json"
+  },
+  {
+    "sessionId": "c5ecf330-1320-4199-af57-a6380267f195",
+    "checkedAt": "2026-06-14T10:56:27.7915401-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-03T16-24-43-348Z__c5ecf330-1320-4199-af57-a6380267f195.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\c5ecf330-1320-4199-af57-a6380267f195.json"
+  },
+  {
+    "sessionId": "39215d04-6270-416c-8a82-6a03418a7b54",
+    "checkedAt": "2026-06-14T10:56:19.3556163-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-03T02-10-18-930Z__39215d04-6270-416c-8a82-6a03418a7b54.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\39215d04-6270-416c-8a82-6a03418a7b54.json"
+  },
+  {
+    "sessionId": "a830afd0-5089-4272-a97a-8da4fa1d2086",
+    "checkedAt": "2026-06-14T10:56:05.006214-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T19-27-25-965Z__a830afd0-5089-4272-a97a-8da4fa1d2086.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\a830afd0-5089-4272-a97a-8da4fa1d2086.json"
+  },
+  {
+    "sessionId": "6471f2fd-c680-4f3d-82b9-30476d7caaf2",
+    "checkedAt": "2026-06-14T10:55:45.3351293-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T15-11-53-914Z__6471f2fd-c680-4f3d-82b9-30476d7caaf2.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\6471f2fd-c680-4f3d-82b9-30476d7caaf2.json"
+  },
+  {
+    "sessionId": "d107b65c-af36-4512-8d6d-3bf49bc00f66",
+    "checkedAt": "2026-06-14T10:55:37.6938144-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T05-02-14-879Z__d107b65c-af36-4512-8d6d-3bf49bc00f66.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\d107b65c-af36-4512-8d6d-3bf49bc00f66.json"
+  },
+  {
+    "sessionId": "4ab5a567-9b57-4653-b02b-d27c8d8d768a",
+    "checkedAt": "2026-06-14T10:55:25.5024263-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T04-28-51-802Z__4ab5a567-9b57-4653-b02b-d27c8d8d768a.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\4ab5a567-9b57-4653-b02b-d27c8d8d768a.json"
+  },
+  {
+    "sessionId": "6fe9da5f-6caf-4938-a980-fc9d2ef90213",
+    "checkedAt": "2026-06-14T10:55:19.9462291-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T04-15-24-272Z__6fe9da5f-6caf-4938-a980-fc9d2ef90213.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\6fe9da5f-6caf-4938-a980-fc9d2ef90213.json"
+  },
+  {
+    "sessionId": "4f0d23a4-dd9c-4fe5-a789-c227388b652b",
+    "checkedAt": "2026-06-14T10:55:14.3111328-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-06-01T01-38-09-161Z__4f0d23a4-dd9c-4fe5-a789-c227388b652b.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\4f0d23a4-dd9c-4fe5-a789-c227388b652b.json"
+  },
+  {
+    "sessionId": "90bdc8d1-3059-47d1-8bc8-d8ca67909bfb",
+    "checkedAt": "2026-06-14T10:55:09.1437943-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T23-59-59-337Z__90bdc8d1-3059-47d1-8bc8-d8ca67909bfb.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\90bdc8d1-3059-47d1-8bc8-d8ca67909bfb.json"
+  },
+  {
+    "sessionId": "880ca2df-a389-4d3e-ac4c-5568172ce857",
+    "checkedAt": "2026-06-14T10:55:02.9030641-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T23-22-10-630Z__880ca2df-a389-4d3e-ac4c-5568172ce857.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\880ca2df-a389-4d3e-ac4c-5568172ce857.json"
+  },
+  {
+    "sessionId": "6ffebad6-8461-41b2-acc2-461202f12897",
+    "checkedAt": "2026-06-14T10:54:57.7957083-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T21-55-04-547Z__6ffebad6-8461-41b2-acc2-461202f12897.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\6ffebad6-8461-41b2-acc2-461202f12897.json"
+  },
+  {
+    "sessionId": "f274a631-a80e-43b7-a741-f111137772f4",
+    "checkedAt": "2026-06-14T10:54:52.936115-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T20-24-15-185Z__f274a631-a80e-43b7-a741-f111137772f4.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\f274a631-a80e-43b7-a741-f111137772f4.json"
+  },
+  {
+    "sessionId": "2651e3d6-acd7-495c-abee-c974759be929",
+    "checkedAt": "2026-06-14T10:54:47.4339249-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T19-41-41-350Z__2651e3d6-acd7-495c-abee-c974759be929.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\2651e3d6-acd7-495c-abee-c974759be929.json"
+  },
+  {
+    "sessionId": "c7900287-a032-4bd4-9a9b-6982dd76a9cb",
+    "checkedAt": "2026-06-14T10:54:42.6126016-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T17-54-51-210Z__c7900287-a032-4bd4-9a9b-6982dd76a9cb.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\c7900287-a032-4bd4-9a9b-6982dd76a9cb.json"
+  },
+  {
+    "sessionId": "b9b608d5-8c78-42cd-a3bf-4c10577dd095",
+    "checkedAt": "2026-06-14T10:54:37.0185787-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T14-09-24-631Z__b9b608d5-8c78-42cd-a3bf-4c10577dd095.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\session_evaluations\\b9b608d5-8c78-42cd-a3bf-4c10577dd095.json"
+  },
+  {
+    "sessionId": "21679361-81c7-4149-ac81-8708f8dfdd5b",
+    "checkedAt": "2026-06-14T10:54:31.08479-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T13-17-42-581Z__21679361-81c7-4149-ac81-8708f8dfdd5b.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\21679361-81c7-4149-ac81-8708f8dfdd5b.json"
+  },
+  {
+    "sessionId": "4edfc6a6-6ba2-42ba-a075-f62b82628579",
+    "checkedAt": "2026-06-14T10:54:26.0665664-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T13-05-52-083Z__4edfc6a6-6ba2-42ba-a075-f62b82628579.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\4edfc6a6-6ba2-42ba-a075-f62b82628579.json"
+  },
+  {
+    "sessionId": "8ce84cf9-87fb-4136-a3fb-a70f157eba7c",
+    "checkedAt": "2026-06-14T10:54:21.5378416-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T12-40-02-084Z__8ce84cf9-87fb-4136-a3fb-a70f157eba7c.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\8ce84cf9-87fb-4136-a3fb-a70f157eba7c.json"
+  },
+  {
+    "sessionId": "aafcd096-4ebc-40b8-b704-c861c10c4087",
+    "checkedAt": "2026-06-14T10:54:16.3695879-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T08-19-39-134Z__aafcd096-4ebc-40b8-b704-c861c10c4087.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\aafcd096-4ebc-40b8-b704-c861c10c4087.json"
+  },
+  {
+    "sessionId": "48c6c756-1f9c-4f4b-b07f-02d132fa4f4b",
+    "checkedAt": "2026-06-14T10:53:57.7020818-06:00",
+    "target": "C:\\Projects\\lkcsite\\polydb\\telemetry\\sessions\\2026-05-31T08-18-48-475Z__48c6c756-1f9c-4f4b-b07f-02d132fa4f4b.jsonl",
+    "status": "passed",
+    "outputPath": "C:\\Projects\\lkcsite\\PATBv5\\polydb\\evaluation\\diagnostics\\48c6c756-1f9c-4f4b-b07f-02d132fa4f4b.json"
   }
 ]
