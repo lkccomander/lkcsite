@@ -21,14 +21,18 @@ export function detectAnomalies(report: SessionReport): Anomaly[] {
   }
   
   // 2. FIX (red, priority 2)
-  // Trigger: up_bias_filter count > 0 AND no delta1m in rejection payloads
+  // Trigger: up_bias_filter count > 0 AND captured rejection payloads are missing required observed values
   const upBiasFilterRejections = report.rejectionBreakdown.filter(rb => rb.reason === 'up_bias_filter');
   if (upBiasFilterRejections.length > 0) {
-    // Check if any rejection payloads have delta1m
-    let hasDelta1m = false;
-    // This would require access to raw rejection event data which isn't currently stored
-    // For now, we'll assume it's missing as per the requirement
-    if (!hasDelta1m) {
+    const capturedPayloads = report.rejectionPayloads.up_bias_filter ?? [];
+    const missingRequiredValues = capturedPayloads.length === 0 || capturedPayloads.some((record) => {
+      const payload = record.payload ?? {};
+      return payload.observedDelta1m === undefined
+        || payload.observedDelta1m === null
+        || payload.observedMomentumConfidence === undefined
+        || payload.observedMomentumConfidence === null;
+    });
+    if (missingRequiredValues) {
       anomalies.push({
         priority: 2,
         type: 'FIX',

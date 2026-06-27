@@ -10,17 +10,19 @@ import type {
 } from "./types";
 
 const WS_MARKET_ENDPOINT = "wss://ws-subscriptions-clob.polymarket.com/ws/market";
-const FEED_STALE_MS = 1000;
+const FEED_STALE_MS = 2000;
 const FEED_CONNECT_TIMEOUT_MS = 10000;
-const FEED_STARTUP_GRACE_MS = 5000;
+const FEED_STARTUP_GRACE_MS = 7000;
 const FEED_TICK_TELEMETRY_INTERVAL_MS = 1000;
-const FEED_FORCE_WEBSOCKET_WAIT_MS = 8000;
-const FEED_RESUBSCRIBE_COOLDOWN_MS = 1500;
+const FEED_FORCE_WEBSOCKET_WAIT_MS = 12000;
+const FEED_RESUBSCRIBE_COOLDOWN_MS = 1000;
 const FEED_PING_INTERVAL_MS = 5000;
 const FEED_FALLBACK_DEBOUNCE_MS = 3000;
 const FEED_WEBSOCKET_SNAPSHOT_GRACE_MS = 750;
-const FEED_RECONNECT_BACKOFF_MS = [500, 1000, 2000, 4000, 8000, 15000];
+const FEED_RECONNECT_BACKOFF_MS = [250, 500, 1000, 2000, 4000, 8000];
 const FEED_RECONNECT_STABLE_RESET_MS = 10000;
+const FEED_FORCE_RECONNECT_STALE_MS = 7000;
+const FEED_FORCE_RECONNECT_WAITING_FOR_BOTH_SIDES_MS = 15000;
 
 interface FeedState {
     buyPrice: number;
@@ -78,18 +80,6 @@ function emptyFeedState(): FeedState {
     };
 }
 
-function resetFeedStatePreservingCounters(state: FeedState): FeedState {
-    return {
-        buyPrice: 0,
-        sellPrice: 0,
-        marketTimestampMs: null,
-        receivedAtMs: 0,
-        lastEventType: state.lastEventType,
-        websocketMessageCount: state.websocketMessageCount,
-        firstWebsocketSeenAtMs: state.firstWebsocketSeenAtMs,
-    };
-}
-
 function buildSnapshot(
     upState: FeedState,
     downState: FeedState,
@@ -99,12 +89,22 @@ function buildSnapshot(
         return null;
     }
 
-    const newestReceivedAtMs = Math.max(upState.receivedAtMs, downState.receivedAtMs);
-    const newestMarketTimestampMs = [upState.marketTimestampMs, downState.marketTimestampMs]
-        .filter((value): value is number => value !== null)
-        .reduce<number | null>((maxValue, value) => (maxValue === null ? value : Math.max(maxValue, value)), null);
-    const staleMs = newestReceivedAtMs > 0 ? Math.max(0, Date.now() - newestReceivedAtMs) : FEED_STALE_MS + 1;
-    const latencyMs = newestMarketTimestampMs ? Math.max(0, newestReceivedAtMs - newestMarketTimestampMs) : null;
+    const now = Date.now();
+    const receivedAtValues = [upState.receivedAtMs, downState.receivedAtMs].filter((value) => value > 0);
+    const snapshotReceivedAtMs = receivedAtValues.length > 0 ? Math.min(...receivedAtValues) : 0;
+    const marketLatencySamples = [
+        upState.marketTimestampMs !== null && upState.receivedAtMs > 0
+            ? Math.max(0, upState.receivedAtMs - upState.marketTimestampMs)
+            : null,
+        downState.marketTimestampMs !== null && downState.receivedAtMs > 0
+            ? Math.max(0, downState.receivedAtMs - downState.marketTimestampMs)
+            : null,
+    ].filter((value): value is number => value !== null);
+    const marketTimestampValues = [upState.marketTimestampMs, downState.marketTimestampMs]
+        .filter((value): value is number => value !== null);
+    const marketTimestampMs = marketTimestampValues.length > 0 ? Math.min(...marketTimestampValues) : null;
+    const staleMs = snapshotReceivedAtMs > 0 ? Math.max(0, now - snapshotReceivedAtMs) : FEED_STALE_MS + 1;
+    const latencyMs = marketLatencySamples.length > 0 ? Math.max(...marketLatencySamples) : null;
 
     return {
         upBuyPrice: upState.buyPrice,
@@ -112,8 +112,8 @@ function buildSnapshot(
         downBuyPrice: downState.buyPrice,
         downSellPrice: downState.sellPrice,
         source,
-        receivedAt: new Date(newestReceivedAtMs || Date.now()).toISOString(),
-        marketTimestampMs: newestMarketTimestampMs,
+        receivedAt: new Date(snapshotReceivedAtMs || now).toISOString(),
+        marketTimestampMs,
         latencyMs,
         staleMs,
     };
@@ -121,6 +121,10 @@ function buildSnapshot(
 
 function hasValidQuote(buyPrice: number, sellPrice: number): boolean {
     return buyPrice > 0 && sellPrice > 0;
+}
+
+function hasAnyValidQuote(buyPrice: number, sellPrice: number): boolean {
+    return buyPrice > 0 || sellPrice > 0;
 }
 
 export class PolymarketMarketFeed implements MarketFeed {
@@ -339,11 +343,12 @@ export class PolymarketMarketFeed implements MarketFeed {
                 this.stats.wsReconnectedAtMs = now;
                 this.pendingReconnectReason = null;
                 this.stats.reconnectAttemptCount = 0;
-                this.stateByAsset[this.upTokenId] = resetFeedStatePreservingCounters(this.stateByAsset[this.upTokenId]);
-                this.stateByAsset[this.downTokenId] = resetFeedStatePreservingCounters(this.stateByAsset[this.downTokenId]);
+                // Preserve the last valid websocket book across reconnects so a brief
+                // resubscribe gap does not immediately become a long subscription_missing window.
                 this.sendSubscription("initial_open");
                 this.startPingLoop();
-                void this.fetchRestSnapshot("missing_websocket");
+                // Let the websocket startup grace window absorb initial book delivery
+                // instead of recording an immediate REST fallback on every connect.
                 void writeTelemetryEventSafe("feed.connected", {
                     slug: this.slug,
                     source: "websocket",
@@ -436,14 +441,22 @@ export class PolymarketMarketFeed implements MarketFeed {
         if (websocketSnapshot && websocketSnapshot.staleMs > FEED_STALE_MS) {
             await this.emitStaleTelemetry(websocketSnapshot.staleMs);
             if (this.wsConnected) {
-                this.refreshSubscriptionIfNeeded("stale_snapshot");
+                if (websocketSnapshot.staleMs >= FEED_FORCE_RECONNECT_STALE_MS) {
+                    this.forceReconnect("stale_snapshot_timeout");
+                } else {
+                    this.refreshSubscriptionIfNeeded("stale_snapshot");
+                }
             }
         }
 
         const connectedForMs = this.wsConnected ? Date.now() - this.lastConnectedAtMs : 0;
         const startupGraceActive = this.wsConnected && connectedForMs < FEED_STARTUP_GRACE_MS;
         if (!websocketReady && this.wsConnected) {
-            this.refreshSubscriptionIfNeeded("waiting_for_both_sides");
+            if (connectedForMs >= FEED_FORCE_RECONNECT_WAITING_FOR_BOTH_SIDES_MS) {
+                this.forceReconnect("waiting_for_both_sides_timeout");
+            } else {
+                this.refreshSubscriptionIfNeeded("waiting_for_both_sides");
+            }
         }
 
         if (!websocketSnapshot && (startupGraceActive || (this.wsConnected && !websocketReady && connectedForMs < FEED_FORCE_WEBSOCKET_WAIT_MS))) {
@@ -464,6 +477,9 @@ export class PolymarketMarketFeed implements MarketFeed {
     }
 
     private buildWebsocketSnapshot(): PriceSnapshot | null {
+        if (!this.wsConnected) {
+            return null;
+        }
         return buildSnapshot(
             this.stateByAsset[this.upTokenId],
             this.stateByAsset[this.downTokenId],
@@ -501,6 +517,17 @@ export class PolymarketMarketFeed implements MarketFeed {
             const buyPrice = toFiniteNumber(message.best_ask);
             const sellPrice = toFiniteNumber(message.best_bid);
             if (!hasValidQuote(buyPrice, sellPrice)) {
+                const nextState = this.buildPartialQuoteState(previousState, buyPrice, sellPrice, parseTimestampMs(message.timestamp));
+                if (nextState) {
+                    this.stateByAsset[assetId] = {
+                        ...nextState,
+                        websocketMessageCount,
+                        firstWebsocketSeenAtMs,
+                        lastEventType: eventType,
+                    };
+                    await this.handleSnapshotUpdate("best_bid_ask");
+                    return;
+                }
                 await this.ignoreInvalidBookUpdate(assetId, eventType, previousState, websocketMessageCount, firstWebsocketSeenAtMs, {
                     bestBid: sellPrice,
                     bestAsk: buyPrice,
@@ -526,6 +553,17 @@ export class PolymarketMarketFeed implements MarketFeed {
             const bestBid = bids.length ? toFiniteNumber((bids[0] as Record<string, unknown>).price) : 0;
             const bestAsk = asks.length ? toFiniteNumber((asks[0] as Record<string, unknown>).price) : 0;
             if (!hasValidQuote(bestAsk, bestBid)) {
+                const nextState = this.buildPartialQuoteState(previousState, bestAsk, bestBid, parseTimestampMs(message.timestamp));
+                if (nextState) {
+                    this.stateByAsset[assetId] = {
+                        ...nextState,
+                        websocketMessageCount,
+                        firstWebsocketSeenAtMs,
+                        lastEventType: eventType,
+                    };
+                    await this.handleSnapshotUpdate("book");
+                    return;
+                }
                 await this.ignoreInvalidBookUpdate(assetId, eventType, previousState, websocketMessageCount, firstWebsocketSeenAtMs, {
                     bidsCount: bids.length,
                     asksCount: asks.length,
@@ -545,6 +583,33 @@ export class PolymarketMarketFeed implements MarketFeed {
             };
             await this.handleSnapshotUpdate("book");
         }
+    }
+
+    private buildPartialQuoteState(
+        previousState: FeedState,
+        nextBuyPrice: number,
+        nextSellPrice: number,
+        marketTimestampMs: number | null,
+    ): FeedState | null {
+        if (!hasAnyValidQuote(nextBuyPrice, nextSellPrice)) {
+            return null;
+        }
+
+        const buyPrice = nextBuyPrice > 0 ? nextBuyPrice : previousState.buyPrice;
+        const sellPrice = nextSellPrice > 0 ? nextSellPrice : previousState.sellPrice;
+        if (!hasValidQuote(buyPrice, sellPrice)) {
+            return null;
+        }
+
+        return {
+            buyPrice,
+            sellPrice,
+            marketTimestampMs,
+            receivedAtMs: Date.now(),
+            lastEventType: previousState.lastEventType,
+            websocketMessageCount: previousState.websocketMessageCount,
+            firstWebsocketSeenAtMs: previousState.firstWebsocketSeenAtMs,
+        };
     }
 
     private async ignoreInvalidBookUpdate(
@@ -597,6 +662,9 @@ export class PolymarketMarketFeed implements MarketFeed {
     ): Promise<void> {
         const activeFallback = this.activeFallback;
         if (!activeFallback) {
+            return;
+        }
+        if (!snapshot || snapshot.staleMs > FEED_STALE_MS) {
             return;
         }
         // Clear first so overlapping updates cannot emit duplicate recoveries
@@ -667,7 +735,26 @@ export class PolymarketMarketFeed implements MarketFeed {
             });
         }
 
-        const prices = await getPrices(this.upTokenId, this.downTokenId);
+        let prices: Awaited<ReturnType<typeof getPrices>>;
+        try {
+            prices = await getPrices(this.upTokenId, this.downTokenId);
+        } catch (error) {
+            this.stats.errorCount += 1;
+            this.activeFallback = {
+                startedAtMs: Date.now(),
+                reason: fallbackReason,
+                reconnectAttempt: this.stats.reconnectAttemptCount,
+            };
+            await writeTelemetryEventSafe("feed.error", {
+                slug: this.slug,
+                source: "rest_fallback",
+                error: error instanceof Error ? error.message : String(error),
+                reason: fallbackReason,
+                wsConnected: this.wsConnected,
+                reconnectAttempt: this.stats.reconnectAttemptCount,
+            });
+            return null;
+        }
         const receivedAtMs = Date.now();
 
         const upState: FeedState = {
@@ -826,7 +913,14 @@ export class PolymarketMarketFeed implements MarketFeed {
     private hasReceivedBothSidesOverWebsocket(): boolean {
         const upState = this.stateByAsset[this.upTokenId];
         const downState = this.stateByAsset[this.downTokenId];
-        return upState.websocketMessageCount > 0 && downState.websocketMessageCount > 0;
+        return (
+            upState.receivedAtMs > 0 &&
+            downState.receivedAtMs > 0 &&
+            upState.buyPrice > 0 &&
+            upState.sellPrice > 0 &&
+            downState.buyPrice > 0 &&
+            downState.sellPrice > 0
+        );
     }
 
     private sendSubscription(reason: string): void {
@@ -971,6 +1065,32 @@ export class PolymarketMarketFeed implements MarketFeed {
             this.stats.reconnectAttemptCount = 0;
         }
         this.stats.connectedAtMs = null;
+    }
+
+    private forceReconnect(reason: string): void {
+        if (this.stopped || this.reconnectTimer || !this.ws) {
+            return;
+        }
+
+        this.pendingReconnectReason = reason;
+        void writeTelemetryEventSafe("feed.reconnect_forced", {
+            slug: this.slug,
+            source: "websocket",
+            reason,
+            wsConnected: this.wsConnected,
+            reconnectAttemptCount: this.stats.reconnectAttemptCount,
+        });
+
+        try {
+            this.ws.close();
+        } catch (error) {
+            this.stats.errorCount += 1;
+            void writeTelemetryEventSafe("feed.error", {
+                slug: this.slug,
+                source: "websocket_force_reconnect",
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
     }
 
     private scheduleReconnect(reason: string): void {

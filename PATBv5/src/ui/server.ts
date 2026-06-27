@@ -136,7 +136,7 @@ function fallbackUiPage(routeBase: string): string {
     <section class="panel">
       <div class="eyebrow">PATBv5 Terminal GUI</div>
       <h1>Frontend assets are not built yet.</h1>
-      <p>The API is live at <code>${routeBase}/api/state?mode=mock</code>.</p>
+      <p>The API is live at <code>${routeBase}/api/state?mode=live</code>.</p>
       <p>Build the React client in <code>newGui</code> and reload this route.</p>
     </section>
   </body>
@@ -164,9 +164,8 @@ async function handleUiRequest(request: IncomingMessage, response: ServerRespons
   const pathname = requestUrl.pathname;
 
   if (pathname === `${routeBase}/api/state`) {
-    const requestedMode = requestUrl.searchParams.get("mode") === "live" ? "live" : "mock";
     try {
-      const state = await getTerminalState(requestedMode);
+      const state = await getTerminalState("live");
       sendJson(response, 200, state);
     } catch (error) {
       sendJson(response, 500, {

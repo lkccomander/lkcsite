@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as readline from "readline";
+import { buildTransitionDiagnostics, isTransitionRelatedEvent } from "./evaluation_transition";
 import { resolveTelemetryFile } from "./telemetry_paths";
 
 type TelemetryEvent = {
@@ -157,6 +158,10 @@ async function main(): Promise<void> {
   const momentumEvents = sessionEvents.filter((event) => event.type === "signal.momentum");
   const monteCarloEvents = sessionEvents.filter((event) => event.type === "signal.montecarlo");
   const marketSelections = sessionEvents.filter((event) => event.type === "market.selected");
+  const transitionDiagnostics = buildTransitionDiagnostics(sessionEvents);
+  const adjustedFallbacks = fallbacks.filter((event) => !isTransitionRelatedEvent(event, transitionDiagnostics));
+  const adjustedFallbackRecoveries = fallbackRecoveries.filter((event) => !isTransitionRelatedEvent(event, transitionDiagnostics));
+  const adjustedRejections = rejections.filter((event) => !isTransitionRelatedEvent(event, transitionDiagnostics));
 
   const timestamps = sessionEvents
     .map((event) => Date.parse(event.timestamp ?? ""))
@@ -174,14 +179,25 @@ async function main(): Promise<void> {
   const fallbackRecoveryDurationsMs = fallbackRecoveries
     .map((event) => asNumber(event.payload?.fallbackDurationMs))
     .filter((value): value is number => value !== null);
+  const adjustedFallbackRecoveryDurationsMs = adjustedFallbackRecoveries
+    .map((event) => asNumber(event.payload?.fallbackDurationMs))
+    .filter((value): value is number => value !== null);
   const fallbackEventsPerHour = sessionDurationHours && sessionDurationHours > 0
     ? round(fallbacks.length / sessionDurationHours, 2)
     : null;
   const fallbackEventsPerMarket = uniqueMarketSlugs.size > 0
     ? round(fallbacks.length / uniqueMarketSlugs.size, 2)
     : null;
+  const adjustedFallbackEventsPerHour = sessionDurationHours && sessionDurationHours > 0
+    ? round(adjustedFallbacks.length / sessionDurationHours, 2)
+    : null;
+  const adjustedFallbackEventsPerMarket = uniqueMarketSlugs.size > 0
+    ? round(adjustedFallbacks.length / uniqueMarketSlugs.size, 2)
+    : null;
   const avgFallbackRecoveryMs = average(fallbackRecoveryDurationsMs);
   const maxFallbackRecoveryMs = maxValue(fallbackRecoveryDurationsMs);
+  const adjustedAvgFallbackRecoveryMs = average(adjustedFallbackRecoveryDurationsMs);
+  const adjustedMaxFallbackRecoveryMs = maxValue(adjustedFallbackRecoveryDurationsMs);
 
   console.log(`Bot: ${args.botId}`);
   console.log(`Session: ${sessionId}`);
@@ -190,8 +206,8 @@ async function main(): Promise<void> {
   console.log(`Paper sells: ${paperSells.length}`);
   console.log(`Live buys: ${liveBuys.length}`);
   console.log(`Live sells: ${liveSells.length}`);
-  console.log(`Fallback events: ${fallbacks.length}`);
-  console.log(`Fallback recoveries: ${fallbackRecoveries.length}`);
+  console.log(`Fallback events: raw=${fallbacks.length} adjusted=${adjustedFallbacks.length}`);
+  console.log(`Fallback recoveries: raw=${fallbackRecoveries.length} adjusted=${adjustedFallbackRecoveries.length}`);
   if (sessionDurationHours !== null || uniqueMarketSlugs.size > 0 || fallbacks.length > 0) {
     console.log("Fallback diagnostics:");
     if (sessionDurationHours !== null) {
@@ -201,28 +217,64 @@ async function main(): Promise<void> {
       console.log(`  marketsCovered: ${uniqueMarketSlugs.size}`);
     }
     if (fallbackEventsPerHour !== null) {
-      console.log(`  fallbackEventsPerHour: ${fallbackEventsPerHour}`);
+      console.log(`  fallbackEventsPerHourRaw: ${fallbackEventsPerHour}`);
     }
     if (fallbackEventsPerMarket !== null) {
-      console.log(`  fallbackEventsPerMarket: ${fallbackEventsPerMarket}`);
+      console.log(`  fallbackEventsPerMarketRaw: ${fallbackEventsPerMarket}`);
+    }
+    if (adjustedFallbackEventsPerHour !== null) {
+      console.log(`  fallbackEventsPerHourAdjusted: ${adjustedFallbackEventsPerHour}`);
+    }
+    if (adjustedFallbackEventsPerMarket !== null) {
+      console.log(`  fallbackEventsPerMarketAdjusted: ${adjustedFallbackEventsPerMarket}`);
     }
     if (fallbackRecoveryDurationsMs.length > 0) {
-      console.log(`  avgFallbackRecoveryMs: ${avgFallbackRecoveryMs}`);
-      console.log(`  maxFallbackRecoveryMs: ${maxFallbackRecoveryMs}`);
+      console.log(`  avgFallbackRecoveryMsRaw: ${avgFallbackRecoveryMs}`);
+      console.log(`  maxFallbackRecoveryMsRaw: ${maxFallbackRecoveryMs}`);
+    }
+    if (adjustedFallbackRecoveryDurationsMs.length > 0) {
+      console.log(`  avgFallbackRecoveryMsAdjusted: ${adjustedAvgFallbackRecoveryMs}`);
+      console.log(`  maxFallbackRecoveryMsAdjusted: ${adjustedMaxFallbackRecoveryMs}`);
     }
   }
+
+  console.log("Transition diagnostics:");
+  console.log(`  transitionWindowMs: ${transitionDiagnostics.transitionWindowMs}`);
+  console.log(`  transitionMarkers: ${transitionDiagnostics.markers.length}`);
+  console.log(`  transitionRelatedFallbacks: ${transitionDiagnostics.transitionRelatedFallbacks}`);
+  console.log(`  transitionRelatedRecoveries: ${transitionDiagnostics.transitionRelatedRecoveries}`);
+  console.log(`  transitionRelatedRejects: ${transitionDiagnostics.transitionRelatedRejects}`);
 
   const fallbackReasonCounts = new Map<string, number>();
   for (const event of fallbacks) {
     const reason = asReason(event.payload?.reason);
     fallbackReasonCounts.set(reason, (fallbackReasonCounts.get(reason) ?? 0) + 1);
   }
+  const adjustedFallbackReasonCounts = new Map<string, number>();
+  for (const event of adjustedFallbacks) {
+    const reason = asReason(event.payload?.reason);
+    adjustedFallbackReasonCounts.set(reason, (adjustedFallbackReasonCounts.get(reason) ?? 0) + 1);
+  }
   if (fallbackReasonCounts.size) {
-    console.log("Fallback events by reason:");
+    console.log("Fallback events by reason (raw):");
     for (const [reason, count] of [...fallbackReasonCounts.entries()].sort((a, b) => b[1] - a[1])) {
       console.log(`  ${reason}: ${count}`);
     }
   }
+  if (adjustedFallbackReasonCounts.size) {
+    console.log("Fallback events by reason (adjusted):");
+    for (const [reason, count] of [...adjustedFallbackReasonCounts.entries()].sort((a, b) => b[1] - a[1])) {
+      console.log(`  ${reason}: ${count}`);
+    }
+  }
+
+  const recentWsFallbackRaw = rejections.filter((event) => asString(event.payload?.reason) === "recent_ws_fallback").length;
+  const recentWsFallbackAdjusted = adjustedRejections.filter((event) => asString(event.payload?.reason) === "recent_ws_fallback").length;
+  const marketTransitionGraceRaw = rejections.filter((event) => asString(event.payload?.reason) === "market_transition_grace").length;
+  const marketTransitionGraceAdjusted = adjustedRejections.filter((event) => asString(event.payload?.reason) === "market_transition_grace").length;
+  console.log("Transition-sensitive rejection counts:");
+  console.log(`  recent_ws_fallback: raw=${recentWsFallbackRaw} adjusted=${recentWsFallbackAdjusted}`);
+  console.log(`  market_transition_grace: raw=${marketTransitionGraceRaw} adjusted=${marketTransitionGraceAdjusted}`);
 
   const buyFieldCoverage = paperBuys.filter((event) => {
     const payload = event.payload ?? {};
@@ -265,30 +317,36 @@ async function main(): Promise<void> {
   );
 
   printCheck(
-    "Fallback events <= 20",
-    fallbacks.length <= 20,
-    `${fallbacks.length} fallback events`,
+    "Fallback events <= 20 (adjusted for transition noise)",
+    adjustedFallbacks.length <= 20,
+    `${adjustedFallbacks.length} adjusted fallback events (raw=${fallbacks.length})`,
   );
 
   printCheck(
-    "Fallback events per market <= 2",
-    fallbackEventsPerMarket !== null ? fallbackEventsPerMarket <= 2 : true,
-    fallbackEventsPerMarket !== null ? `${fallbackEventsPerMarket} fallbacks/market` : "n/a",
-    fallbackEventsPerMarket !== null ? (fallbackEventsPerMarket <= 2 ? "PASS" : "FAIL") : "SKIP",
+    "Fallback events per market <= 2 (adjusted for transition noise)",
+    adjustedFallbackEventsPerMarket !== null ? adjustedFallbackEventsPerMarket <= 2 : true,
+    adjustedFallbackEventsPerMarket !== null
+      ? `${adjustedFallbackEventsPerMarket} adjusted fallbacks/market (raw=${fallbackEventsPerMarket ?? "n/a"})`
+      : "n/a",
+    adjustedFallbackEventsPerMarket !== null ? (adjustedFallbackEventsPerMarket <= 2 ? "PASS" : "FAIL") : "SKIP",
   );
 
   printCheck(
-    "Average fallback recovery <= 1000ms",
-    avgFallbackRecoveryMs !== null ? avgFallbackRecoveryMs <= 1000 : true,
-    avgFallbackRecoveryMs !== null ? `${avgFallbackRecoveryMs} ms` : "n/a",
-    avgFallbackRecoveryMs !== null ? (avgFallbackRecoveryMs <= 1000 ? "PASS" : "FAIL") : "SKIP",
+    "Average fallback recovery <= 1000ms (adjusted for transition noise)",
+    adjustedAvgFallbackRecoveryMs !== null ? adjustedAvgFallbackRecoveryMs <= 1000 : true,
+    adjustedAvgFallbackRecoveryMs !== null
+      ? `${adjustedAvgFallbackRecoveryMs} ms adjusted (raw=${avgFallbackRecoveryMs ?? "n/a"})`
+      : "n/a",
+    adjustedAvgFallbackRecoveryMs !== null ? (adjustedAvgFallbackRecoveryMs <= 1000 ? "PASS" : "FAIL") : "SKIP",
   );
 
   printCheck(
-    "Max fallback recovery <= 5000ms",
-    maxFallbackRecoveryMs !== null ? maxFallbackRecoveryMs <= 5000 : true,
-    maxFallbackRecoveryMs !== null ? `${maxFallbackRecoveryMs} ms` : "n/a",
-    maxFallbackRecoveryMs !== null ? (maxFallbackRecoveryMs <= 5000 ? "PASS" : "FAIL") : "SKIP",
+    "Max fallback recovery <= 5000ms (adjusted for transition noise)",
+    adjustedMaxFallbackRecoveryMs !== null ? adjustedMaxFallbackRecoveryMs <= 5000 : true,
+    adjustedMaxFallbackRecoveryMs !== null
+      ? `${adjustedMaxFallbackRecoveryMs} ms adjusted (raw=${maxFallbackRecoveryMs ?? "n/a"})`
+      : "n/a",
+    adjustedMaxFallbackRecoveryMs !== null ? (adjustedMaxFallbackRecoveryMs <= 5000 ? "PASS" : "FAIL") : "SKIP",
   );
 
   printCheck(

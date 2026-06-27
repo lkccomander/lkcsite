@@ -1,6 +1,11 @@
 // src/report/parser.ts
 import { openSync, closeSync, readSync, statSync } from 'fs';
-import { SessionReport, TradeRecord, FeedWindow, RejectionBucket, Anomaly, GateCheck } from './types';
+import { SessionReport, TradeRecord, FeedWindow, RejectionBucket, Anomaly, GateCheck, RejectionPayloadRecord } from './types';
+
+const CAPTURED_REJECTION_REASONS = new Set([
+  'entry_price_window',
+  'up_bias_filter',
+]);
 
 // Utility function to read last N lines from a file
 async function readLastLines(filePath: string, n: number): Promise<string[]> {
@@ -66,6 +71,7 @@ export async function parseTelemetry(files: string[], tailLines: number = 50000)
     momConfAvg: 0,
     trades: [],
     rejectionBreakdown: [],
+    rejectionPayloads: {},
     anomalies: [],
     gateChecks: []
   };
@@ -188,6 +194,15 @@ async function processEvent(event: any, report: SessionReport): Promise<void> {
         report.rejectionBreakdown.push(bucket);
       }
       bucket.count++;
+      if (CAPTURED_REJECTION_REASONS.has(reason)) {
+        const records = report.rejectionPayloads[reason] ?? [];
+        const capturedPayload: RejectionPayloadRecord = {
+          reason,
+          payload: { ...payload },
+        };
+        records.push(capturedPayload);
+        report.rejectionPayloads[reason] = records;
+      }
       break;
       
     case 'trade.shadow_pnl':

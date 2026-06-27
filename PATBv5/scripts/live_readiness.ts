@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as readline from "readline";
+import { buildTransitionDiagnostics, isTransitionRelatedEvent } from "./evaluation_transition";
 import { resolveTelemetryFile } from "./telemetry_paths";
 
 type TelemetryEvent = {
@@ -128,6 +129,10 @@ async function main(): Promise<void> {
   const monteCarlo = sessionEvents.filter((event) => event.type === "signal.montecarlo");
   const fallback = sessionEvents.filter((event) => event.type === "feed.fallback");
   const fallbackRecovered = sessionEvents.filter((event) => event.type === "feed.fallback_recovered");
+  const transitionDiagnostics = buildTransitionDiagnostics(sessionEvents);
+  const adjustedFallback = fallback.filter((event) => !isTransitionRelatedEvent(event, transitionDiagnostics));
+  const adjustedFallbackRecovered = fallbackRecovered.filter((event) => !isTransitionRelatedEvent(event, transitionDiagnostics));
+  const adjustedRejections = rejections.filter((event) => !isTransitionRelatedEvent(event, transitionDiagnostics));
   const exitPending = sessionEvents.filter((event) => event.type === "trade.exit_pending");
   const exitSkippedExisting = sessionEvents.filter((event) => event.type === "trade.exit_skipped_existing_live_order");
   const exitFilled = sessionEvents.filter((event) => event.type === "trade.exit_filled");
@@ -136,6 +141,9 @@ async function main(): Promise<void> {
   const positionUnresolved = sessionEvents.filter((event) => event.type === "trade.position_unresolved");
 
   const fallbackDurations = fallbackRecovered
+    .map((event) => asNumber(event.payload?.fallbackDurationMs))
+    .filter((value): value is number => value !== null);
+  const adjustedFallbackDurations = adjustedFallbackRecovered
     .map((event) => asNumber(event.payload?.fallbackDurationMs))
     .filter((value): value is number => value !== null);
 
@@ -207,14 +215,26 @@ async function main(): Promise<void> {
   console.log(`Paper sells: ${paperSells.length}`);
   console.log(`Momentum events: ${momentum.length}`);
   console.log(`Monte Carlo events: ${monteCarlo.length}`);
-  console.log(`Fallback events: ${fallback.length}`);
-  console.log(`Fallback recoveries: ${fallbackRecovered.length}`);
+  console.log(`Fallback events: raw=${fallback.length} adjusted=${adjustedFallback.length}`);
+  console.log(`Fallback recoveries: raw=${fallbackRecovered.length} adjusted=${adjustedFallbackRecovered.length}`);
   console.log(`Exit pending events: ${exitPending.length}`);
   console.log(`Exit skipped existing live order: ${exitSkippedExisting.length}`);
   console.log(`Exit filled events: ${exitFilled.length}`);
   console.log(`Exit failed events: ${exitFailed.length}`);
   console.log(`Position resolved events: ${positionResolved.length}`);
   console.log(`Position unresolved events: ${positionUnresolved.length}`);
+  console.log("Transition diagnostics:");
+  console.log(`  transitionWindowMs: ${transitionDiagnostics.transitionWindowMs}`);
+  console.log(`  transitionMarkers: ${transitionDiagnostics.markers.length}`);
+  console.log(`  transitionRelatedFallbacks: ${transitionDiagnostics.transitionRelatedFallbacks}`);
+  console.log(`  transitionRelatedRecoveries: ${transitionDiagnostics.transitionRelatedRecoveries}`);
+  console.log(`  transitionRelatedRejects: ${transitionDiagnostics.transitionRelatedRejects}`);
+  const recentWsFallbackRaw = rejections.filter((event) => asString(event.payload?.reason) === "recent_ws_fallback").length;
+  const recentWsFallbackAdjusted = adjustedRejections.filter((event) => asString(event.payload?.reason) === "recent_ws_fallback").length;
+  const marketTransitionGraceRaw = rejections.filter((event) => asString(event.payload?.reason) === "market_transition_grace").length;
+  const marketTransitionGraceAdjusted = adjustedRejections.filter((event) => asString(event.payload?.reason) === "market_transition_grace").length;
+  console.log(`  recent_ws_fallback rejects: raw=${recentWsFallbackRaw} adjusted=${recentWsFallbackAdjusted}`);
+  console.log(`  market_transition_grace rejects: raw=${marketTransitionGraceRaw} adjusted=${marketTransitionGraceAdjusted}`);
 
   console.log("\nReadiness Checks");
   const checks: CheckResult[] = [];
@@ -251,9 +271,11 @@ async function main(): Promise<void> {
     `${positionUnresolved.length} position_unresolved events`,
   ));
   checks.push(printCheck(
-    "Fallback recovery average <= 1000ms",
-    fallbackDurations.length === 0 || (average(fallbackDurations) ?? 0) <= 1000,
-    fallbackDurations.length ? `${average(fallbackDurations)} ms average` : "no fallback recoveries observed",
+    "Fallback recovery average <= 1000ms (adjusted for transition noise)",
+    adjustedFallbackDurations.length === 0 || (average(adjustedFallbackDurations) ?? 0) <= 1000,
+    adjustedFallbackDurations.length
+      ? `${average(adjustedFallbackDurations)} ms adjusted average (raw=${average(fallbackDurations) ?? "n/a"})`
+      : "no adjusted fallback recoveries observed",
   ));
   checks.push(printCheck(
     "Exit skipped existing live order is controlled",

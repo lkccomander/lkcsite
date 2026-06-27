@@ -64,6 +64,52 @@ export function selectPreferredEntrySide(
     return [...candidates].sort(byBestPriceDesc)[0];
 }
 
+type RejectionDiagnosticContextArgs = {
+    trade: {
+        remainingTime: number;
+        observedMarketTicks: number;
+        lastDecisionSnapshotSource: string | null;
+        latestFeedLatencyMs: number | null;
+        latestFeedRttMs: number | null;
+        latestFeedAgeMs: number | null;
+        latestFeedWsConnected: boolean | null;
+        priceTickTimestamps?: number[] | null;
+    };
+    currentTimeRatio: number;
+    entryPriceRatio: number | null;
+    entryPriceRatioMin: number;
+    entryPriceRatioMax: number;
+    preferredSpread: number | null;
+};
+
+export function buildRejectionDiagnosticContext({
+    trade,
+    currentTimeRatio,
+    entryPriceRatio,
+    entryPriceRatioMin,
+    entryPriceRatioMax,
+    preferredSpread,
+}: RejectionDiagnosticContextArgs): Record<string, unknown> {
+    const ticksLast10s = Array.isArray(trade.priceTickTimestamps)
+        ? trade.priceTickTimestamps.filter((timestamp) => Number.isFinite(timestamp) && (Date.now() - timestamp) <= 10_000).length
+        : trade.observedMarketTicks;
+
+    return {
+        secondsToClose: trade.remainingTime,
+        currentTimeRatio: Math.round(currentTimeRatio * 10000) / 10000,
+        decisionSnapshotSource: trade.lastDecisionSnapshotSource,
+        feedLatencyMs: trade.latestFeedLatencyMs,
+        feedRttMs: trade.latestFeedRttMs,
+        feedAgeMs: trade.latestFeedAgeMs,
+        feedWsConnected: trade.latestFeedWsConnected,
+        feedTicksLast10s: ticksLast10s,
+        entryPriceRatio: entryPriceRatio === null ? null : Math.round(entryPriceRatio * 10000) / 10000,
+        entryPriceRatioMin,
+        entryPriceRatioMax,
+        preferredSpread,
+    };
+}
+
 // Declare module augmentation to add cancel method to Trade class
 declare module "./index" {
     interface Trade {
@@ -1032,6 +1078,14 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                             preferredEntryRatio >= entryRatioMin &&
                             preferredEntryRatio <= entryRatioMax;
                         const enforceEntryRatio = globalThis.__CONFIG__.strategy !== "trade_5x";
+                        const rejectionDiagnosticContext = buildRejectionDiagnosticContext({
+                            trade: this,
+                            currentTimeRatio: remaining_time_ratio,
+                            entryPriceRatio: preferredEntryRatio,
+                            entryPriceRatioMin: entryRatioMin,
+                            entryPriceRatioMax: entryRatioMax,
+                            preferredSpread,
+                        });
 
                         if (enforceEntryRatio && !inEntryRatioRange) {
                             await emitSignalRejected(this, "entry_price_ratio", {
@@ -1113,6 +1167,7 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                                 maxEntryPrice: activeMaxEntryPrice,
                                 sharedMinEntryPrice: trade4.min_entry_price,
                                 sharedMaxEntryPrice: trade4.max_entry_price,
+                                ...rejectionDiagnosticContext,
                             });
                             break;
                         }
@@ -1207,6 +1262,8 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                                     observedMomentumConfidence: momentum.confidence,
                                     momentumConfidence: momentum.confidence,
                                     upMinMomentumConfidence: minMomentumConfidence,
+                                    btcRising,
+                                    confidentEnough,
                                     momentumDirection: momentum.direction,
                                     momentumScore: momentum.score,
                                     momentumDelta1m: momentum.delta1m,
@@ -1214,6 +1271,7 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                                     momentumVolRatio: momentum.volRatio,
                                     momentumFetchedAt: new Date(momentum.fetchedAt).toISOString(),
                                     momentumLatencyMs: momentum.latencyMs,
+                                    ...rejectionDiagnosticContext,
                                 });
                                 break;
                             }

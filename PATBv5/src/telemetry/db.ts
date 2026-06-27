@@ -27,6 +27,7 @@ export type TelemetryEventType =
     | "feed.subscription"
     | "feed.disconnected"
     | "feed.reconnect_scheduled"
+    | "feed.reconnect_forced"
     | "feed.error"
     | "feed.book_update_ignored"
     | "feed.rtt"
@@ -92,14 +93,18 @@ const BOT_ID = readOptionalConfigEnv("BOT_ID")
     || readOptionalConfigEnv("BOT_INSTANCE_ID")
     || DEFAULT_BOT_ID;
 
-const TELEMETRY_ROOT = resolve(
-    __dirname,
-    "..",
-    "..",
-    "..",
-    "polydb",
-    "telemetry"
-);
+const configuredTelemetryRoot = readOptionalConfigEnv("TELEMETRY_ROOT")
+    || readOptionalConfigEnv("BOT_TELEMETRY_ROOT");
+const TELEMETRY_ROOT = configuredTelemetryRoot
+    ? resolve(configuredTelemetryRoot)
+    : resolve(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "polydb",
+        "telemetry"
+    );
 const TELEMETRY_DB_PATH = resolve(TELEMETRY_ROOT, "events.jsonl");
 const TELEMETRY_SESSIONS_DIR = resolve(TELEMETRY_ROOT, "sessions");
 const LEGACY_PAPER_BALANCE_STATE_PATH = resolve(TELEMETRY_ROOT, "paper-balance.json");

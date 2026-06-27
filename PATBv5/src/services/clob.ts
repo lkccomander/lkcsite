@@ -47,10 +47,12 @@ export const SIGNATURE_TYPE_SOURCE = (
     : "env"
 );
 
+const PRICE_FETCH_TIMEOUT_MS = 4000;
 
 export const getPrices = async (upTokenId: string, downTokenId: string) => {
     const response = await fetch("https://clob.polymarket.com/prices", {
         method: "POST",
+        signal: AbortSignal.timeout(PRICE_FETCH_TIMEOUT_MS),
         headers: {
             "Content-Type": "application/json",
         },
@@ -73,6 +75,9 @@ export const getPrices = async (upTokenId: string, downTokenId: string) => {
             },
         ]),
     });
+    if (!response.ok) {
+        throw new Error(`Price request failed: ${response.status} ${response.statusText}`);
+    }
     const prices = await response.json();
     return prices;
 }

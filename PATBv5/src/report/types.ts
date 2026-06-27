@@ -18,6 +18,11 @@ export interface RejectionBucket {
   isNewSignalReason: boolean;
 }
 
+export interface RejectionPayloadRecord {
+  reason: string;
+  payload: Record<string, unknown>;
+}
+
 export interface Anomaly {
   priority: number;
   type: 'BUG' | 'FIX' | 'TUNE' | 'MONITOR' | 'PASS';
@@ -118,6 +123,7 @@ export interface SessionReport {
   // Trades and analysis
   trades: TradeRecord[];
   rejectionBreakdown: RejectionBucket[];
+  rejectionPayloads: Record<string, RejectionPayloadRecord[]>;
   anomalies: Anomaly[];
   gateChecks: GateCheck[];
 }
