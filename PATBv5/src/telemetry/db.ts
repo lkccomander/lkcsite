@@ -1,4 +1,5 @@
 import { appendFile, mkdir, readFile, writeFile } from "fs/promises";
+import os from "os";
 import { dirname, resolve } from "path";
 import { randomUUID } from "crypto";
 import { readOptionalConfigEnv } from "../config/secrets";
@@ -67,6 +68,7 @@ export interface TelemetryEvent<TPayload = Record<string, unknown>> {
     payload: TPayload;
     timestamp: string;
     botId?: string;
+    originHost?: string;
     sessionId?: string;
     sessionStartedAt?: string;
     versionContext?: Record<string, unknown>;
@@ -75,6 +77,7 @@ export interface TelemetryEvent<TPayload = Record<string, unknown>> {
 interface TelemetrySession {
     botId: string;
     id: string;
+    originHost: string | null;
     startedAt: string;
     mode: "PAPER" | "LIVE";
     sessionPath: string;
@@ -112,6 +115,7 @@ const LEGACY_PAPER_BALANCE_STATE_PATH = resolve(TELEMETRY_ROOT, "paper-balance.j
 let telemetryReady: Promise<void> | null = null;
 let telemetrySession: TelemetrySession | null = null;
 let telemetryVersionContext: Record<string, unknown> | null = null;
+let telemetryOriginHost: string | null = resolveOriginHost();
 
 async function ensureTelemetryStore(): Promise<void> {
     if (!telemetryReady) {
@@ -136,6 +140,15 @@ function getPaperBalanceStatePath(botId: string): string {
     return resolve(TELEMETRY_ROOT, `paper-balance.${botId}.json`);
 }
 
+function resolveOriginHost(): string | null {
+    try {
+        const host = os.hostname().trim();
+        return host.length > 0 ? host : null;
+    } catch {
+        return null;
+    }
+}
+
 export async function startTelemetrySession(mode: "PAPER" | "LIVE"): Promise<TelemetrySession> {
     await ensureTelemetryStore();
 
@@ -149,6 +162,7 @@ export async function startTelemetrySession(mode: "PAPER" | "LIVE"): Promise<Tel
     telemetrySession = {
         botId: BOT_ID,
         id,
+        originHost: telemetryOriginHost,
         startedAt,
         mode,
         sessionPath,
@@ -184,6 +198,7 @@ export async function writeTelemetryEvent<TPayload = Record<string, unknown>>(
         payload,
         timestamp: new Date().toISOString(),
         botId: telemetrySession?.botId ?? BOT_ID,
+        originHost: telemetrySession?.originHost ?? telemetryOriginHost ?? undefined,
         sessionId: telemetrySession?.id,
         sessionStartedAt: telemetrySession?.startedAt,
         versionContext: telemetryVersionContext ?? undefined,
@@ -214,6 +229,20 @@ export function getTelemetryDbPath(): string {
 
 export function getTelemetrySessionsDir(): string {
     return TELEMETRY_SESSIONS_DIR;
+}
+
+export function __resetTelemetryModuleState(): void {
+    telemetryReady = null;
+    telemetrySession = null;
+    telemetryVersionContext = null;
+    telemetryOriginHost = resolveOriginHost();
+}
+
+export function __setTelemetryOriginHostForTests(originHost: string | null): void {
+    telemetryOriginHost = originHost && originHost.trim().length > 0 ? originHost.trim() : null;
+    if (telemetrySession) {
+        telemetrySession.originHost = telemetryOriginHost;
+    }
 }
 
 export async function loadPersistedPaperBalance(defaultBalance: number): Promise<number> {

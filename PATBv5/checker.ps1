@@ -5,6 +5,7 @@ param(
 $SessionsDir = Join-Path $PSScriptRoot "..\polydb\telemetry\sessions"
 $CheckerHistoryPath = Join-Path $PSScriptRoot "checker_history.json"
 $CheckerStatus = "passed"
+$CheckerExitCode = 0
 
 function Read-CheckerHistory {
   param(
@@ -66,7 +67,7 @@ $SessionArg = ""
 $DisplayTarget = $SessionID
 
 if ($SessionID -and ($SessionID.ToLower().EndsWith(".jsonl") -or (Test-Path $SessionID))) {
-  $ResolvedTelemetryPath = (Resolve-Path $SessionID).Path
+  $ResolvedTelemetryPath = (Resolve-Path $SessionID).ProviderPath
   $TelemetryArg = "--telemetry-file `"$ResolvedTelemetryPath`""
   $DisplayTarget = $ResolvedTelemetryPath
 } else {
@@ -101,15 +102,31 @@ Write-Host $cmd2
 Write-Host $cmd3
 Write-Host ""
 
+function Invoke-CheckerCommand {
+  param(
+    [string]$Command
+  )
+
+  Invoke-Expression $Command
+  if ($LASTEXITCODE -ne 0) {
+    throw "Command failed with exit code ${LASTEXITCODE}: $Command"
+  }
+}
+
 try {
-  # Execute commands
-  Invoke-Expression $cmd0
-  Invoke-Expression $cmd1
-  Invoke-Expression $cmd2
-  Invoke-Expression $cmd3
+  # Execute commands and preserve failing exit codes from npm/tsx.
+  Invoke-CheckerCommand $cmd0
+  Invoke-CheckerCommand $cmd1
+  Invoke-CheckerCommand $cmd2
+  Invoke-CheckerCommand $cmd3
 } catch {
   $CheckerStatus = "failed"
-  throw
+  if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
+    $CheckerExitCode = $LASTEXITCODE
+  } else {
+    $CheckerExitCode = 1
+  }
+  Write-Error $_
 } finally {
   Write-CheckerHistory `
     -Path $CheckerHistoryPath `
@@ -117,3 +134,5 @@ try {
     -Target $DisplayTarget `
     -Status $CheckerStatus
 }
+
+exit $CheckerExitCode

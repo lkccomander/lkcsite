@@ -194,19 +194,19 @@
         </thead>
         <tbody>
           <tr>
-            <td><code>checker_old.ps1</code></td>
+            <td><code>legacy/checker_old.ps1</code></td>
             <td>Either a direct <code>.jsonl</code> path passed as <code>SessionID</code> or a resolved file in <code>..\polydb\telemetry\sessions</code>.</td>
             <td>Chooses between explicit telemetry path vs session-id lookup; then runs four commands in sequence.</td>
             <td>No file output of its own. Results only print to console.</td>
           </tr>
           <tr>
             <td><code>checker.ps1</code></td>
-            <td>Same telemetry resolution behavior as <code>checker_old.ps1</code>.</td>
+            <td>Same telemetry resolution behavior as <code>legacy/checker_old.ps1</code>.</td>
             <td>Same command chain, plus <code>try/catch/finally</code> around execution and history recording.</td>
             <td>Writes run metadata to <code>checker_history.json</code>; command results still go to console.</td>
           </tr>
           <tr>
-            <td><code>run-batch_old.ps1</code></td>
+            <td><code>legacy/run-batch_old.ps1</code></td>
             <td>Reads session IDs from <code>sessions.txt</code>, then maps each ID to a telemetry file in <code>..\polydb\telemetry\sessions</code>.</td>
             <td>Parses timestamp from the telemetry filename, sorts sessions chronologically, then invokes the checker for each.</td>
             <td>Does not save batch output itself. It passes <code>-OutputFile results.md</code>, but the called checker scripts do not define that parameter.</td>
@@ -231,7 +231,7 @@
       <h2>Per-Script Details</h2>
 
       <div class="card">
-        <h3><code>checker_old.ps1</code></h3>
+        <h3><code>legacy/checker_old.ps1</code></h3>
         <ul>
           <li><strong>Extracts data from:</strong> <code>..\polydb\telemetry\sessions</code>, or from a direct telemetry file path if the supplied argument already points to a <code>.jsonl</code> file. Source resolution is implemented at lines 5 and 17-35.</li>
           <li><strong>Control:</strong> If the argument ends with <code>.jsonl</code> or matches an existing path, it uses that path directly. Otherwise it searches the sessions directory for <code>*__{SessionID}.jsonl</code>, sorts descending by filename, and picks the first match at lines 23-26.</li>
@@ -243,7 +243,7 @@
       <div class="card">
         <h3><code>checker.ps1</code></h3>
         <ul>
-          <li><strong>Extracts data from:</strong> The same places and with the same lookup logic as <code>checker_old.ps1</code>, at lines 5, 68-87.</li>
+          <li><strong>Extracts data from:</strong> The same places and with the same lookup logic as <code>legacy/checker_old.ps1</code>, at lines 5, 68-87.</li>
           <li><strong>Control:</strong> Same four-command sequence at lines 90-93, wrapped in <code>try/catch/finally</code> at lines 104-119.</li>
           <li><strong>Extra control file:</strong> Reads and rewrites <code>checker_history.json</code> through <code>Read-CheckerHistory</code> and <code>Write-CheckerHistory</code> at lines 9-56.</li>
           <li><strong>Saves results to:</strong> <code>checker_history.json</code>, storing <code>sessionId</code>, timestamp, target, and a coarse status string at lines 46-55 and 114-118. Command analysis output still only goes to stdout.</li>
@@ -251,12 +251,12 @@
       </div>
 
       <div class="card">
-        <h3><code>run-batch_old.ps1</code></h3>
+        <h3><code>legacy/run-batch_old.ps1</code></h3>
         <ul>
           <li><strong>Extracts data from:</strong> <code>sessions.txt</code> at line 22 and telemetry files under <code>..\polydb\telemetry\sessions</code> at lines 7 and 26-27.</li>
           <li><strong>Control:</strong> Uses the filename prefix timestamp if present, otherwise falls back to file last-write time at lines 9-18 and 29-31. Sessions are sorted by that derived time at line 41.</li>
           <li><strong>Execution flow:</strong> Iterates the ordered sessions and calls the checker once per session at lines 48-50.</li>
-          <li><strong>Saves results to:</strong> No batch-owned output file. It passes <code>-OutputFile results.md</code> to the checker at line 49, but neither <code>checker.ps1</code> nor <code>checker_old.ps1</code> defines an <code>OutputFile</code> parameter, so this script does not actually wire result saving through the checker.</li>
+          <li><strong>Saves results to:</strong> No batch-owned output file. It passes <code>-OutputFile results.md</code> to the checker at line 49, but neither <code>checker.ps1</code> nor <code>legacy/checker_old.ps1</code> defines an <code>OutputFile</code> parameter, so this script does not actually wire result saving through the checker.</li>
         </ul>
       </div>
 
@@ -309,7 +309,7 @@
         <strong><code>run-batch.ps1</code> does not judge “readiness” directly.</strong> It only checks whether <code>checker.ps1</code> exited with code <code>0</code>. A session can therefore be counted as batch <code>PASS</code> even when the captured checker output contains <code>LIVE readiness verdict: NOT READY</code>.
       </div>
       <div class="note">
-        <strong><code>run-batch_old.ps1</code> appears partially stale.</strong> It passes an <code>-OutputFile</code> argument to the checker, but the current checker scripts only accept <code>SessionID</code>. That means result-file handling is not implemented through this path.
+        <strong><code>legacy/run-batch_old.ps1</code> appears partially stale.</strong> It passes an <code>-OutputFile</code> argument to the checker, but the current checker scripts only accept <code>SessionID</code>. That means result-file handling is not implemented through this path.
       </div>
       <div class="note ok">
         <strong>Most actual persistence happens in three files:</strong> <code>checker_history.json</code> for run history, <code>batch_checker_results.log</code> for batch console capture, and the fresh cohort pair <code>sessions_fresh_comparable.txt</code> plus <code>sessions_fresh_comparable_report.json</code>.
@@ -319,9 +319,9 @@
     <section class="panel">
       <h2>Files Referenced</h2>
       <ul>
-        <li><code>PATBv5/checker_old.ps1</code></li>
+        <li><code>PATBv5/legacy/checker_old.ps1</code></li>
         <li><code>PATBv5/checker.ps1</code></li>
-        <li><code>PATBv5/run-batch_old.ps1</code></li>
+        <li><code>PATBv5/legacy/run-batch_old.ps1</code></li>
         <li><code>PATBv5/run-batch.ps1</code></li>
         <li><code>PATBv5/run-fresh-batch.ps1</code></li>
         <li><code>PATBv5/scripts/build_fresh_cohort.ts</code></li>

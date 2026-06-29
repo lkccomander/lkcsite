@@ -1,10 +1,10 @@
-# run_batch_checker.ps1
-# Batch execution of checker_old.ps1 for every session ID listed in sessions.txt
+# run-batch.ps1
+# Batch execution of checker.ps1 for every session ID listed in sessions.txt
 #
 # Usage (from project root or scripts folder):
-#   .\run_batch_checker.ps1
-#   .\run_batch_checker.ps1 -SessionsFile "path\to\sessions.txt"
-#   .\run_batch_checker.ps1 -StopOnError
+#   .\run-batch.ps1
+#   .\run-batch.ps1 -SessionsFile "path\to\sessions.txt"
+#   .\run-batch.ps1 -StopOnError
 #
 # Full checker output (all 4 commands) is captured and appended to
 # batch_checker_results.log alongside the per-session pass/fail summary.
@@ -21,7 +21,7 @@ $CheckerHistoryFile = Join-Path $PSScriptRoot "checker_history.json"
 
 # --- Guards ---
 if (-not (Test-Path $CheckerScript)) {
-  Write-Error "checker_old.ps1 not found at: $CheckerScript"
+  Write-Error "checker.ps1 not found at: $CheckerScript"
   exit 1
 }
 

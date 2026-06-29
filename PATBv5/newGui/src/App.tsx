@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { HeaderBar } from "./components/HeaderBar";
 import { LiveTape } from "./components/LiveTape";
 import { WalletPanel } from "./components/WalletPanel";
@@ -13,8 +13,7 @@ import { useTerminalData } from "./hooks/useTerminalData";
 import { useTradeActionSound } from "./hooks/useTradeActionSound";
 
 function App() {
-  const [mode, setMode] = useState<"mock" | "live">("mock");
-  const { data, loading, error, stale } = useTerminalData(mode);
+  const { data, loading, error, stale } = useTerminalData();
   useTradeActionSound(data?.liveTape ?? []);
 
   const statusLabel = useMemo(() => {
@@ -48,8 +47,7 @@ function App() {
       <HeaderBar data={data.header} />
       <div className="mode-rack panel">
         <div className="mode-controls">
-          <button className={mode === "mock" ? "mode-button active" : "mode-button"} onClick={() => setMode("mock")}>MOCK FEED</button>
-          <button className={mode === "live" ? "mode-button active" : "mode-button"} onClick={() => setMode("live")}>LIVE FEED</button>
+          <span className="mode-button active">LIVE FEED</span>
         </div>
         <div className="mode-status">
           <span className={`badge ${statusLabel === "FAULT" ? "danger" : statusLabel === "DEGRADED" ? "warning" : "positive"}`}>{statusLabel}</span>

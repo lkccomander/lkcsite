@@ -2,8 +2,8 @@ import { TerminalState } from "../types";
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || "/terminal-v5/api";
 
-export async function fetchTerminalState(mode: "mock" | "live"): Promise<TerminalState> {
-  const response = await fetch(`${API_BASE}/state?mode=${mode}`, {
+export async function fetchTerminalState(): Promise<TerminalState> {
+  const response = await fetch(`${API_BASE}/state?mode=live`, {
     headers: {
       Accept: "application/json",
     },

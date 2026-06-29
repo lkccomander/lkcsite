@@ -73,8 +73,8 @@ echo PATBv5 CLI bot exited with code %BOT_EXIT_CODE%.
 echo Looking up the latest telemetry session for %BOT_ID%...
 echo.
 
-@rem Read the latest session id for this bot from the telemetry file without loading the whole file into memory.
-for /f "usebackq delims=" %%I in (`node scripts\find_latest_session_id.js "%EVENTS_PATH%" "%BOT_ID%"`) do set "LATEST_SESSION_ID=%%I"
+@rem Read the latest session id for this bot from the tail of events.jsonl (fast).
+for /f "usebackq delims=" %%I in (`powershell -NoProfile -File "scripts\get_latest_session_id.ps1" -EventsPath "%EVENTS_PATH%" -BotId "%BOT_ID%"`) do set "LATEST_SESSION_ID=%%I"
 
 if not defined LATEST_SESSION_ID (
     echo Could not find a telemetry session for %BOT_ID%.
@@ -95,6 +95,36 @@ call npx.cmd tsx scripts/analyze_trades.ts --bot-id %BOT_ID% --session-id %LATES
 
 echo.
 echo Review flow finished for session %LATEST_SESSION_ID%.
+
+@rem Copy the latest session telemetry to the Samba share.
+set "TELEMETRY_SHARE=\\192.1.50.1\Bot-Telemetry\sessions"
+echo Copying session telemetry to %TELEMETRY_SHARE% ...
+echo.
+
+@rem Clean up any stale mapping from a previous interrupted run.
+net use T: /DELETE >nul 2>&1
+
+@rem Authenticate to the Samba share.
+net use T: \\192.1.50.1\Bot-Telemetry /USER:lego1 moco23
+if errorlevel 1 (
+    echo ERROR: Could not authenticate to the Samba share.
+    echo.
+) else (
+    for /f "delims=" %%F in ('dir /b "%SCRIPT_DIR%..\polydb\telemetry\sessions\*%LATEST_SESSION_ID%*.jsonl" 2^>nul') do (
+        echo Copying %%F ...
+        copy /Y "%SCRIPT_DIR%..\polydb\telemetry\sessions\%%F" "T:\sessions\"
+        if errorlevel 1 (
+            echo ERROR: Failed to copy %%F.
+        ) else (
+            echo OK: %%F uploaded to %TELEMETRY_SHARE%.
+        )
+    )
+
+    net use T: /DELETE
+    if errorlevel 1 (
+        echo WARNING: Could not disconnect T: drive.
+    )
+)
 
 :end
 pause

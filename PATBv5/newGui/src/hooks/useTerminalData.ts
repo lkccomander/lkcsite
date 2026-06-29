@@ -9,7 +9,7 @@ interface TerminalDataState {
   stale: boolean;
 }
 
-export function useTerminalData(mode: "mock" | "live") {
+export function useTerminalData() {
   const [state, setState] = useState<TerminalDataState>({
     data: null,
     loading: true,
@@ -23,7 +23,7 @@ export function useTerminalData(mode: "mock" | "live") {
 
     const load = async () => {
       try {
-        const nextData = await fetchTerminalState(mode);
+        const nextData = await fetchTerminalState();
         if (!active) {
           return;
         }
@@ -59,7 +59,7 @@ export function useTerminalData(mode: "mock" | "live") {
       active = false;
       window.clearInterval(interval);
     };
-  }, [mode]);
+  }, []);
 
   return state;
 }
