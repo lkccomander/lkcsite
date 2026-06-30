@@ -19,6 +19,63 @@ param(
 )
 
 $CheckerScript = Join-Path $PSScriptRoot "checker.ps1"
+$SessionsDir = Join-Path $PSScriptRoot "..\polydb\telemetry\sessions"
+
+function Resolve-SessionTelemetryFile {
+  param(
+    [string]$SessionId
+  )
+
+  if (-not $SessionId -or -not (Test-Path $SessionsDir)) {
+    return $null
+  }
+
+  $match = Get-ChildItem -Path $SessionsDir -Filter "*__$SessionId.jsonl" -File -ErrorAction SilentlyContinue |
+    Sort-Object Name -Descending |
+    Select-Object -First 1
+
+  if ($match) {
+    return $match.FullName
+  }
+
+  return $null
+}
+
+function Resolve-TelemetryBotId {
+  param(
+    [string]$TelemetryPath
+  )
+
+  if (-not $TelemetryPath -or -not (Test-Path $TelemetryPath)) {
+    return $null
+  }
+
+  $reader = $null
+  try {
+    $reader = [System.IO.File]::OpenText($TelemetryPath)
+    for ($lineNumber = 0; $lineNumber -lt 200 -and -not $reader.EndOfStream; $lineNumber++) {
+      $line = $reader.ReadLine()
+      if ([string]::IsNullOrWhiteSpace($line)) {
+        continue
+      }
+
+      try {
+        $event = $line | ConvertFrom-Json
+        if ($event.botId -and -not [string]::IsNullOrWhiteSpace([string]$event.botId)) {
+          return [string]$event.botId
+        }
+      } catch {
+      }
+    }
+  } catch {
+  } finally {
+    if ($reader) {
+      $reader.Dispose()
+    }
+  }
+
+  return $null
+}
 
 function Get-LoggedSessionIds {
   param(
@@ -37,6 +94,50 @@ function Get-LoggedSessionIds {
   }
 
   return $sessionIds
+}
+
+function Get-LatestLoggedBotId {
+  param(
+    [string]$Path,
+    [string]$SessionId
+  )
+
+  if (-not (Test-Path $Path) -or -not $SessionId) {
+    return $null
+  }
+
+  $lines = Get-Content -Path $Path
+  $currentSessionId = $null
+  $currentBotId = $null
+  $latestBotId = $null
+
+  foreach ($line in $lines) {
+    if ($line -match '^\[\d+/\d+\]\s+Session:\s+([0-9a-f-]{36})$') {
+      $currentSessionId = $matches[1]
+      $currentBotId = $null
+      continue
+    }
+
+    if ($currentSessionId -eq $SessionId -and $line -match '^Bot ID:\s+(.+)$') {
+      $currentBotId = $matches[1].Trim()
+      continue
+    }
+
+    if ($currentSessionId -eq $SessionId -and -not $currentBotId -and $line -match '^Bot:\s+(.+)$') {
+      $currentBotId = $matches[1].Trim()
+      continue
+    }
+
+    if ($line -match '^\d{2}:\d{2}:\d{2}\s+\[\d+/\d+\]\s+(PASS|FAIL(?:\s+\(.+?\))?|SKIP)\s+\([^)]+\)\s+([0-9a-f-]{36})$') {
+      if ($matches[2] -eq $SessionId) {
+        $latestBotId = $currentBotId
+      }
+      $currentSessionId = $null
+      $currentBotId = $null
+    }
+  }
+
+  return $latestBotId
 }
 
 if (-not (Test-Path $CheckerScript)) {
@@ -62,7 +163,19 @@ if (-not $RecheckLoggedSessions) {
 
 $Sessions = @()
 foreach ($sessionId in $RequestedSessions) {
-  if ($RecheckLoggedSessions -or (-not $LoggedSessionIds.ContainsKey($sessionId))) {
+  $shouldProcess = $RecheckLoggedSessions -or (-not $LoggedSessionIds.ContainsKey($sessionId))
+  if (-not $shouldProcess -and $LoggedSessionIds.ContainsKey($sessionId)) {
+    $telemetryPath = Resolve-SessionTelemetryFile -SessionId $sessionId
+    $telemetryBotId = Resolve-TelemetryBotId -TelemetryPath $telemetryPath
+    $loggedBotId = Get-LatestLoggedBotId -Path $LogFile -SessionId $sessionId
+
+    if ($telemetryBotId -and $loggedBotId -and $telemetryBotId -ne $loggedBotId) {
+      $shouldProcess = $true
+      Write-Host "Requeueing $sessionId because logged bot '$loggedBotId' does not match telemetry bot '$telemetryBotId'." -ForegroundColor DarkYellow
+    }
+  }
+
+  if ($shouldProcess) {
     $Sessions += $sessionId
   }
 }

@@ -6,6 +6,7 @@ $SessionsDir = Join-Path $PSScriptRoot "..\polydb\telemetry\sessions"
 $CheckerHistoryPath = Join-Path $PSScriptRoot "checker_history.json"
 $CheckerStatus = "passed"
 $CheckerExitCode = 0
+$DefaultBotId = "polymarket-bot-v5"
 
 function Read-CheckerHistory {
   param(
@@ -56,6 +57,43 @@ function Write-CheckerHistory {
   $updated | ConvertTo-Json -Depth 4 | Set-Content -Path $Path -Encoding utf8
 }
 
+function Resolve-CheckerBotId {
+  param(
+    [string]$TelemetryPath,
+    [string]$FallbackBotId
+  )
+
+  if (-not $TelemetryPath -or -not (Test-Path $TelemetryPath)) {
+    return $FallbackBotId
+  }
+
+  $reader = $null
+  try {
+    $reader = [System.IO.File]::OpenText($TelemetryPath)
+    for ($lineNumber = 0; $lineNumber -lt 200 -and -not $reader.EndOfStream; $lineNumber++) {
+      $line = $reader.ReadLine()
+      if ([string]::IsNullOrWhiteSpace($line)) {
+        continue
+      }
+
+      try {
+        $event = $line | ConvertFrom-Json
+        if ($event.botId -and -not [string]::IsNullOrWhiteSpace([string]$event.botId)) {
+          return [string]$event.botId
+        }
+      } catch {
+      }
+    }
+  } catch {
+  } finally {
+    if ($reader) {
+      $reader.Dispose()
+    }
+  }
+
+  return $FallbackBotId
+}
+
 # Ask for session ID when not provided
 Write-Host "`nBOT CHECKER:"
 if (-not $SessionID) {
@@ -65,6 +103,7 @@ if (-not $SessionID) {
 $TelemetryArg = ""
 $SessionArg = ""
 $DisplayTarget = $SessionID
+$ResolvedTelemetryPath = $null
 
 if ($SessionID -and ($SessionID.ToLower().EndsWith(".jsonl") -or (Test-Path $SessionID))) {
   $ResolvedTelemetryPath = (Resolve-Path $SessionID).ProviderPath
@@ -79,6 +118,7 @@ if ($SessionID -and ($SessionID.ToLower().EndsWith(".jsonl") -or (Test-Path $Ses
   }
 
   if ($ResolvedSessionFile) {
+    $ResolvedTelemetryPath = $ResolvedSessionFile.FullName
     $TelemetryArg = "--telemetry-file `"$($ResolvedSessionFile.FullName)`""
     $SessionArg = "--session-id $SessionID"
     $DisplayTarget = $ResolvedSessionFile.FullName
@@ -87,15 +127,18 @@ if ($SessionID -and ($SessionID.ToLower().EndsWith(".jsonl") -or (Test-Path $Ses
   }
 }
 
+$DetectedBotId = Resolve-CheckerBotId -TelemetryPath $ResolvedTelemetryPath -FallbackBotId $DefaultBotId
+
 # Build commands
 $cmd0 = "npx tsx tests/entry_ratio.test.ts"
-$cmd1 = "npm run validate:signals -- --bot-id polymarket-bot-v5 $SessionArg $TelemetryArg"
-$cmd2 = "npm run analyze:trades -- --bot-id polymarket-bot-v5 $SessionArg $TelemetryArg"
-$cmd3 = "npm run check:live-readiness -- --bot-id polymarket-bot-v5 $SessionArg $TelemetryArg"
+$cmd1 = "npm run validate:signals -- --bot-id $DetectedBotId $SessionArg $TelemetryArg"
+$cmd2 = "npm run analyze:trades -- --bot-id $DetectedBotId $SessionArg $TelemetryArg"
+$cmd3 = "npm run check:live-readiness -- --bot-id $DetectedBotId $SessionArg $TelemetryArg"
 
 # Show commands
 Write-Host "`nRunning commands:"
 Write-Host "Target: $DisplayTarget"
+Write-Host "Bot ID: $DetectedBotId"
 Write-Host $cmd0
 Write-Host $cmd1
 Write-Host $cmd2

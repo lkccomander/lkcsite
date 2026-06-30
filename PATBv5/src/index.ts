@@ -1,5 +1,5 @@
 import { ClobClient, type TickSize } from "@polymarket/clob-client-v2";
-import chalk from "@tsjunk/chalk";
+import chalk from "chalk";
 import { readFile, rm } from "fs/promises";
 import { resolve } from "path";
 import {

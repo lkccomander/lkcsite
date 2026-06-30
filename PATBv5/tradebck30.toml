@@ -15,7 +15,7 @@ min_entry_price = 0.45
 max_entry_price = 0.85
 
 up_min_entry_price = 0.10
-up_max_entry_price = 0.82
+up_max_entry_price = 0.78
 down_min_entry_price = 0.45
 down_max_entry_price = 0.85
 
@@ -64,10 +64,8 @@ down_block_if_btc_trend_up = true
 up_require_directional_momentum = false
 up_require_mc_direction_agreement = true
 up_requires_btc_momentum = true
-# First tuning pass: ease the UP-side bias gate slightly so we can test
-# whether strong trade suppression is mostly coming from momentum strictness.
-up_min_btc_delta1m = 0.0005
-up_min_momentum_confidence = 0.45
+up_min_btc_delta1m = 0.001
+up_min_momentum_confidence = 0.6
 up_min_mc_convergence = 0.70
 
 latest_entry_seconds_before_close = 15

@@ -1,4 +1,4 @@
-import chalk from "@tsjunk/chalk";
+import chalk from "chalk";
 import { Market } from "../types";
 import { GLOBAL_TX_PROCESS, TxProcess } from "../constant";
 
