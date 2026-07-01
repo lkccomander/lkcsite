@@ -133,7 +133,14 @@ export const getMarketPageMetadata = async (slug: string): Promise<{
   const html = await response.text();
   const nextData = extractEmbeddedNextData(html);
   if (!nextData) {
-    throw new Error("Polymarket page missing __NEXT_DATA__ payload");
+    // Polymarket intermittently serves a shell without the embedded payload.
+    // Treat that as unavailable metadata instead of a hard failure so the
+    // optional benchmark refresh does not flood telemetry with feed errors.
+    return {
+      priceToBeat: null,
+      finalPrice: null,
+      priceToBeatSource: null,
+    };
   }
 
   const metadata = findMarketMetadataBySlug(nextData, slug) ?? {

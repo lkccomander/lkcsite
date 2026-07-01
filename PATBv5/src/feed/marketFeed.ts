@@ -10,19 +10,20 @@ import type {
 } from "./types";
 
 const WS_MARKET_ENDPOINT = "wss://ws-subscriptions-clob.polymarket.com/ws/market";
-const FEED_STALE_MS = 2000;
+const FEED_STALE_MS = 2500;
 const FEED_CONNECT_TIMEOUT_MS = 10000;
-const FEED_STARTUP_GRACE_MS = 7000;
+const FEED_STARTUP_GRACE_MS = 10000;
 const FEED_TICK_TELEMETRY_INTERVAL_MS = 1000;
-const FEED_FORCE_WEBSOCKET_WAIT_MS = 12000;
-const FEED_RESUBSCRIBE_COOLDOWN_MS = 1000;
+const FEED_FORCE_WEBSOCKET_WAIT_MS = 18000;
+const FEED_RESUBSCRIBE_COOLDOWN_MS = 2000;
 const FEED_PING_INTERVAL_MS = 5000;
-const FEED_FALLBACK_DEBOUNCE_MS = 3000;
-const FEED_WEBSOCKET_SNAPSHOT_GRACE_MS = 750;
+const FEED_FALLBACK_DEBOUNCE_MS = 5000;
+const FEED_WEBSOCKET_SNAPSHOT_GRACE_MS = 2000;
 const FEED_RECONNECT_BACKOFF_MS = [250, 500, 1000, 2000, 4000, 8000];
 const FEED_RECONNECT_STABLE_RESET_MS = 10000;
-const FEED_FORCE_RECONNECT_STALE_MS = 7000;
+const FEED_FORCE_RECONNECT_STALE_MS = 12000;
 const FEED_FORCE_RECONNECT_WAITING_FOR_BOTH_SIDES_MS = 15000;
+const FEED_LOW_MESSAGE_COUNT_GRACE = 2;
 
 interface FeedState {
     buyPrice: number;
@@ -433,12 +434,13 @@ export class PolymarketMarketFeed implements MarketFeed {
     async getLatestSnapshot(): Promise<PriceSnapshot | null> {
         const websocketSnapshot = this.buildWebsocketSnapshot();
         const websocketReady = this.hasReceivedBothSidesOverWebsocket();
+        const effectiveStaleThresholdMs = this.getEffectiveStaleThresholdMs(websocketSnapshot);
 
-        if (websocketSnapshot && websocketSnapshot.staleMs <= FEED_STALE_MS) {
+        if (websocketSnapshot && websocketSnapshot.staleMs <= effectiveStaleThresholdMs) {
             return websocketSnapshot;
         }
 
-        if (websocketSnapshot && websocketSnapshot.staleMs > FEED_STALE_MS) {
+        if (websocketSnapshot && websocketSnapshot.staleMs > effectiveStaleThresholdMs) {
             await this.emitStaleTelemetry(websocketSnapshot.staleMs);
             if (this.wsConnected) {
                 if (websocketSnapshot.staleMs >= FEED_FORCE_RECONNECT_STALE_MS) {
@@ -467,8 +469,8 @@ export class PolymarketMarketFeed implements MarketFeed {
             websocketSnapshot &&
             this.wsConnected &&
             websocketReady &&
-            websocketSnapshot.staleMs > FEED_STALE_MS &&
-            websocketSnapshot.staleMs <= FEED_STALE_MS + FEED_WEBSOCKET_SNAPSHOT_GRACE_MS
+            websocketSnapshot.staleMs > effectiveStaleThresholdMs &&
+            websocketSnapshot.staleMs <= effectiveStaleThresholdMs + FEED_WEBSOCKET_SNAPSHOT_GRACE_MS
         ) {
             return websocketSnapshot;
         }
@@ -485,6 +487,26 @@ export class PolymarketMarketFeed implements MarketFeed {
             this.stateByAsset[this.downTokenId],
             "websocket",
         );
+    }
+
+    private getEffectiveStaleThresholdMs(snapshot?: PriceSnapshot | null): number {
+        const connectedForMs = this.wsConnected ? Date.now() - this.lastConnectedAtMs : 0;
+        if (this.wsConnected && connectedForMs < FEED_STARTUP_GRACE_MS) {
+            return FEED_STALE_MS + FEED_WEBSOCKET_SNAPSHOT_GRACE_MS;
+        }
+
+        if (!snapshot) {
+            return FEED_STALE_MS;
+        }
+
+        const upState = this.stateByAsset[this.upTokenId];
+        const downState = this.stateByAsset[this.downTokenId];
+        const minMessageCount = Math.min(upState.websocketMessageCount, downState.websocketMessageCount);
+        if (this.wsConnected && minMessageCount <= FEED_LOW_MESSAGE_COUNT_GRACE) {
+            return FEED_STALE_MS + FEED_WEBSOCKET_SNAPSHOT_GRACE_MS;
+        }
+
+        return FEED_STALE_MS;
     }
 
     private async handleMessage(rawMessage: string): Promise<void> {
@@ -664,7 +686,7 @@ export class PolymarketMarketFeed implements MarketFeed {
         if (!activeFallback) {
             return;
         }
-        if (!snapshot || snapshot.staleMs > FEED_STALE_MS) {
+        if (!snapshot || snapshot.staleMs > this.getEffectiveStaleThresholdMs(snapshot)) {
             return;
         }
         // Clear first so overlapping updates cannot emit duplicate recoveries
