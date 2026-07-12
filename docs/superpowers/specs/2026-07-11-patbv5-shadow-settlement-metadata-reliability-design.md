@@ -10,6 +10,12 @@ The same session emitted 1,011 `polymarket_page_metadata_refresh` failures. The 
 
 This change applies to future sessions only. It does not rewrite historical JSONL files.
 
+## Confirmed Settlement Polling Root Cause
+
+The first post-change PAPER session emitted only unresolved shadow settlements even though Gamma later showed authoritative terminal outcomes. Investigation confirmed that the Gamma market-by-slug response is served through Cloudflare with `Cache-Control: public, max-age=300`. The market is fetched before it closes, and the settlement task then polls the identical URL for only about 45 seconds. Every poll can therefore receive the same cached pre-close payload with `closed=false`, producing `settlement_poll_timeout` even when Gamma records the market as resolved 16-26 seconds after close.
+
+A request with a unique query parameter produces a cache miss. Request headers such as `Cache-Control: no-cache` are insufficient because the observed CDN response remains a cache hit. The settlement path must therefore use a distinct cache-busted URL for every attempt.
+
 ## Goals
 
 - Calculate shadow P&L only from an authoritative, internally consistent binary outcome.
@@ -38,6 +44,8 @@ This pure boundary keeps API parsing and P&L calculation testable without networ
 
 Extend the Gamma service with a market-by-slug resolution lookup that reuses the existing public Gamma endpoint. At market close, detach a bounded resolution task for that market:
 
+- Use a dedicated settlement-fetch function rather than changing normal market discovery behavior.
+- Add a unique, URL-encoded cache-busting query parameter to every settlement request.
 - Poll every 5 seconds for up to 45 seconds.
 - Stop immediately after a valid terminal outcome is returned.
 - Do not block selection or processing of the next five-minute market.
@@ -87,6 +95,8 @@ Add regression tests before implementation for:
 - Resolved settlement producing complementary 1/0 exit prices.
 - Structured preservation of header-overflow and HTTP error details.
 - Polling success, timeout, and retry behavior using injected fakes and zero-delay test timing.
+- Settlement requests using a different URL on every polling attempt.
+- Normal market discovery retaining its stable, non-cache-busted URL.
 
 Then run the targeted tests, TypeScript build, and the existing full test suite. Finally, perform a read-only public endpoint probe confirming the native HTTPS request no longer raises `UND_ERR_HEADERS_OVERFLOW`.
 
@@ -95,6 +105,7 @@ Then run the targeted tests, TypeScript build, and the existing full test suite.
 - Future `trade.shadow_pnl` events never report both final outcome prices near zero as a resolved result.
 - Every non-null hypothetical P&L has `settlementStatus=resolved` and an authoritative Gamma-derived winner.
 - Unresolved outcomes have null P&L and a diagnostic reason.
+- Settlement polling cannot reuse a cached pre-close Gamma response across attempts.
 - The exact Polymarket page that reproduced the error succeeds through the new request helper.
 - Network telemetry contains machine-readable error codes when failures occur.
 - The bot advances to the next market without waiting for settlement polling.
