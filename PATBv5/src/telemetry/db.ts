@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, writeFile } from "fs/promises";
+import { appendFile, mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "fs/promises";
 import os from "os";
 import { dirname, resolve } from "path";
 import { randomUUID } from "crypto";
@@ -40,7 +40,10 @@ export type TelemetryEventType =
     | "trade.signal_rejected"
     | "trade.signal_accepted"
     | "trade.shadow_pnl"
+    | "trade.entry_posted"
     | "trade.entry_filled"
+    | "trade.entry_timeout"
+    | "trade.entry_order_status_after_timeout"
     | "trade.exit_attempt"
     | "trade.exit_pending"
     | "trade.exit_partial"
@@ -91,6 +94,56 @@ interface PersistedPaperBalance {
     sessionStartedAt: string | null;
 }
 
+export interface TelemetryRetentionConfig {
+    rotateBytes: number;
+    maxTotalBytes: number;
+    warnings: string[];
+}
+
+const DEFAULT_TELEMETRY_ROTATE_BYTES = 256 * 1024 * 1024;
+const DEFAULT_TELEMETRY_MAX_TOTAL_BYTES = 5 * 1024 * 1024 * 1024;
+
+export function resolveTelemetryRetentionConfig(input: {
+    rotateBytes?: string;
+    maxTotalBytes?: string;
+}): TelemetryRetentionConfig {
+    const warnings: string[] = [];
+
+    const parseLimit = (name: string, raw: string | undefined, fallback: number): number => {
+        if (raw === undefined || raw.trim().length === 0) {
+            return fallback;
+        }
+
+        const value = Number(raw);
+        if (!/^\d+$/.test(raw.trim()) || !Number.isSafeInteger(value) || value <= 0) {
+            warnings.push(`Invalid ${name}=${raw}; using ${fallback}`);
+            return fallback;
+        }
+
+        return value;
+    };
+
+    const rotateBytes = parseLimit(
+        "TELEMETRY_ROTATE_BYTES",
+        input.rotateBytes,
+        DEFAULT_TELEMETRY_ROTATE_BYTES
+    );
+    let maxTotalBytes = parseLimit(
+        "TELEMETRY_MAX_TOTAL_BYTES",
+        input.maxTotalBytes,
+        DEFAULT_TELEMETRY_MAX_TOTAL_BYTES
+    );
+
+    if (maxTotalBytes < rotateBytes) {
+        maxTotalBytes = Math.max(DEFAULT_TELEMETRY_MAX_TOTAL_BYTES, rotateBytes);
+        warnings.push(
+            `TELEMETRY_MAX_TOTAL_BYTES must be at least TELEMETRY_ROTATE_BYTES; using ${maxTotalBytes}`
+        );
+    }
+
+    return { rotateBytes, maxTotalBytes, warnings };
+}
+
 const DEFAULT_BOT_ID = "polymarket-bot-v5";
 const BOT_ID = readOptionalConfigEnv("BOT_ID")
     || readOptionalConfigEnv("BOT_INSTANCE_ID")
@@ -111,11 +164,22 @@ const TELEMETRY_ROOT = configuredTelemetryRoot
 const TELEMETRY_DB_PATH = resolve(TELEMETRY_ROOT, "events.jsonl");
 const TELEMETRY_SESSIONS_DIR = resolve(TELEMETRY_ROOT, "sessions");
 const LEGACY_PAPER_BALANCE_STATE_PATH = resolve(TELEMETRY_ROOT, "paper-balance.json");
+const telemetryRetentionConfig = resolveTelemetryRetentionConfig({
+    rotateBytes: readOptionalConfigEnv("TELEMETRY_ROTATE_BYTES"),
+    maxTotalBytes: readOptionalConfigEnv("TELEMETRY_MAX_TOTAL_BYTES"),
+});
+for (const warning of telemetryRetentionConfig.warnings) {
+    console.warn(`Telemetry retention configuration: ${warning}`);
+}
 
 let telemetryReady: Promise<void> | null = null;
 let telemetrySession: TelemetrySession | null = null;
 let telemetryVersionContext: Record<string, unknown> | null = null;
 let telemetryOriginHost: string | null = resolveOriginHost();
+let telemetryWriteQueue: Promise<void> = Promise.resolve();
+let lastArchiveTimestampMs = 0;
+
+const MANAGED_ARCHIVE_PATTERN = /^events\.\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.jsonl$/;
 
 async function ensureTelemetryStore(): Promise<void> {
     if (!telemetryReady) {
@@ -130,6 +194,93 @@ async function ensureTelemetryStore(): Promise<void> {
 
 function toSessionTimestamp(isoTimestamp: string): string {
     return isoTimestamp.replace(/[:.]/g, "-");
+}
+
+function isMissingFileError(error: unknown): boolean {
+    return Boolean(error && typeof error === "object" && "code" in error && error.code === "ENOENT");
+}
+
+async function getFileSize(path: string): Promise<number> {
+    try {
+        return (await stat(path)).size;
+    } catch (error) {
+        if (isMissingFileError(error)) {
+            return 0;
+        }
+        throw error;
+    }
+}
+
+function nextManagedArchivePath(): string {
+    const timestampMs = Math.max(Date.now(), lastArchiveTimestampMs + 1);
+    lastArchiveTimestampMs = timestampMs;
+    const timestamp = toSessionTimestamp(new Date(timestampMs).toISOString());
+    return resolve(TELEMETRY_ROOT, `events.${timestamp}.jsonl`);
+}
+
+async function pruneManagedArchives(activeSize: number): Promise<void> {
+    const names = (await readdir(TELEMETRY_ROOT))
+        .filter((name) => MANAGED_ARCHIVE_PATTERN.test(name))
+        .sort();
+    const archives: Array<{ path: string; size: number }> = [];
+
+    for (const name of names) {
+        const path = resolve(TELEMETRY_ROOT, name);
+        archives.push({ path, size: await getFileSize(path) });
+    }
+
+    let totalSize = activeSize + archives.reduce((total, archive) => total + archive.size, 0);
+    for (const archive of archives) {
+        if (totalSize <= telemetryRetentionConfig.maxTotalBytes) {
+            break;
+        }
+        await unlink(archive.path);
+        totalSize -= archive.size;
+    }
+}
+
+async function appendSerializedTelemetryEvent(serialized: string): Promise<void> {
+    await ensureTelemetryStore();
+
+    const eventSize = Buffer.byteLength(serialized, "utf8");
+    if (eventSize > telemetryRetentionConfig.maxTotalBytes) {
+        throw new Error(
+            `Telemetry event is ${eventSize} bytes, above TELEMETRY_MAX_TOTAL_BYTES=${telemetryRetentionConfig.maxTotalBytes}`
+        );
+    }
+
+    const activeSize = await getFileSize(TELEMETRY_DB_PATH);
+    if (activeSize > telemetryRetentionConfig.maxTotalBytes) {
+        throw new Error(
+            `Telemetry migration required: ${TELEMETRY_DB_PATH} is ${activeSize} bytes, above the managed limit of ${telemetryRetentionConfig.maxTotalBytes}`
+        );
+    }
+
+    let rotated = false;
+    if (activeSize > 0 && activeSize + eventSize > telemetryRetentionConfig.rotateBytes) {
+        await rename(TELEMETRY_DB_PATH, nextManagedArchivePath());
+        rotated = true;
+    }
+
+    await appendFile(TELEMETRY_DB_PATH, serialized, "utf8");
+
+    if (telemetrySession) {
+        await appendFile(telemetrySession.sessionPath, serialized, "utf8");
+    }
+
+    if (rotated) {
+        try {
+            await pruneManagedArchives(eventSize);
+        } catch (error) {
+            console.warn("Telemetry archive pruning failed; will retry after a later rotation:", error);
+        }
+    }
+}
+
+function enqueueTelemetryWrite(operation: () => Promise<void>): Promise<void> {
+    const result = telemetryWriteQueue.then(operation);
+    telemetryWriteQueue = result.catch(() => undefined);
+    return result;
 }
 
 function roundCurrency(value: number): number {
@@ -191,8 +342,6 @@ export async function writeTelemetryEvent<TPayload = Record<string, unknown>>(
     type: TelemetryEventType,
     payload: TPayload
 ): Promise<void> {
-    await ensureTelemetryStore();
-
     const event: TelemetryEvent<TPayload> = {
         type,
         payload,
@@ -205,11 +354,7 @@ export async function writeTelemetryEvent<TPayload = Record<string, unknown>>(
     };
 
     const serialized = `${JSON.stringify(event)}\n`;
-    await appendFile(TELEMETRY_DB_PATH, serialized, "utf8");
-
-    if (telemetrySession) {
-        await appendFile(telemetrySession.sessionPath, serialized, "utf8");
-    }
+    await enqueueTelemetryWrite(() => appendSerializedTelemetryEvent(serialized));
 }
 
 export async function writeTelemetryEventSafe<TPayload = Record<string, unknown>>(
@@ -236,6 +381,8 @@ export function __resetTelemetryModuleState(): void {
     telemetrySession = null;
     telemetryVersionContext = null;
     telemetryOriginHost = resolveOriginHost();
+    telemetryWriteQueue = Promise.resolve();
+    lastArchiveTimestampMs = 0;
 }
 
 export function __setTelemetryOriginHostForTests(originHost: string | null): void {
