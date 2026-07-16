@@ -241,7 +241,10 @@ function getOpenExitOrderCount(trade: Trade): number {
 }
 
 function hasOpenExposure(trade: Trade): boolean {
-  return trade.share > 0 || trade.holdingStatus !== Market.None || getOpenExitOrderCount(trade) > 0;
+  return trade.share > 0
+    || trade.holdingStatus !== Market.None
+    || getOpenExitOrderCount(trade) > 0
+    || Boolean(trade.pendingExitReconciliation);
 }
 
 async function reconcileMarketCloseExposure(trade: Trade, slug: string): Promise<void> {
@@ -259,6 +262,9 @@ async function reconcileMarketCloseExposure(trade: Trade, slug: string): Promise
   const openExitOrdersBefore = getOpenExitOrderCount(trade);
 
   while (Date.now() - startedAt < MARKET_CLOSE_RECONCILIATION_GRACE_MS) {
+    if (trade.pendingExitReconciliation) {
+      await trade.reconcilePendingExitSubmission();
+    }
     await trade.reconcileOpenExitOrders();
     await trade.updateTokenBalances();
     if (!hasOpenExposure(trade)) {

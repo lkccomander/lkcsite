@@ -19,6 +19,10 @@ import {
     takerFeeRate,
     takerFeeUsd as calculateTakerFeeUsd,
 } from "./policy/executionPricing";
+import {
+    aggregateMatchingSellFills,
+    findMatchingOpenSellOrder,
+} from "./policy/exitReconciliation";
 
 declare module "./index" {
     interface Trade {
@@ -42,6 +46,7 @@ declare module "./index" {
         }>;
         hydrateOpenExitOrders(): Promise<void>;
         reconcileOpenExitOrders(): Promise<void>;
+        reconcilePendingExitSubmission(): Promise<boolean>;
     }
 }
 
@@ -52,6 +57,31 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
     const MAX_LIVE_SELL_SPREAD = 0.20;
     const EXIT_SKIP_TELEMETRY_COOLDOWN_MS = 15_000;
     const POSITION_DUST_THRESHOLD_SHARES = 0.05;
+    const configuredExitSubmitTimeoutMs = Number(process.env.LIVE_EXIT_SUBMIT_TIMEOUT_MS ?? 12_000);
+    const LIVE_EXIT_SUBMIT_TIMEOUT_MS = Number.isFinite(configuredExitSubmitTimeoutMs) && configuredExitSubmitTimeoutMs > 0
+        ? configuredExitSubmitTimeoutMs
+        : 12_000;
+    const EXIT_RECONCILIATION_QUERY_TIMEOUT_MS = 5_000;
+    const unresolvedExitReconciliationTrades = new Set<any>();
+
+    const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+        let timer: NodeJS.Timeout | null = null;
+        try {
+            return await Promise.race([
+                promise,
+                new Promise<T>((_, reject) => {
+                    timer = setTimeout(() => {
+                        const error = Object.assign(new Error(`${label} timed out after ${timeoutMs}ms`), {
+                            code: "EXIT_SUBMIT_TIMEOUT",
+                        });
+                        reject(error);
+                    }, timeoutMs);
+                }),
+            ]);
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    };
 
     const takerFeeUsd = (price: number, notionalUsd: number): number =>
         calculateTakerFeeUsd(price, notionalUsd, 5);
@@ -438,7 +468,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
     };
     const isPendingEntryReconciliationActive = (trade: any): boolean =>
         Boolean(trade.pendingEntryReconciliation?.orderId);
-    const emitExitEvent = async (type: "trade.exit_attempt" | "trade.exit_pending" | "trade.exit_partial" | "trade.exit_filled" | "trade.exit_failed" | "trade.exit_skipped_existing_live_order" | "trade.exit_skipped_stale_snapshot" | "trade.exit_balance_reserved_by_live_order", trade: any, payload: Record<string, unknown>): Promise<void> => {
+    const emitExitEvent = async (type: "trade.exit_attempt" | "trade.exit_pending" | "trade.exit_partial" | "trade.exit_filled" | "trade.exit_failed" | "trade.exit_submission_uncertain" | "trade.exit_skipped_existing_live_order" | "trade.exit_skipped_stale_snapshot" | "trade.exit_balance_reserved_by_live_order", trade: any, payload: Record<string, unknown>): Promise<void> => {
         await writeTelemetryEventSafe(type, {
             strategy: globalThis.__CONFIG__.strategy,
             decisionSource: trade.lastDecisionSnapshotSource,
@@ -772,47 +802,32 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
         rawBalance: number,
     ): Promise<any> => {
         ensureLiveClient(trade);
-        const maxRetries = globalThis.__CONFIG__?.max_retries || 3;
-        let lastError: any;
-
-        for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            try {
-                const result = makerMode
-                    ? await trade.authorizedClob.createAndPostOrder({
+        const result: any = await withTimeout<any>(
+            makerMode
+                ? trade.authorizedClob.createAndPostOrder({
                         tokenID: tokenId,
                         price: limitPrice,
                         side: Side.SELL,
                         size: actualBalance,
                     }, getLiveOrderOptions(trade), OrderType.GTC)
-                    : await trade.authorizedClob.createAndPostMarketOrder({
+                : trade.authorizedClob.createAndPostMarketOrder({
                         tokenID: tokenId,
                         amount: rawBalance,
                         side: Side.SELL,
-                    }, getLiveOrderOptions(trade), OrderType.FAK);
+                    }, getLiveOrderOptions(trade), OrderType.FAK),
+            LIVE_EXIT_SUBMIT_TIMEOUT_MS,
+            `SELL ${side} submit`,
+        );
 
-                const statusText = String(result?.status ?? "").toLowerCase();
-                const orderId = String(result?.orderID ?? result?.orderId ?? "");
-                if (!result?.success && !(orderId && statusText === "live")) {
-                    throw new Error(`❌ Error selling ${side.toLowerCase()} token: ${result?.error ?? result?.errorMsg ?? "unknown error"}`);
-                }
-
-                if (attempt > 0) {
-                    console.log(`✅ Sell ${side} Token succeeded on retry attempt ${attempt}`);
-                }
-                return result;
-            } catch (error: any) {
-                lastError = error;
-                if (error?.status === 401 || error?.data?.error?.includes("Unauthorized")) {
-                    throw error;
-                }
-                if (attempt < maxRetries) {
-                    console.log(`🔄 Sell ${side} Token failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying instantly...`);
-                    continue;
-                }
-            }
+        const statusText = String(result?.status ?? "").toLowerCase();
+        const orderId = String(result?.orderID ?? result?.orderId ?? "");
+        if (!result?.success && !(orderId && statusText === "live")) {
+            throw Object.assign(
+                new Error(`❌ Error selling ${side.toLowerCase()} token: ${result?.error ?? result?.errorMsg ?? "unknown error"}`),
+                { code: "PROVIDER_REJECTED" },
+            );
         }
-
-        throw lastError;
+        return result;
     };
     const registerAcceptedExitOrder = async (
         trade: any,
@@ -1285,8 +1300,197 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
             console.log(`↩️  Hydrated ${hydratedCount} open entry order(s) from CLOB`);
         }
     };
+    const responseItems = (response: any): any[] => {
+        if (Array.isArray(response)) return response;
+        if (Array.isArray(response?.data)) return response.data;
+        return [];
+    };
+    const isDeterministicExitSubmitError = (error: any): boolean => (
+        error?.status === 400
+        || error?.status === 401
+        || error?.code === "PROVIDER_REJECTED"
+        || String(error?.data?.error ?? "").toLowerCase().includes("unauthorized")
+    );
+
+    TradeClass.prototype.reconcilePendingExitSubmission = async function (): Promise<boolean> {
+        const pending = this.pendingExitReconciliation;
+        if (!pending) {
+            unresolvedExitReconciliationTrades.delete(this);
+            return true;
+        }
+        ensureLiveClient(this);
+
+        let trades: any[] = [];
+        let openOrders: any[] = [];
+        try {
+            const [tradeResponse, orderResponse] = await Promise.all([
+                typeof this.authorizedClob.getTrades === "function"
+                    ? withTimeout(
+                        this.authorizedClob.getTrades({
+                            asset_id: pending.tokenId,
+                            after: String(Math.floor(Date.parse(pending.submittedAt) / 1000)),
+                        }),
+                        EXIT_RECONCILIATION_QUERY_TIMEOUT_MS,
+                        "exit trade-history reconciliation",
+                    )
+                    : Promise.resolve([]),
+                withTimeout(
+                    this.authorizedClob.getOpenOrders({ asset_id: pending.tokenId }, true),
+                    EXIT_RECONCILIATION_QUERY_TIMEOUT_MS,
+                    "exit open-order reconciliation",
+                ),
+            ]);
+            trades = responseItems(tradeResponse);
+            openOrders = responseItems(orderResponse);
+        } catch (error) {
+            this.pendingExitReconciliation = {
+                ...pending,
+                lastCheckedAt: new Date().toISOString(),
+                providerOrderStatus: "query_failed",
+            };
+            this.positionState = "ERROR";
+            await emitExitEvent("trade.exit_submission_uncertain", this, {
+                ...this.pendingExitReconciliation,
+                reconciliationError: error instanceof Error ? error.message : String(error),
+                reconciliationSource: "provider_query_failed",
+            });
+            return false;
+        }
+
+        const request = {
+            tokenId: pending.tokenId,
+            requestedSize: pending.requestedSize,
+            submittedAt: pending.submittedAt,
+        };
+        const fill = aggregateMatchingSellFills(trades, request);
+        if (fill) {
+            await this.updateTokenBalances();
+            markPositionClosed(this);
+            await writeTelemetryEventSafe("live_trade.sell", buildSellTelemetryPayload(this, {
+                side: pending.side,
+                tokenId: pending.tokenId,
+                reason: pending.exitReason,
+                errorContext: pending.errorContext,
+                exitPrice: fill.averagePrice,
+                shares: fill.filledSize,
+                cashBefore: null,
+                cashAfter: null,
+                feeUsd: 0,
+                rebateUsd: 0,
+                orderId: pending.knownOrderId,
+                reconciliationSource: "trade_history",
+                providerTradeIds: fill.tradeIds,
+                transactionHashes: fill.transactionHashes,
+            }));
+            await emitExitEvent("trade.exit_filled", this, {
+                side: pending.side === "UP" ? Market.Up : Market.Down,
+                tokenId: pending.tokenId,
+                filledSize: fill.filledSize,
+                avgPrice: fill.averagePrice,
+                orderId: pending.knownOrderId,
+                reconciliationSource: "trade_history",
+                providerTradeIds: fill.tradeIds,
+                transactionHashes: fill.transactionHashes,
+                pnlEstimate: null,
+            });
+            this.pendingExitReconciliation = null;
+            unresolvedExitReconciliationTrades.delete(this);
+            clearPendingExitIntent(this);
+            playCliTradeSound("sell");
+            return true;
+        }
+
+        const openOrder = findMatchingOpenSellOrder(openOrders, request);
+        if (openOrder) {
+            const side = pending.side === "UP" ? Market.Up : Market.Down;
+            await registerAcceptedExitOrder(
+                this,
+                side,
+                pending.tokenId,
+                openOrder.requestedSize,
+                openOrder.price,
+                {
+                    orderID: openOrder.orderId,
+                    status: "live",
+                    size_matched: String(openOrder.filledSize),
+                },
+                pending.exitReason,
+                pending.errorContext,
+            );
+            this.pendingExitReconciliation = null;
+            unresolvedExitReconciliationTrades.delete(this);
+            return false;
+        }
+
+        this.pendingExitReconciliation = {
+            ...pending,
+            lastCheckedAt: new Date().toISOString(),
+            providerOrderStatus: "unconfirmed",
+        };
+        this.positionState = "ERROR";
+        return false;
+    };
+
+    const beginExitReconciliation = async (
+        trade: any,
+        context: {
+            side: "UP" | "DOWN";
+            tokenId: string;
+            requestedSize: number;
+            limitPrice: number;
+            submittedAt: string;
+            exitReason: string;
+            errorContext: string | null;
+        },
+        error: unknown,
+    ): Promise<boolean> => {
+        const now = new Date().toISOString();
+        trade.pendingExitReconciliation = {
+            blockedAt: now,
+            side: context.side,
+            marketSlug: trade.marketSlug,
+            tokenId: context.tokenId,
+            requestedSize: context.requestedSize,
+            limitPrice: context.limitPrice,
+            submittedAt: context.submittedAt,
+            knownOrderId: null,
+            exitReason: context.exitReason,
+            errorContext: context.errorContext,
+            submitError: error instanceof Error ? error.message : String(error),
+            providerOrderStatus: null,
+            lastCheckedAt: null,
+        };
+        unresolvedExitReconciliationTrades.add(trade);
+        trade.positionState = "ERROR";
+        await emitExitEvent("trade.exit_submission_uncertain", trade, {
+            ...trade.pendingExitReconciliation,
+            reconciliationSource: "ambiguous_submit",
+        });
+        return trade.reconcilePendingExitSubmission();
+    };
 
     TradeClass.prototype.validateExecutionSafety = async function (side: "UP" | "DOWN", executionPrice: number): Promise<boolean> {
+        for (const unresolvedTrade of [...unresolvedExitReconciliationTrades]) {
+            const pending = unresolvedTrade.pendingExitReconciliation;
+            if (!pending) {
+                unresolvedExitReconciliationTrades.delete(unresolvedTrade);
+                continue;
+            }
+
+            const reconciled = await unresolvedTrade.reconcilePendingExitSubmission();
+            if (!reconciled || unresolvedTrade.pendingExitReconciliation) {
+                await writeTelemetryEventSafe("trade.signal_rejected", buildSignalRejectedPayload(this, "exit_reconciliation_pending", {
+                    requestedSide: sideToMarket(side),
+                    unresolvedMarketSlug: pending.marketSlug,
+                    tokenId: pending.tokenId,
+                    blockedAt: pending.blockedAt,
+                    providerOrderStatus: unresolvedTrade.pendingExitReconciliation?.providerOrderStatus ?? pending.providerOrderStatus,
+                    positionState: unresolvedTrade.positionState,
+                }));
+                return false;
+            }
+        }
+
         const trade4 = getTrade4LikeConfig(globalThis.__CONFIG__);
         if (!trade4) {
             return true;
@@ -2596,6 +2800,9 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
         }
 
         await this.reconcileOpenExitOrders();
+        if (this.pendingExitReconciliation) {
+            return this.reconcilePendingExitSubmission();
+        }
 
         const existingExitOrder = getExistingExitOrder(this, Market.Up, this.upTokenId);
         if (existingExitOrder) {
@@ -2674,6 +2881,9 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
             rawBalance: upBalance.balance,
             share: this.share 
         });
+        const submittedAt = new Date().toISOString();
+        const exitReason = resolveExitReason(this);
+        const exitErrorContext = resolveExitErrorContext(this);
         try {
             GLOBAL_TX_PROCESS.current = TxProcess.Working;
             if (!canPlaceLiveOrder(this, actualBalance, "UP", "sell", orderPrice)) {
@@ -2702,8 +2912,8 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                     actualBalance,
                     orderPrice,
                     order,
-                    resolveExitReason(this),
-                    resolveExitErrorContext(this),
+                    exitReason,
+                    exitErrorContext,
                 );
                 return false;
             }
@@ -2755,6 +2965,17 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                     attemptedSize: actualBalance,
                 });
                 return false;
+            }
+            if (!isDeterministicExitSubmitError(error)) {
+                return beginExitReconciliation(this, {
+                    side: "UP",
+                    tokenId: this.upTokenId,
+                    requestedSize: actualBalance,
+                    limitPrice: orderPrice,
+                    submittedAt,
+                    exitReason,
+                    errorContext: exitErrorContext,
+                }, error);
             }
             await emitExitEvent("trade.exit_failed", this, {
                 side: Market.Up,
@@ -2883,6 +3104,9 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
         }
 
         await this.reconcileOpenExitOrders();
+        if (this.pendingExitReconciliation) {
+            return this.reconcilePendingExitSubmission();
+        }
 
         const existingExitOrder = getExistingExitOrder(this, Market.Down, this.downTokenId);
         if (existingExitOrder) {
@@ -2961,6 +3185,9 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
             rawBalance: downBalance.balance,
             share: this.share 
         });
+        const submittedAt = new Date().toISOString();
+        const exitReason = resolveExitReason(this);
+        const exitErrorContext = resolveExitErrorContext(this);
         try {
             GLOBAL_TX_PROCESS.current = TxProcess.Working;
             if (!canPlaceLiveOrder(this, actualBalance, "DOWN", "sell", orderPrice)) {
@@ -2989,8 +3216,8 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                     actualBalance,
                     orderPrice,
                     order,
-                    resolveExitReason(this),
-                    resolveExitErrorContext(this),
+                    exitReason,
+                    exitErrorContext,
                 );
                 return false;
             }
@@ -3042,6 +3269,17 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                     attemptedSize: actualBalance,
                 });
                 return false;
+            }
+            if (!isDeterministicExitSubmitError(error)) {
+                return beginExitReconciliation(this, {
+                    side: "DOWN",
+                    tokenId: this.downTokenId,
+                    requestedSize: actualBalance,
+                    limitPrice: orderPrice,
+                    submittedAt,
+                    exitReason,
+                    errorContext: exitErrorContext,
+                }, error);
             }
             await emitExitEvent("trade.exit_failed", this, {
                 side: Market.Down,

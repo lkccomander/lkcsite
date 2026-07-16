@@ -6,6 +6,7 @@ process.env.POLYMARKET_PRIVATE_KEY =
 process.env.PROXY_WALLET_ADDRESS =
     process.env.PROXY_WALLET_ADDRESS || "0x0000000000000000000000000000000000000001";
 process.env.POLYMARKET_SIGNATURE_TYPE = process.env.POLYMARKET_SIGNATURE_TYPE || "0";
+process.env.LIVE_EXIT_SUBMIT_TIMEOUT_MS = process.env.LIVE_EXIT_SUBMIT_TIMEOUT_MS || "25";
 
 const { Trade } = require("../src/trade") as typeof import("../src/trade");
 const { Market } = require("../src/types") as typeof import("../src/types");
@@ -93,6 +94,7 @@ function buildClient(options: {
     createAndPostMarketOrder?: (...args: any[]) => Promise<any>;
     getOrder?: (orderId: string) => Promise<any>;
     getOpenOrders?: (...args: any[]) => Promise<any[]>;
+    getTrades?: (...args: any[]) => Promise<any[]>;
     cancelOrder?: (...args: any[]) => Promise<any>;
 }) {
     let upBalanceIndex = 0;
@@ -103,6 +105,8 @@ function buildClient(options: {
     const calls = {
         createAndPostOrder: 0,
         cancelOrder: 0,
+        getTrades: 0,
+        getOpenOrders: 0,
     };
     return {
         calls,
@@ -143,10 +147,18 @@ function buildClient(options: {
             return options.getOrder(orderId);
         },
         async getOpenOrders(...args: any[]) {
+            calls.getOpenOrders += 1;
             if (!options.getOpenOrders) {
                 return [];
             }
             return options.getOpenOrders(...args);
+        },
+        async getTrades(...args: any[]) {
+            calls.getTrades += 1;
+            if (!options.getTrades) {
+                return [];
+            }
+            return options.getTrades(...args);
         },
         async cancelOrder(...args: any[]) {
             calls.cancelOrder += 1;
@@ -200,6 +212,96 @@ async function testSellLiveCreatesPendingExit() {
     assert.equal(trade.positionState, "EXIT_PENDING");
     assert.ok(trade.openExitOrders["btc-5m-test:UP_TOKEN:Up"]);
     assert.equal(client.calls.createAndPostOrder, 1);
+}
+
+async function testAmbiguousSellReconcilesProviderFill() {
+    const client = buildClient({
+        upBalances: [{ balance: usdWei(0) }],
+        downBalances: [
+            { balance: usdWei(6) },
+            { balance: usdWei(6) },
+            { balance: usdWei(0) },
+        ],
+        createAndPostOrder: async () => await new Promise((resolve) => {
+            setTimeout(() => resolve({ success: true, status: "matched", orderID: "late-response" }), 100);
+        }),
+        getOpenOrders: async () => [],
+        getTrades: async () => [
+            { id: "fill-a", asset_id: "DOWN_TOKEN", side: "SELL", size: "2", price: "0.87", match_time: new Date().toISOString() },
+            { id: "fill-b", asset_id: "DOWN_TOKEN", side: "SELL", size: "4", price: "0.906", match_time: new Date().toISOString() },
+        ],
+    });
+    const trade = makeTrade(client);
+    trade.holdingStatus = Market.Down;
+    trade.share = 6;
+    trade.recordExecutedEntry("DOWN", 0.75, new Date().toISOString(), {
+        shares: 6,
+        costBasisUsd: 4.5,
+    });
+
+    const result = await trade.sellDownToken();
+    assert.equal(result, true);
+    assert.equal(trade.positionState, "CLOSED");
+    assert.equal(trade.pendingExitReconciliation, null);
+    assert.equal(client.calls.createAndPostOrder, 1, "ambiguous submits must never be retried blindly");
+    assert.equal(client.calls.getTrades, 1);
+}
+
+async function testAmbiguousSellRegistersOpenOrder() {
+    const client = buildClient({
+        upBalances: [{ balance: usdWei(2) }, { balance: usdWei(2) }],
+        createAndPostOrder: async () => { throw new Error("read ECONNRESET"); },
+        getTrades: async () => [],
+        getOpenOrders: async () => [{
+            id: "recovered-live-order",
+            status: "live",
+            asset_id: "UP_TOKEN",
+            side: "SELL",
+            original_size: "2",
+            size_matched: "0",
+            price: "0.65",
+            created_at: Math.floor(Date.now() / 1000),
+        }],
+    });
+    const trade = makeTrade(client);
+
+    const result = await trade.sellUpToken();
+    assert.equal(result, false);
+    assert.equal(trade.positionState, "EXIT_PENDING");
+    assert.equal(trade.pendingExitReconciliation, null);
+    assert.ok(trade.openExitOrders["btc-5m-test:UP_TOKEN:Up"]);
+    assert.equal(client.calls.createAndPostOrder, 1);
+}
+
+async function testAmbiguousSellBlocksNewEntryWhenUnresolved() {
+    let allowResolution = false;
+    const client = buildClient({
+        upBalances: [{ balance: usdWei(2) }, { balance: usdWei(2) }, { balance: usdWei(0) }],
+        createAndPostOrder: async () => { throw new Error("socket hang up"); },
+        getTrades: async () => allowResolution
+            ? [{ id: "eventual-fill", asset_id: "UP_TOKEN", side: "SELL", size: "2", price: "0.65", match_time: new Date().toISOString() }]
+            : [],
+        getOpenOrders: async () => [],
+    });
+    const trade = makeTrade(client);
+
+    const result = await trade.sellUpToken();
+    assert.equal(result, false);
+    assert.equal(trade.positionState, "ERROR");
+    assert.ok(trade.pendingExitReconciliation);
+    assert.equal(client.calls.createAndPostOrder, 1);
+
+    const nextMarketClient = buildClient({ upBalances: [{ balance: usdWei(0) }] });
+    const nextMarketTrade = makeTrade(nextMarketClient);
+    nextMarketTrade.marketSlug = "btc-5m-next";
+    const allowed = await nextMarketTrade.validateExecutionSafety("DOWN", 0.33);
+    assert.equal(allowed, false);
+    assert.equal(client.calls.createAndPostOrder, 1);
+
+    allowResolution = true;
+    const reconciled = await trade.reconcilePendingExitSubmission();
+    assert.equal(reconciled, true);
+    assert.equal(trade.pendingExitReconciliation, null);
 }
 
 async function testReconcilePartialExit() {
@@ -431,6 +533,9 @@ async function testEntryBlockedByExitPending() {
 async function main() {
     await testSellMatchedClosesPosition();
     await testSellLiveCreatesPendingExit();
+    await testAmbiguousSellReconcilesProviderFill();
+    await testAmbiguousSellRegistersOpenOrder();
+    await testAmbiguousSellBlocksNewEntryWhenUnresolved();
     await testReconcilePartialExit();
     await testDuplicateExitIsSkipped();
     await testStaleSnapshotSkipsLiveSell();

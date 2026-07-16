@@ -49,6 +49,7 @@ export type TelemetryEventType =
     | "trade.exit_partial"
     | "trade.exit_filled"
     | "trade.exit_failed"
+    | "trade.exit_submission_uncertain"
     | "trade.exit_skipped_existing_live_order"
     | "trade.exit_skipped_stale_snapshot"
     | "trade.exit_balance_reserved_by_live_order"

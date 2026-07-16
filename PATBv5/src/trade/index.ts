@@ -66,6 +66,22 @@ interface PendingEntryReconciliationRecord {
     source?: string;
 }
 
+export interface PendingExitReconciliationRecord {
+    blockedAt: string;
+    side: "UP" | "DOWN";
+    marketSlug: string;
+    tokenId: string;
+    requestedSize: number;
+    limitPrice: number;
+    submittedAt: string;
+    knownOrderId: string | null;
+    exitReason: string;
+    errorContext: string | null;
+    submitError: string;
+    providerOrderStatus: string | null;
+    lastCheckedAt: string | null;
+}
+
 export type PositionState =
     | "NONE"
     | "OPEN"
@@ -134,6 +150,7 @@ export class Trade {
     marketSlug!: string;
     pendingEntrySignal!: EntrySignalRecord | null;
     pendingEntryReconciliation!: PendingEntryReconciliationRecord | null;
+    pendingExitReconciliation!: PendingExitReconciliationRecord | null;
     lastExecutedEntry!: ExecutedEntryRecord | null;
     pendingExitReason!: string | null;
     pendingExitErrorContext!: string | null;
@@ -210,6 +227,7 @@ export class Trade {
         this.shadowSignals = [];
         this.pendingEntrySignal = null;
         this.pendingEntryReconciliation = null;
+        this.pendingExitReconciliation = null;
         this.lastExecutedEntry = null;
         this.pendingExitReason = null;
         this.pendingExitErrorContext = null;
