@@ -17,11 +17,11 @@ const FEED_TICK_TELEMETRY_INTERVAL_MS = 1000;
 const FEED_FORCE_WEBSOCKET_WAIT_MS = 18000;
 const FEED_RESUBSCRIBE_COOLDOWN_MS = 2000;
 const FEED_PING_INTERVAL_MS = 5000;
+const FEED_PONG_TIMEOUT_MS = 12000;
 const FEED_FALLBACK_DEBOUNCE_MS = 5000;
 const FEED_WEBSOCKET_SNAPSHOT_GRACE_MS = 2000;
 const FEED_RECONNECT_BACKOFF_MS = [250, 500, 1000, 2000, 4000, 8000];
 const FEED_RECONNECT_STABLE_RESET_MS = 10000;
-const FEED_FORCE_RECONNECT_STALE_MS = 12000;
 const FEED_FORCE_RECONNECT_WAITING_FOR_BOTH_SIDES_MS = 15000;
 const FEED_LOW_MESSAGE_COUNT_GRACE = 2;
 
@@ -173,6 +173,7 @@ export class PolymarketMarketFeed implements MarketFeed {
     private lastFallbackAt = 0;
     private lastSubscriptionRefreshAt = 0;
     private pingInterval: NodeJS.Timeout | null = null;
+    private lastPongReceivedAtMs = 0;
     private pendingReconnectReason: string | null = null;
     private lastReconnectScheduledAtMs: number | null = null;
     private activeFallback: ActiveFallbackState | null = null;
@@ -339,6 +340,7 @@ export class PolymarketMarketFeed implements MarketFeed {
                 this.wsConnected = true;
                 const now = Date.now();
                 this.lastConnectedAtMs = now;
+                this.lastPongReceivedAtMs = now;
                 this.stats.connectedCount += 1;
                 this.stats.connectedAtMs = this.lastConnectedAtMs;
                 this.stats.wsReconnectedAtMs = now;
@@ -443,8 +445,8 @@ export class PolymarketMarketFeed implements MarketFeed {
         if (websocketSnapshot && websocketSnapshot.staleMs > effectiveStaleThresholdMs) {
             await this.emitStaleTelemetry(websocketSnapshot.staleMs);
             if (this.wsConnected) {
-                if (websocketSnapshot.staleMs >= FEED_FORCE_RECONNECT_STALE_MS) {
-                    this.forceReconnect("stale_snapshot_timeout");
+                if (this.shouldForceReconnectForUnresponsiveWebsocket(Date.now())) {
+                    this.forceReconnect("websocket_unresponsive");
                 } else {
                     this.refreshSubscriptionIfNeeded("stale_snapshot");
                 }
@@ -507,6 +509,11 @@ export class PolymarketMarketFeed implements MarketFeed {
         }
 
         return FEED_STALE_MS;
+    }
+
+    private shouldForceReconnectForUnresponsiveWebsocket(now: number): boolean {
+        return this.lastPongReceivedAtMs > 0
+            && now - this.lastPongReceivedAtMs >= FEED_PONG_TIMEOUT_MS;
     }
 
     private async handleMessage(rawMessage: string): Promise<void> {
@@ -1004,6 +1011,7 @@ export class PolymarketMarketFeed implements MarketFeed {
             return;
         }
 
+        this.lastPongReceivedAtMs = Date.now();
         const rttMs = Math.max(0, Date.now() - sentAtMs);
         this.stats.lastRttMs = rttMs;
         this.stats.rttSumMs += rttMs;

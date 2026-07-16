@@ -46,7 +46,7 @@ min_fee_adjusted_edge = 0.02
 require_websocket = true
 reject_on_missing_websocket = true
 reject_if_recent_ws_fallback = true
-recent_ws_fallback_cooldown_ms = 2000
+recent_ws_fallback_cooldown_ms = 5000
 
 max_entry_feed_latency_ms = 400
 max_entry_feed_rtt_ms = 650

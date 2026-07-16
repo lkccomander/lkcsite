@@ -111,8 +111,8 @@ export function detectAnomalies(report: SessionReport): Anomaly[] {
         priority: 7,
         type: 'MONITOR',
         severity: 'gray',
-        title: `Window ${window.slug} had ${window.fallbacks} fallbacks — close_1006 spike`,
-        detail: "Add 5s cooldown after close_1006 before accepting trades."
+        title: `Window ${window.slug} had ${window.fallbacks} fallbacks — feed recovery pressure`,
+        detail: "Inspect fallback reasons and forced reconnects; keep entries blocked for 5s after a fallback."
       });
     }
   }
