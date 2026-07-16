@@ -110,7 +110,7 @@ Before commit, the transaction verifies that both target rows still have null se
 - `PATBv5/scripts/get_session_summary.ps1`: deterministic session selection and streaming summary extraction.
 - `PATBv5/scripts/get_session_balances.ps1`: removed after all launcher references move to the summary helper.
 - `PATBv5/scripts/check_run_bot_session_summary.ps1`: isolated regression harness using temporary JSONL fixtures.
-- `polydb/postgres/migrations/20260716_strategy_performance_session_unique.sql`: durable database integrity change.
+- `PATBv5/polydb/postgres/migrations/20260716_strategy_performance_session_unique.sql`: tracked, durable database integrity change. Runtime connection settings remain in the ignored local file `polydb/postgres/.env`.
 - `PATBv5/package.json`: exposes the regression harness through `test:run-bot-launcher` and includes it in `test:all`.
 
 ## Error handling
