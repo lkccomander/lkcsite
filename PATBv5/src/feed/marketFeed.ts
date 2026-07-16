@@ -8,6 +8,11 @@ import type {
     MarketFeedStats,
     PriceSnapshot,
 } from "./types";
+import {
+    classifyTransportError,
+    reconnectDelayFor,
+    type TransportErrorCategory,
+} from "./transportError";
 
 const WS_MARKET_ENDPOINT = "wss://ws-subscriptions-clob.polymarket.com/ws/market";
 const FEED_STALE_MS = 2500;
@@ -20,7 +25,6 @@ const FEED_PING_INTERVAL_MS = 5000;
 const FEED_PONG_TIMEOUT_MS = 12000;
 const FEED_FALLBACK_DEBOUNCE_MS = 5000;
 const FEED_WEBSOCKET_SNAPSHOT_GRACE_MS = 2000;
-const FEED_RECONNECT_BACKOFF_MS = [250, 500, 1000, 2000, 4000, 8000];
 const FEED_RECONNECT_STABLE_RESET_MS = 10000;
 const FEED_FORCE_RECONNECT_WAITING_FOR_BOTH_SIDES_MS = 9000;
 const FEED_LOW_MESSAGE_COUNT_GRACE = 2;
@@ -177,6 +181,7 @@ export class PolymarketMarketFeed implements MarketFeed {
     private pendingReconnectReason: string | null = null;
     private lastReconnectScheduledAtMs: number | null = null;
     private activeFallback: ActiveFallbackState | null = null;
+    private lastTransportErrorCategory: TransportErrorCategory = "socket_error";
 
     constructor(options: MarketFeedOptions) {
         this.slug = options.slug;
@@ -356,6 +361,7 @@ export class PolymarketMarketFeed implements MarketFeed {
                 this.stats.connectedAtMs = this.lastConnectedAtMs;
                 this.stats.wsReconnectedAtMs = now;
                 this.pendingReconnectReason = null;
+                this.lastTransportErrorCategory = "socket_error";
                 this.stats.reconnectAttemptCount = 0;
                 // Preserve the last valid websocket book across reconnects so a brief
                 // resubscribe gap does not immediately become a long subscription_missing window.
@@ -384,12 +390,18 @@ export class PolymarketMarketFeed implements MarketFeed {
             });
 
             socket.on("error", (error) => {
+                const details = classifyTransportError(error);
                 this.stats.errorCount += 1;
                 this.pendingReconnectReason = "socket_error";
+                this.lastTransportErrorCategory = details.category;
                 void writeTelemetryEventSafe("feed.error", {
                     slug: this.slug,
                     source: "websocket",
-                    error: error instanceof Error ? error.message : String(error),
+                    error: details.message,
+                    errorName: details.errorName,
+                    errorCode: details.errorCode,
+                    causeCode: details.causeCode,
+                    category: details.category,
                 });
                 clearTimeout(timeout);
                 if (!opened) {
@@ -1166,13 +1178,15 @@ export class PolymarketMarketFeed implements MarketFeed {
         }
         this.stats.reconnectAttemptCount += 1;
         this.lastReconnectScheduledAtMs = Date.now();
-        const delayMs = FEED_RECONNECT_BACKOFF_MS[
-            Math.min(this.stats.reconnectAttemptCount - 1, FEED_RECONNECT_BACKOFF_MS.length - 1)
-        ];
+        const category = reason === "socket_error"
+            ? this.lastTransportErrorCategory
+            : "socket_error";
+        const delayMs = reconnectDelayFor(category, this.stats.reconnectAttemptCount);
         void writeTelemetryEventSafe("feed.reconnect_scheduled", {
             slug: this.slug,
             source: "websocket",
             reason,
+            reconnectCategory: category,
             reconnectAttemptCount: this.stats.reconnectAttemptCount,
             reconnectDelayMs: delayMs,
         });
