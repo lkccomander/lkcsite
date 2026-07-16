@@ -118,23 +118,28 @@ export function detectAnomalies(report: SessionReport): Anomaly[] {
   }
   
   // 8. BUG (red, priority 8)
-  // Trigger: entry_latency_gate rejections AND feedLatencyMs < 400 on those rejections
-  // This requires access to raw rejection event data which isn't currently stored
-  // We'll assume this condition is met for demonstration
   const entryLatencyRejections = report.rejectionBreakdown.filter(rb => rb.reason === 'entry_latency_gate');
-  if (entryLatencyRejections.length > 0) {
+  if (
+    entryLatencyRejections.length > 0
+    && report.entryLatencyGateBreakdown.age > 0
+    && report.entryLatencyGateBreakdown.latency === 0
+    && report.entryLatencyGateBreakdown.rtt === 0
+  ) {
     anomalies.push({
       priority: 8,
       type: 'BUG',
       severity: 'red',
       title: "entry_latency_gate fires on feedAgeMs not feedLatencyMs",
-      detail: "Rename to feed_age_too_high for accurate attribution."
+      detail: `${report.entryLatencyGateBreakdown.age} rejections exceeded feed age while latency and RTT remained within thresholds. Rename or split the reason for accurate attribution.`
     });
   }
   
   // 9. PASS (green)
-  // Trigger: shadowWinRate < 15%
-  if (report.shadowWinRate < 15) {
+  if (
+    report.shadowEventCount > 0
+    && report.shadowResolvedEventCount === report.shadowEventCount
+    && report.shadowWinRate < 15
+  ) {
     anomalies.push({
       priority: 9,
       type: 'PASS',
@@ -177,13 +182,16 @@ export function evaluateGateChecks(report: SessionReport): any[] {
     note: `trades=${report.trades.length}, winRate=${winRate.toFixed(1)}%`
   });
   
-  // 2. mc_threshold: mcConvAvg > 0.68 AND no trade with mcConv < 0.68
-  const mcThresholdPass = report.mcConvAvg > 0.68;
+  // 2. mc_threshold: accepted trades should meet the threshold, not the full MC stream
+  const hasAcceptedTradeMc = report.acceptedTradeMcConvMin > 0;
+  const mcThresholdPass = hasAcceptedTradeMc && report.acceptedTradeMcConvMin >= 0.68;
   gateChecks.push({
     id: 'mc_threshold',
     label: 'MC convergence threshold',
     pass: mcThresholdPass,
-    note: `mcConvAvg=${report.mcConvAvg.toFixed(3)}`
+    note: hasAcceptedTradeMc
+      ? `acceptedTradeMcAvg=${report.acceptedTradeMcConvAvg.toFixed(3)}, min=${report.acceptedTradeMcConvMin.toFixed(3)}`
+      : `no accepted trades; streamMcAvg=${report.mcConvAvg.toFixed(3)}`
   });
   
   // 3. feed_fallbacks: fallbackCount / sessionCount <= 20

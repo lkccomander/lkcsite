@@ -55,6 +55,43 @@ async function run(): Promise<void> {
     feed.wsConnected = true;
     const snapshotAfterReconnect = feed.buildWebsocketSnapshot();
     assert.ok(snapshotAfterReconnect, "expected last valid websocket snapshot to survive reconnect");
+
+    let forcedReconnectReason: string | null = null;
+    feed.forceReconnect = (reason: string) => {
+        forcedReconnectReason = reason;
+    };
+    feed.refreshSubscriptionIfNeeded = () => {
+        throw new Error("expected stale snapshot path to force reconnect before refresh");
+    };
+    const staleAt = Date.now() - 6_500;
+    feed.lastConnectedAtMs = Date.now() - 20_000;
+    feed.lastPongReceivedAtMs = Date.now() - 13_000;
+    feed.wsConnected = true;
+    feed.stateByAsset["up-token"] = {
+        buyPrice: 0.61,
+        sellPrice: 0.59,
+        marketTimestampMs: staleAt,
+        receivedAtMs: staleAt,
+        lastEventType: "book",
+        websocketMessageCount: 10,
+        firstWebsocketSeenAtMs: staleAt - 1_000,
+    };
+    feed.stateByAsset["down-token"] = {
+        buyPrice: 0.41,
+        sellPrice: 0.39,
+        marketTimestampMs: staleAt,
+        receivedAtMs: staleAt,
+        lastEventType: "book",
+        websocketMessageCount: 10,
+        firstWebsocketSeenAtMs: staleAt - 1_000,
+    };
+
+    await feed.getLatestSnapshot();
+    assert.equal(
+        forcedReconnectReason,
+        "websocket_unresponsive",
+        "expected stale websocket snapshots to force reconnect once the shorter timeout is exceeded",
+    );
 }
 
 void run().catch((error) => {

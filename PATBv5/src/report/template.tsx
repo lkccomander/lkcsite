@@ -1,5 +1,6 @@
 import React from 'react';
-import { Anomaly, FeedWindow, GateCheck, RejectionBucket, SessionReport, TradeRecord } from './types';
+import { buildReportActions, ReportActionItem } from './actions';
+import { FeedWindow, GateCheck, RejectionBucket, SessionReport, TradeRecord } from './types';
 
 interface ReportTemplateProps {
   report: SessionReport;
@@ -185,13 +186,6 @@ function Metric({
   );
 }
 
-function getAnomalyTone(anomaly: Anomaly): ToneKey {
-  if (anomaly.severity === 'red') return 'red';
-  if (anomaly.severity === 'amber') return 'amber';
-  if (anomaly.severity === 'green') return 'green';
-  return 'gray';
-}
-
 function getWindowTone(window: FeedWindow): ToneKey {
   if (window.status === 'SPIKE') return 'red';
   if (window.status === 'ELEVATED') return 'amber';
@@ -223,7 +217,12 @@ function buildChangeRows(report: SessionReport): Array<{
   color: ToneKey;
 }> {
   const latestTrade = getTopTrade(report);
-  const hasSignals = report.momEventCount > 0 && report.mcEventCount > 0;
+  const hasSignals = (
+    report.momEventCount > 0
+    && report.mcEventCount > 0
+    && report.momUsableEventCount === report.momEventCount
+    && report.momMissingFieldEventCount === 0
+  );
   const hasNewRejections = report.rejectionBreakdown.some((bucket) => bucket.isNewSignalReason && bucket.count > 0);
 
   return [
@@ -316,7 +315,11 @@ function buildShadowNarrative(report: SessionReport): string {
     return 'No shadow PnL events were captured in this slice.';
   }
 
-  return `${formatNumber(report.shadowEventCount)} rejected signals were modeled in shadow mode. Hypothetical total is ${formatCurrency(report.shadowTotalHypothetical)} with a win rate of ${formatPercent(report.shadowWinRate)}. This is the fastest way to tell whether the filters are acting as protection or overfitting.`;
+  if (report.shadowResolvedEventCount === 0) {
+    return `No authoritative shadow outcomes are available. ${formatNumber(report.shadowUnresolvedEventCount)} of ${formatNumber(report.shadowEventCount)} rejected signals remain unresolved, so would-win rate and hypothetical PnL are unavailable.`;
+  }
+
+  return `${formatNumber(report.shadowResolvedEventCount)} of ${formatNumber(report.shadowEventCount)} rejected signals have authoritative settlements (${formatNumber(report.shadowUnresolvedEventCount)} unresolved). Hypothetical total is ${formatCurrency(report.shadowTotalHypothetical)} with a settled-signal win rate of ${formatPercent(report.shadowWinRate)}. This is the fastest way to tell whether the filters are acting as protection or overfitting.`;
 }
 
 function RejectionBars({ buckets }: { buckets: RejectionBucket[] }) {
@@ -365,6 +368,10 @@ function RejectionBars({ buckets }: { buckets: RejectionBucket[] }) {
 }
 
 function GateList({ gates }: { gates: GateCheck[] }) {
+  if (gates.length === 0) {
+    return <Card><div style={{ fontSize: 12, color: colors.slate.body }}>No diagnostic gates were produced for this report slice.</div></Card>;
+  }
+
   return (
     <Card>
       {gates.map((gate, index) => (
@@ -388,12 +395,96 @@ function GateList({ gates }: { gates: GateCheck[] }) {
   );
 }
 
+function getActionTone(item: ReportActionItem): ToneKey {
+  if (item.severity === 'critical' || item.severity === 'high') return 'red';
+  if (item.severity === 'medium') return 'amber';
+  if (item.severity === 'success') return 'green';
+  return 'gray';
+}
+
+function ActionList({
+  items,
+  emptyMessage,
+}: {
+  items: ReportActionItem[];
+  emptyMessage: string;
+}) {
+  if (items.length === 0) {
+    return <Card><div style={{ fontSize: 12, color: colors.slate.body }}>{emptyMessage}</div></Card>;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {items.map((item) => {
+        const tone = getActionTone(item);
+        return (
+          <Card key={item.id} borderColor={colors[tone].border}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+              <Pill label={item.severity.toUpperCase()} color={tone} />
+              <span style={{ fontWeight: 700, fontSize: 13 }}>{item.title}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', rowGap: 6, columnGap: 10, fontSize: 12, lineHeight: 1.55 }}>
+              <strong style={{ color: colors.slate.muted }}>Evidence</strong>
+              <span style={{ color: colors.slate.body }}>{item.evidence}</span>
+              <strong style={{ color: colors.slate.muted }}>Why it matters</strong>
+              <span style={{ color: colors.slate.body }}>{item.impact}</span>
+              <strong style={{ color: colors.slate.muted }}>Action</strong>
+              <span style={{ color: colors.slate.body }}>{item.recommendation}</span>
+              <strong style={{ color: colors.slate.muted }}>Verify</strong>
+              <span style={{ color: colors.slate.body }}>{item.verification}</span>
+            </div>
+            {item.command && (
+              <pre style={{ margin: '10px 0 0', padding: '8px 10px', borderRadius: 6, background: colors.slate.ink, color: '#e2e8f0', fontSize: 11, overflowX: 'auto' }}>
+                <code>{item.command}</code>
+              </pre>
+            )}
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function ReportPanel({
+  id,
+  active = false,
+  children,
+}: {
+  id: string;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      id={`report-panel-${id}`}
+      role="tabpanel"
+      aria-labelledby={`report-tab-${id}`}
+      data-report-panel={id}
+      data-report-active={active ? 'true' : 'false'}
+    >
+      {children}
+    </section>
+  );
+}
+
 export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
-  const [tab, setTab] = React.useState('overview');
   const topTrade = getTopTrade(report);
   const changeRows = buildChangeRows(report);
-  const tabs = ['overview', 'trade', 'signals', 'feed', 'fixes'];
-  const topAnomalies = [...report.anomalies].sort((a, b) => a.priority - b.priority);
+  const hasCompleteMomentumTelemetry = (
+    report.momEventCount > 0
+    && report.momUsableEventCount === report.momEventCount
+    && report.momMissingFieldEventCount === 0
+  );
+  const hasCompleteSignalTelemetry = hasCompleteMomentumTelemetry && report.mcEventCount > 0;
+  const hasResolvedShadowOutcomes = report.shadowResolvedEventCount > 0;
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'trade', label: 'Trade' },
+    { id: 'signals', label: 'Signals' },
+    { id: 'feed', label: 'Feed' },
+    { id: 'actions', label: 'Actions' },
+  ];
+  const actions = buildReportActions(report);
 
   return (
     <div
@@ -416,15 +507,26 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
           <div style={{ fontSize: 11, color: colors.slate.faint, marginTop: 2 }}>
             {getRecentSessionLabel(report)}
           </div>
+          {report.analysisScope === 'tail' && (
+            <div style={{ fontSize: 10, color: colors.amber.text, fontWeight: 800, marginTop: 3, letterSpacing: '.04em' }}>
+              {`TAIL SLICE · LAST ${formatNumber(report.tailLines ?? 0)} EVENTS`}
+            </div>
+          )}
         </div>
         <Pill label={`${report.mode || 'UNKNOWN'} MODE`} color={report.mode === 'PAPER' ? 'blue' : 'gray'} />
       </div>
 
-      <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: colors.slate.tab, padding: 4, borderRadius: 8 }}>
-        {tabs.map((tabName) => (
+      <div role="tablist" aria-label="Report sections" style={{ display: 'flex', gap: 4, marginBottom: 16, background: colors.slate.tab, padding: 4, borderRadius: 8 }}>
+        {tabs.map((tabDefinition, index) => (
           <button
-            key={tabName}
-            onClick={() => setTab(tabName)}
+            key={tabDefinition.id}
+            id={`report-tab-${tabDefinition.id}`}
+            type="button"
+            role="tab"
+            aria-controls={`report-panel-${tabDefinition.id}`}
+            aria-selected={index === 0}
+            tabIndex={index === 0 ? 0 : -1}
+            data-report-tab={tabDefinition.id}
             style={{
               flex: 1,
               padding: '6px 0',
@@ -434,18 +536,17 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
               fontSize: 12,
               fontWeight: 600,
               textTransform: 'capitalize',
-              background: tab === tabName ? '#fff' : 'transparent',
-              color: tab === tabName ? colors.slate.ink : colors.slate.muted,
-              boxShadow: tab === tabName ? '0 1px 3px rgba(0,0,0,.1)' : 'none'
+              background: 'transparent',
+              color: colors.slate.muted,
+              boxShadow: 'none'
             }}
           >
-            {tabName}
+            {tabDefinition.label}
           </button>
         ))}
       </div>
 
-      {tab === 'overview' && (
-        <>
+      <ReportPanel id="overview" active>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
             <Metric label="Sessions" value={String(report.sessionIds.length)} sub={getRecentSessionLabel(report)} />
             <Metric
@@ -456,9 +557,9 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
             />
             <Metric
               label="Signal Modules"
-              value={report.momEventCount > 0 && report.mcEventCount > 0 ? 'LIVE' : 'PARTIAL'}
-              sub={`${formatNumber(report.momEventCount)} MOM · ${formatNumber(report.mcEventCount)} MC`}
-              color={report.momEventCount > 0 && report.mcEventCount > 0 ? colors.green.text : colors.amber.text}
+              value={hasCompleteSignalTelemetry ? 'LIVE' : 'PARTIAL'}
+              sub={`${formatNumber(report.momUsableEventCount)}/${formatNumber(report.momEventCount)} usable MOM · ${formatNumber(report.mcEventCount)} MC`}
+              color={hasCompleteSignalTelemetry ? colors.green.text : colors.amber.text}
             />
             <Metric
               label="WS Fallbacks"
@@ -496,11 +597,9 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
           <Section title={`Rejection breakdown — ${formatNumber(report.rejectionCount)} total`}>
             <RejectionBars buckets={report.rejectionBreakdown} />
           </Section>
-        </>
-      )}
+      </ReportPanel>
 
-      {tab === 'trade' && (
-        <>
+      <ReportPanel id="trade">
           <Card borderColor={topTrade && topTrade.grossPnl < 0 ? colors.red.border : colors.blue.border}>
             <div style={{ fontWeight: 700, marginBottom: 10 }}>
               {topTrade
@@ -589,19 +688,17 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
               )}
             </Card>
           </Section>
-        </>
-      )}
+      </ReportPanel>
 
-      {tab === 'signals' && (
-        <>
+      <ReportPanel id="signals">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <Card>
               <div style={{ fontWeight: 700, marginBottom: 10 }}>signal.momentum — {formatNumber(report.momEventCount)} events</div>
               <Metric
                 label="Directions"
-                value={Object.keys(report.momDirections).length > 0 ? Object.entries(report.momDirections).map(([direction, count]) => `${direction} ${count}`).join(' · ') : 'No momentum data'}
-                sub={`score range ${report.momScoreMin.toFixed(4)} to ${report.momScoreMax.toFixed(4)}`}
-                color={report.momEventCount > 0 ? colors.amber.text : colors.gray.text}
+                value={Object.keys(report.momDirections).length > 0 ? Object.entries(report.momDirections).map(([direction, count]) => `${direction} ${count}`).join(' · ') : 'No usable momentum data'}
+                sub={`${formatNumber(report.momUsableEventCount)}/${formatNumber(report.momEventCount)} events contain required fields`}
+                color={hasCompleteMomentumTelemetry ? colors.blue.text : colors.amber.text}
               />
               <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <Metric label="Score range" value={`${report.momScoreMin.toFixed(4)} → ${report.momScoreMax.toFixed(4)}`} />
@@ -663,22 +760,20 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
           </Section>
 
           <Section title="Shadow PnL — rejected signals">
-            <Card>
+            <Card borderColor={hasResolvedShadowOutcomes ? colors.slate.line : colors.red.border}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-                <Metric label="Shadow events" value={formatCompactNumber(report.shadowEventCount)} sub="rejected trades modeled" />
-                <Metric label="Would-win rate" value={formatPercent(report.shadowWinRate)} sub="shadow modeled winners" color={report.shadowWinRate < 15 ? colors.green.text : colors.amber.text} />
-                <Metric label="Total hypothetical" value={formatCurrency(report.shadowTotalHypothetical)} sub="aggregate shadow outcome" color={report.shadowTotalHypothetical <= 0 ? colors.green.text : colors.red.text} />
+                <Metric label="Shadow events" value={formatCompactNumber(report.shadowEventCount)} sub={`${formatCompactNumber(report.shadowUnresolvedEventCount)} unresolved`} />
+                <Metric label="Would-win rate" value={hasResolvedShadowOutcomes ? formatPercent(report.shadowWinRate) : 'N/A'} sub={hasResolvedShadowOutcomes ? 'settled shadow outcomes' : 'no authoritative outcomes'} color={hasResolvedShadowOutcomes ? colors.slate.ink : colors.red.text} />
+                <Metric label="Total hypothetical" value={hasResolvedShadowOutcomes ? formatCurrency(report.shadowTotalHypothetical) : 'N/A'} sub={hasResolvedShadowOutcomes ? 'resolved aggregate outcome' : 'no authoritative outcomes'} color={hasResolvedShadowOutcomes ? (report.shadowTotalHypothetical <= 0 ? colors.green.text : colors.red.text) : colors.red.text} />
               </div>
-              <div style={{ marginTop: 10, padding: '9px 11px', background: report.shadowTotalHypothetical <= 0 ? colors.green.bg : colors.amber.bg, borderRadius: 7, border: `1px solid ${report.shadowTotalHypothetical <= 0 ? colors.green.border : colors.amber.border}`, fontSize: 12 }}>
+              <div style={{ marginTop: 10, padding: '9px 11px', background: hasResolvedShadowOutcomes ? (report.shadowTotalHypothetical <= 0 ? colors.green.bg : colors.amber.bg) : colors.red.bg, borderRadius: 7, border: `1px solid ${hasResolvedShadowOutcomes ? (report.shadowTotalHypothetical <= 0 ? colors.green.border : colors.amber.border) : colors.red.border}`, fontSize: 12 }}>
                 {buildShadowNarrative(report)}
               </div>
             </Card>
           </Section>
-        </>
-      )}
+      </ReportPanel>
 
-      {tab === 'feed' && (
-        <>
+      <ReportPanel id="feed">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
             <Metric label="RTT avg" value={`${formatNumber(report.rttAvg, 0)}ms`} sub={`p95=${formatNumber(report.rttP95, 0)}ms · max=${formatNumber(report.rttMax, 0)}ms`} />
             <Metric label="Total fallbacks" value={formatNumber(report.fallbackCount)} sub={`${report.feedWindows.length} feed windows`} color={report.fallbackCount > Math.max(report.sessionIds.length * 20, 20) ? colors.amber.text : colors.green.text} />
@@ -713,55 +808,41 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
               </div>
             </Card>
           </Section>
-        </>
-      )}
+      </ReportPanel>
 
-      {tab === 'fixes' && (
-        <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {topAnomalies.length > 0 ? (
-              topAnomalies.map((anomaly) => {
-                const tone = getAnomalyTone(anomaly);
-                return (
-                  <div key={`${anomaly.priority}-${anomaly.title}`} style={{ display: 'flex', gap: 12, padding: '12px 14px', background: '#fff', border: `1px solid ${colors[tone].border}`, borderRadius: 10 }}>
-                    <div
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        background: colors[tone].bg,
-                        border: `1.5px solid ${colors[tone].border}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: colors[tone].text,
-                        flexShrink: 0
-                      }}
-                    >
-                      {anomaly.priority}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                        <Pill label={anomaly.type} color={tone} />
-                        <span style={{ fontWeight: 700, fontSize: 13 }}>{anomaly.title}</span>
-                      </div>
-                      <div style={{ fontSize: 12, color: colors.slate.body, lineHeight: 1.6 }}>{anomaly.detail}</div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <Card><div style={{ fontSize: 12, color: colors.slate.body }}>No anomalies detected in this slice.</div></Card>
-            )}
-          </div>
+      <ReportPanel id="actions">
+        <Section title="What went well">
+          <ActionList
+            items={actions.whatWentWell}
+            emptyMessage="No evidence-backed wins were found in this report slice. This does not mean the session failed; it means the configured positive conditions lacked sufficient evidence."
+          />
+        </Section>
 
-          <Section title="Gate status — real money checklist">
-            <GateList gates={report.gateChecks} />
-          </Section>
-        </>
-      )}
+        <Section title="Problems requiring attention">
+          <ActionList
+            items={actions.problems}
+            emptyMessage="No configured problem condition fired. Continue reviewing evidence gates before drawing a broader readiness conclusion."
+          />
+        </Section>
+
+        <Section title="Recommendations">
+          <ActionList
+            items={actions.recommendations}
+            emptyMessage="No telemetry-driven recommendation was generated for this slice."
+          />
+        </Section>
+
+        <Section title="Next steps">
+          <ActionList
+            items={actions.nextSteps}
+            emptyMessage="No next step was generated because no configured recommendation fired."
+          />
+        </Section>
+
+        <Section title="Evidence gates — diagnostic only">
+          <GateList gates={report.gateChecks} />
+        </Section>
+      </ReportPanel>
     </div>
   );
 };

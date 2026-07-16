@@ -11,18 +11,18 @@ import type {
 
 const WS_MARKET_ENDPOINT = "wss://ws-subscriptions-clob.polymarket.com/ws/market";
 const FEED_STALE_MS = 2500;
-const FEED_CONNECT_TIMEOUT_MS = 10000;
+const FEED_CONNECT_TIMEOUT_MS = 5000;
 const FEED_STARTUP_GRACE_MS = 10000;
 const FEED_TICK_TELEMETRY_INTERVAL_MS = 1000;
 const FEED_FORCE_WEBSOCKET_WAIT_MS = 18000;
-const FEED_RESUBSCRIBE_COOLDOWN_MS = 2000;
+const FEED_RESUBSCRIBE_COOLDOWN_MS = 1000;
 const FEED_PING_INTERVAL_MS = 5000;
 const FEED_PONG_TIMEOUT_MS = 12000;
 const FEED_FALLBACK_DEBOUNCE_MS = 5000;
 const FEED_WEBSOCKET_SNAPSHOT_GRACE_MS = 2000;
 const FEED_RECONNECT_BACKOFF_MS = [250, 500, 1000, 2000, 4000, 8000];
 const FEED_RECONNECT_STABLE_RESET_MS = 10000;
-const FEED_FORCE_RECONNECT_WAITING_FOR_BOTH_SIDES_MS = 15000;
+const FEED_FORCE_RECONNECT_WAITING_FOR_BOTH_SIDES_MS = 9000;
 const FEED_LOW_MESSAGE_COUNT_GRACE = 2;
 
 interface FeedState {
@@ -300,6 +300,7 @@ export class PolymarketMarketFeed implements MarketFeed {
         this.stopped = false;
         this.connectPromise = new Promise<void>((resolve) => {
             let settled = false;
+            let opened = false;
             const socket = new WebSocket(WS_MARKET_ENDPOINT);
             this.ws = socket;
             let reconnectScheduled = false;
@@ -328,15 +329,25 @@ export class PolymarketMarketFeed implements MarketFeed {
                     source: "websocket",
                     error: `connect timeout after ${FEED_CONNECT_TIMEOUT_MS}ms`,
                 });
+                if (this.ws === socket) {
+                    this.ws = null;
+                }
+                this.wsConnected = false;
+                scheduleReconnect("connect_timeout");
                 try {
-                    socket.close();
+                    socket.terminate();
                 } catch {
-                    // ignore close failure
+                    try {
+                        socket.close();
+                    } catch {
+                        // ignore close failure
+                    }
                 }
                 settle();
             }, FEED_CONNECT_TIMEOUT_MS);
 
             socket.on("open", () => {
+                opened = true;
                 this.wsConnected = true;
                 const now = Date.now();
                 this.lastConnectedAtMs = now;
@@ -350,6 +361,7 @@ export class PolymarketMarketFeed implements MarketFeed {
                 // resubscribe gap does not immediately become a long subscription_missing window.
                 this.sendSubscription("initial_open");
                 this.startPingLoop();
+                void this.maybeRecoverFromCachedSnapshotOnReconnect();
                 // Let the websocket startup grace window absorb initial book delivery
                 // instead of recording an immediate REST fallback on every connect.
                 void writeTelemetryEventSafe("feed.connected", {
@@ -380,6 +392,13 @@ export class PolymarketMarketFeed implements MarketFeed {
                     error: error instanceof Error ? error.message : String(error),
                 });
                 clearTimeout(timeout);
+                if (!opened) {
+                    if (this.ws === socket) {
+                        this.ws = null;
+                    }
+                    this.wsConnected = false;
+                    scheduleReconnect("socket_error");
+                }
                 settle();
             });
 
@@ -402,11 +421,29 @@ export class PolymarketMarketFeed implements MarketFeed {
                     wsDisconnectedAt: new Date(this.stats.wsDisconnectedAtMs).toISOString(),
                 });
                 settle();
-                scheduleReconnect(this.pendingReconnectReason ?? `close_${code}`);
+                scheduleReconnect(this.pendingReconnectReason ?? (opened ? `close_${code}` : "preopen_close"));
             });
         });
 
         await this.connectPromise;
+    }
+
+    private async maybeRecoverFromCachedSnapshotOnReconnect(): Promise<void> {
+        const activeFallback = this.activeFallback;
+        if (!activeFallback || (activeFallback.reason !== "ws_closed" && activeFallback.reason !== "reconnect_pending")) {
+            return;
+        }
+
+        const snapshot = this.buildWebsocketSnapshot();
+        if (!snapshot) {
+            return;
+        }
+
+        if (snapshot.staleMs > this.getEffectiveStaleThresholdMs(snapshot)) {
+            return;
+        }
+
+        await this.maybeEmitFallbackRecovered("reconnect_open_cached_snapshot", snapshot);
     }
 
     async stop(): Promise<void> {

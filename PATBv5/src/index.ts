@@ -1,5 +1,6 @@
 import { ClobClient, type TickSize } from "@polymarket/clob-client-v2";
 import chalk from "chalk";
+import { randomUUID } from "crypto";
 import { readFile, rm } from "fs/promises";
 import { resolve } from "path";
 import {
@@ -18,6 +19,7 @@ import type { Coin, MarketConfig, MarketRuntimeConfig, Minutes } from "./types";
 import {
   CHAIN_ID,
   CollateralEgressGuard,
+  describeRequestError,
   FUNDER,
   getMarket,
   getMarketPageMetadata,
@@ -32,15 +34,18 @@ import {
   writeLiveBalanceCheckpoint,
 } from "./services";
 import { getCurrentTime, retryWithInstantRetry, sleep } from "./utils";
+import { playCliAlertSound } from "./utils/cliAlert";
 import {
   getTelemetryBotId,
   getTelemetryDbPath,
   getTelemetrySession,
   getTelemetrySessionsDir,
+  getTelemetryVersionContext,
   setTelemetryVersionContext,
   loadPersistedPaperBalance,
   savePersistedPaperBalance,
   startTelemetrySession,
+  writeTelemetryEventToSession,
   writeTelemetryEventSafe,
 } from "./telemetry";
 import { initializeVersionContext } from "./telemetry/versioning";
@@ -49,6 +54,17 @@ import { readOptionalConfigEnv } from "./config/secrets";
 import { Trade } from "./trade";
 import { startUiServer } from "./ui/server";
 import { generateNextMarketSlug } from "./config/slug";
+import {
+  calculateShadowPnlUsd,
+  type ResolvedShadowSettlement,
+  shadowExitPriceForSide,
+} from "./trade/policy/shadowSettlement";
+import {
+  listPendingShadowSettlementBatches,
+  persistPendingShadowSettlementBatch,
+  reconcilePendingShadowSettlementBatch,
+  type PendingShadowSettlementBatch,
+} from "./trade/policy/shadowSettlementQueue";
 
 loadConfig();
 
@@ -61,9 +77,12 @@ const MIN_DECISION_SPACING_MS = 150;
 const DEFAULT_MARKET_TRANSITION_GRACE_MS = 2500;
 const EXTERNAL_REFERENCE_REFRESH_MS = 5000;
 const NEXT_MARKET_PREFETCH_WINDOW_SECS = 30;
+const BENCHMARK_REFRESH_FAILURE_BACKOFF_MS = 30_000;
+const SHADOW_SETTLEMENT_RECONCILE_INTERVAL_MS = 30_000;
 const BOT_ID = getTelemetryBotId();
 const BOT_DISPLAY_NAME = "Polymarket Arbitrage Trading Bot V5";
 const MANUAL_TRADE_REQUEST_PATH = resolve(__dirname, "..", "manual-trade-request.json");
+const SHADOW_SETTLEMENT_QUEUE_DIR = resolve(getTelemetrySessionsDir(), "..", "shadow-settlement-pending");
 
 interface ManualTradeRequest {
   id: string;
@@ -80,6 +99,10 @@ const marketConfig: MarketConfig = {
 
 function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function roundMetric(value: number): number {
+  return Math.round(value * 10000) / 10000;
 }
 
 function shouldStartUiServer(): boolean {
@@ -273,6 +296,7 @@ async function reconcileMarketCloseExposure(trade: Trade, slug: string): Promise
     openExitOrdersAfter: getOpenExitOrderCount(trade),
     reconciliationGraceMs: MARKET_CLOSE_RECONCILIATION_GRACE_MS,
   });
+  playCliAlertSound("critical");
 }
 
 function isManualTradeRequest(value: unknown): value is ManualTradeRequest {
@@ -321,6 +345,138 @@ async function main() {
   let lastManualTradeRequestId: string | null = null;
   let prefetchedMarketSlug: string | null = null;
   let prefetchedMarket: unknown | null = null;
+  let shadowSettlementReconcileInFlight = false;
+  let shadowSettlementReconcileRequested = false;
+
+  const emitResolvedShadowSignal = async (
+    batch: PendingShadowSettlementBatch,
+    signal: PendingShadowSettlementBatch["signals"][number],
+    settlement: ResolvedShadowSettlement,
+  ): Promise<void> => {
+    const finalUpExitPrice = shadowExitPriceForSide(settlement, Market.Up);
+    const finalDownExitPrice = shadowExitPriceForSide(settlement, Market.Down);
+    const finalExitPrice = signal.preferredSide === "UP" ? finalUpExitPrice : finalDownExitPrice;
+    const rawHypotheticalPnlUsd = calculateShadowPnlUsd(signal.preferredEntryPrice, finalExitPrice);
+    const hypotheticalPnlUsd = rawHypotheticalPnlUsd === null ? null : roundMetric(rawHypotheticalPnlUsd);
+
+    await writeTelemetryEventToSession("trade.shadow_pnl", {
+      strategy: batch.strategy,
+      batchId: batch.batchId,
+      signalId: signal.signalId,
+      reason: signal.reason,
+      rejectedAt: signal.rejectedAt,
+      preferredSide: signal.preferredSide,
+      preferredEntryPrice: signal.preferredEntryPrice,
+      finalExitPrice,
+      hypotheticalPnlUsd,
+      upBuyPriceAtRejection: signal.upBuyPrice,
+      upSellPriceAtRejection: signal.upSellPrice,
+      downBuyPriceAtRejection: signal.downBuyPrice,
+      downSellPriceAtRejection: signal.downSellPrice,
+      finalUpSellPrice: finalUpExitPrice,
+      finalDownSellPrice: finalDownExitPrice,
+      settlementStatus: "resolved",
+      settlementSource: settlement.source,
+      settlementReason: settlement.reason,
+      settlementDetail: null,
+      winningOutcome: settlement.winner,
+      feedAgeMsAtRejection: signal.feedAgeMs,
+      feedLatencyMsAtRejection: signal.feedLatencyMs,
+      feedRttMsAtRejection: signal.feedRttMs,
+    }, batch.originSession);
+  };
+
+  const reconcilePendingShadowSettlements = async (): Promise<void> => {
+    if (shadowSettlementReconcileInFlight) {
+      shadowSettlementReconcileRequested = true;
+      return;
+    }
+
+    shadowSettlementReconcileInFlight = true;
+    try {
+      do {
+        shadowSettlementReconcileRequested = false;
+        const batches = await listPendingShadowSettlementBatches(SHADOW_SETTLEMENT_QUEUE_DIR);
+        for (const batch of batches) {
+          try {
+            await reconcilePendingShadowSettlementBatch(
+              SHADOW_SETTLEMENT_QUEUE_DIR,
+              batch,
+              {
+                fetchMarket: async () => getMarket(batch.marketSlug),
+                emitResolvedSignal: async ({ batch, signal, settlement }) => {
+                  await emitResolvedShadowSignal(batch, signal, settlement);
+                },
+                pollOptions: {
+                  attempts: 1,
+                  intervalMs: 0,
+                  sleepFn: async () => undefined,
+                },
+              },
+            );
+          } catch (error) {
+            await writeTelemetryEventSafe("feed.error", {
+              slug: batch.marketSlug,
+              source: "shadow_settlement_reconcile",
+              batchId: batch.batchId,
+              ...describeRequestError(error),
+            });
+          }
+        }
+      } while (shadowSettlementReconcileRequested);
+    } finally {
+      shadowSettlementReconcileInFlight = false;
+    }
+  };
+
+  const scheduleShadowSettlementReconcile = (): void => {
+    void reconcilePendingShadowSettlements();
+  };
+
+  const queueShadowSettlementBatch = async (trade: Trade): Promise<void> => {
+    if (!Array.isArray(trade.shadowSignals) || trade.shadowSignals.length === 0) {
+      return;
+    }
+
+    const session = getTelemetrySession();
+    if (!session) {
+      throw new Error("Telemetry session unavailable while queueing shadow settlement batch");
+    }
+
+    const batch: PendingShadowSettlementBatch = {
+      schemaVersion: 1,
+      batchId: `${new Date().toISOString().replace(/[:.]/g, "-")}-${randomUUID()}`,
+      marketSlug: trade.marketSlug,
+      strategy: globalThis.__CONFIG__.strategy,
+      queuedAt: new Date().toISOString(),
+      originSession: {
+        botId: session.botId,
+        sessionId: session.id,
+        sessionStartedAt: session.startedAt,
+        sessionPath: session.sessionPath,
+        originHost: session.originHost,
+        versionContext: getTelemetryVersionContext(),
+      },
+      signals: trade.shadowSignals.map((signal) => ({
+        signalId: signal.signalId,
+        reason: signal.reason,
+        rejectedAt: signal.rejectedAt,
+        preferredSide: signal.preferredSide === Market.Up ? "UP" : "DOWN",
+        preferredEntryPrice: signal.preferredEntryPrice,
+        upBuyPrice: signal.upBuyPrice,
+        upSellPrice: signal.upSellPrice,
+        downBuyPrice: signal.downBuyPrice,
+        downSellPrice: signal.downSellPrice,
+        feedAgeMs: signal.feedAgeMs,
+        feedLatencyMs: signal.feedLatencyMs,
+        feedRttMs: signal.feedRttMs,
+      })),
+      emittedSignalIds: [],
+    };
+
+    await persistPendingShadowSettlementBatch(SHADOW_SETTLEMENT_QUEUE_DIR, batch);
+    trade.shadowSignals = [];
+  };
 
   const assertCollateralGuardSafe = async (reason: string, force = false): Promise<boolean> => {
     if (!collateralGuard) {
@@ -519,6 +675,7 @@ async function main() {
     void handleSignal("SIGTERM");
   });
 
+  playCliAlertSound("buy");
   console.log(chalk.cyan(`Starting ${BOT_DISPLAY_NAME}`));
   console.log(chalk.cyan("This is the new bot built from the original baseline."));
   console.log(chalk.gray(`Bot ID: ${BOT_ID}`));
@@ -557,6 +714,10 @@ async function main() {
     collateralGuardToken: !PAPER_TRADING && COLLATERAL_GUARD_ENABLED ? PUSD_COLLATERAL_TOKEN : null,
   });
   await writeTelemetryEventSafe("bot.startup_config", resolveStartupConfigTelemetry());
+  scheduleShadowSettlementReconcile();
+  const shadowSettlementTimer = setInterval(() => {
+    scheduleShadowSettlementReconcile();
+  }, SHADOW_SETTLEMENT_RECONCILE_INTERVAL_MS);
 
   let apiKey: Awaited<ReturnType<ClobClient["createOrDeriveApiKey"]>> | undefined;
   const manualApiKey =
@@ -705,6 +866,7 @@ async function main() {
         runtimeConfig
       );
     activeTrade = trade;
+    await trade.hydrateOpenEntryOrders();
     await trade.hydrateOpenExitOrders();
     if (!PAPER_TRADING) {
       await writeLiveBalanceCheckpoint({
@@ -741,15 +903,20 @@ async function main() {
       let externalReferenceRefreshPromise: Promise<void> | null = null;
       let benchmarkRefreshPromise: Promise<void> | null = null;
       let lastBenchmarkRefreshAttemptAtMs = 0;
+      let lastBenchmarkRefreshFailureAtMs = 0;
       let nextMarketPrefetchPromise: Promise<void> | null = null;
       let lastNextMarketPrefetchAttemptAtMs = 0;
 
       const refreshMarketBenchmark = (): void => {
-        if ((trade.priceToBeat !== null && trade.finalPrice !== null) || benchmarkRefreshPromise) {
+        const usingExternalFallback = trade.priceToBeatSource === "coinbase_spot_fallback";
+        if (((trade.priceToBeat !== null && trade.finalPrice !== null && !usingExternalFallback) || benchmarkRefreshPromise)) {
           return;
         }
 
         const now = Date.now();
+        if (lastBenchmarkRefreshFailureAtMs && now - lastBenchmarkRefreshFailureAtMs < BENCHMARK_REFRESH_FAILURE_BACKOFF_MS) {
+          return;
+        }
         if (now - lastBenchmarkRefreshAttemptAtMs < 5000) {
           return;
         }
@@ -758,7 +925,7 @@ async function main() {
         benchmarkRefreshPromise = (async () => {
           try {
             const pageMetadata = await getMarketPageMetadata(slug);
-            if (trade.priceToBeat === null && pageMetadata.priceToBeat !== null) {
+            if ((trade.priceToBeat === null || trade.priceToBeatSource === "coinbase_spot_fallback") && pageMetadata.priceToBeat !== null) {
               trade.priceToBeat = pageMetadata.priceToBeat;
               trade.priceToBeatSource = pageMetadata.priceToBeatSource;
               console.log(
@@ -770,11 +937,16 @@ async function main() {
             if (trade.finalPrice === null && pageMetadata.finalPrice !== null) {
               trade.finalPrice = pageMetadata.finalPrice;
             }
+            if (pageMetadata.priceToBeat !== null || pageMetadata.finalPrice !== null) {
+              lastBenchmarkRefreshFailureAtMs = 0;
+            }
           } catch (error) {
+            lastBenchmarkRefreshFailureAtMs = Date.now();
             await writeTelemetryEventSafe("feed.error", {
               slug,
               source: "polymarket_page_metadata_refresh",
-              error: error instanceof Error ? error.message : String(error),
+              ...describeRequestError(error),
+              backoffMs: BENCHMARK_REFRESH_FAILURE_BACKOFF_MS,
             });
           } finally {
             benchmarkRefreshPromise = null;
@@ -797,6 +969,15 @@ async function main() {
             const reference = await getReferenceSpotPrice(marketConfig.coin);
             latestExternalReference = reference;
             trade.recordExternalPricePoint(reference.priceUsd, reference.fetchedAt);
+            if (trade.priceToBeat === null) {
+              trade.priceToBeat = reference.priceUsd;
+              trade.priceToBeatSource = "coinbase_spot_fallback";
+              console.log(
+                chalk.gray(
+                  `Market benchmark fallback | priceToBeat=${trade.priceToBeat} | source=${trade.priceToBeatSource}`
+                )
+              );
+            }
             await writeTelemetryEventSafe("market.external_reference", {
               slug,
               symbol: reference.symbol,
@@ -973,7 +1154,16 @@ async function main() {
           if (remainingSeconds <= 0) {
             marketClosed = true;
             await reconcileMarketCloseExposure(trade, slug);
-            await trade.emitShadowPnlTelemetry();
+            const closingTrade = trade;
+            await queueShadowSettlementBatch(closingTrade);
+            scheduleShadowSettlementReconcile();
+            void reconcilePendingShadowSettlements().catch(async (error) => {
+              await writeTelemetryEventSafe("feed.error", {
+                slug,
+                source: "shadow_settlement_queue",
+                ...describeRequestError(error),
+              });
+            });
             if (PAPER_TRADING) {
               paperBalance = roundCurrency(trade.totalValue());
               await savePersistedPaperBalance(paperBalance);
@@ -1019,7 +1209,7 @@ async function main() {
       await marketFeed.stop();
     }
   }
-
+  clearInterval(shadowSettlementTimer);
 }
 
 main().catch(async (error) => {

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { PAPER_TRADING } from "../config";
 import { GLOBAL_TX_PROCESS, TxProcess } from "../constant";
 import { getTrade4LikeConfig } from "../config/toml";
@@ -6,6 +7,20 @@ import { getMomentumSignal } from "../signals/momentum";
 import { runMonteCarlo } from "../signals/montecarlo";
 import { Market } from "../types";
 import { writeTelemetryEventSafe } from "../telemetry";
+import { evaluateEntryTiming } from "./policy/entryTiming";
+import {
+    clampPrice,
+    feeAdjustedEdgeUsd,
+    makerRebateUsd as calculateMakerRebateUsd,
+    midMarketPrice,
+    passiveMakerBuyPrice,
+    takerFeeRate,
+} from "./policy/executionPricing";
+import {
+    calculateShadowPnlUsd,
+    shadowExitPriceForSide,
+    type ShadowSettlement,
+} from "./policy/shadowSettlement";
 
 export function getEntryPriceRatioForSide(
     side: Market.Up | Market.Down,
@@ -114,40 +129,19 @@ export function buildRejectionDiagnosticContext({
 declare module "./index" {
     interface Trade {
         make_trading_decision(): void;
-        emitShadowPnlTelemetry(): Promise<void>;
+        emitShadowPnlTelemetry(settlement: ShadowSettlement): Promise<void>;
         recordEntrySignal(side: Market.Up | Market.Down, context?: Record<string, unknown>): void;
         setPendingExitIntent(reason: string, errorContext?: string | null): void;
+        reconcilePendingEntryState(): Promise<boolean>;
     }
 }
 
 // Function to attach methods to Trade class (called from index.ts)
 export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
-    const CRYPTO_TAKER_FEE_RATE = 0.072;
-    const MAKER_PRICE_STEP = 0.01;
     const MAX_STOP_LOSS_SPREAD = 0.20;
     const sleepMs = async (ms: number): Promise<void> => {
         await new Promise((resolve) => setTimeout(resolve, ms));
     };
-    const takerFeeRate = (price: number): number => {
-        if (!Number.isFinite(price) || price <= 0 || price >= 1) {
-            return 0;
-        }
-        return CRYPTO_TAKER_FEE_RATE * (1 - price);
-    };
-    const feeAdjustedEdgeUsd = (entryPrice: number, exitPrice: number): number => {
-        if (!Number.isFinite(entryPrice) || !Number.isFinite(exitPrice) || entryPrice <= 0 || exitPrice <= 0) {
-            return Number.NEGATIVE_INFINITY;
-        }
-
-        const entryNotionalUsd = 1;
-        const entryFeeUsd = entryNotionalUsd * takerFeeRate(entryPrice);
-        const sharesBought = entryNotionalUsd / entryPrice;
-        const grossExitUsd = sharesBought * exitPrice;
-        const exitFeeUsd = grossExitUsd * takerFeeRate(exitPrice);
-        const netExitUsd = grossExitUsd - exitFeeUsd;
-        return netExitUsd - (entryNotionalUsd + entryFeeUsd);
-    };
-
     const roundMetric = (value: number): number => Math.round(value * 10000) / 10000;
     const sideLabel = (value: unknown): "UP" | "DOWN" | null => {
         if (value === Market.Up || value === "UP") {
@@ -222,37 +216,9 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
         }
         return null;
     };
-    const clampPrice = (value: number): number => {
-        if (!Number.isFinite(value)) {
-            return 0;
-        }
-        return Math.max(0.01, Math.min(0.99, Math.round(value * 100) / 100));
-    };
     const makerRebateUsd = (notionalUsd: number): number => {
         const rebateBps = Number(getTrade4LikeConfig(globalThis.__CONFIG__)?.maker_rebate_bps ?? 0);
-        if (!Number.isFinite(notionalUsd) || notionalUsd <= 0 || !Number.isFinite(rebateBps) || rebateBps <= 0) {
-            return 0;
-        }
-        return roundMetric(notionalUsd * (rebateBps / 10000));
-    };
-    const passiveMakerBuyPrice = (askPrice: number, bidPrice: number): number => {
-        if (!Number.isFinite(askPrice) || askPrice <= 0) {
-            return 0;
-        }
-        if (!Number.isFinite(bidPrice) || bidPrice <= 0 || bidPrice >= askPrice) {
-            return clampPrice(askPrice);
-        }
-        const insidePrice = bidPrice + MAKER_PRICE_STEP;
-        if (insidePrice >= askPrice) {
-            return clampPrice((askPrice + bidPrice) / 2);
-        }
-        return clampPrice(insidePrice);
-    };
-    const midMarketPrice = (askPrice: number, bidPrice: number): number | null => {
-        if (!Number.isFinite(askPrice) || !Number.isFinite(bidPrice) || askPrice <= 0 || bidPrice <= 0) {
-            return null;
-        }
-        return clampPrice((askPrice + bidPrice) / 2);
+        return calculateMakerRebateUsd(notionalUsd, rebateBps, 4);
     };
     const estimateAcceptedSignal = (
         trade: any,
@@ -307,7 +273,7 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
 
     const emitSignalRejected = async (trade: any, reason: string, extra: Record<string, unknown> = {}): Promise<void> => {
         const activeTradeConfig = getTrade4LikeConfig(globalThis.__CONFIG__);
-        const requireRejectReason = !["trade_4", "trade_5x"].includes(globalThis.__CONFIG__.strategy)
+        const requireRejectReason = !["trade_4", "trade_5x", "trade_5x_open_paper"].includes(globalThis.__CONFIG__.strategy)
             || activeTradeConfig?.require_reject_reason !== false;
         if (!requireRejectReason) {
             return;
@@ -382,6 +348,7 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
         const preferredSide = trade.upBuyPrice >= trade.downBuyPrice ? Market.Up : Market.Down;
         const preferredEntryPrice = preferredSide === Market.Up ? trade.upBuyPrice : trade.downBuyPrice;
         trade.shadowSignals.push({
+            signalId: randomUUID(),
             reason,
             rejectedAt: new Date().toISOString(),
             preferredSide,
@@ -574,29 +541,24 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
         this.pendingExitErrorContext = errorContext;
     };
 
-    TradeClass.prototype.emitShadowPnlTelemetry = async function (): Promise<void> {
+    TradeClass.prototype.emitShadowPnlTelemetry = async function (settlement: ShadowSettlement): Promise<void> {
         if (!Array.isArray(this.shadowSignals) || !this.shadowSignals.length) {
             return;
         }
 
-        const finalUpExitPrice = Number.isFinite(this.upSellPrice) && this.upSellPrice > 0 ? this.upSellPrice : null;
-        const finalDownExitPrice = Number.isFinite(this.downSellPrice) && this.downSellPrice > 0 ? this.downSellPrice : null;
+        const finalUpExitPrice = shadowExitPriceForSide(settlement, Market.Up);
+        const finalDownExitPrice = shadowExitPriceForSide(settlement, Market.Down);
 
         for (const signal of this.shadowSignals) {
             const finalExitPrice = signal.preferredSide === Market.Up ? finalUpExitPrice : finalDownExitPrice;
-            let hypotheticalPnlUsd: number | null = null;
-
-            if (
-                signal.preferredEntryPrice !== null &&
-                finalExitPrice !== null &&
-                Number.isFinite(signal.preferredEntryPrice) &&
-                Number.isFinite(finalExitPrice)
-            ) {
-                hypotheticalPnlUsd = roundMetric(feeAdjustedEdgeUsd(signal.preferredEntryPrice, finalExitPrice));
-            }
+            const rawHypotheticalPnlUsd = calculateShadowPnlUsd(signal.preferredEntryPrice, finalExitPrice);
+            const hypotheticalPnlUsd = rawHypotheticalPnlUsd === null
+                ? null
+                : roundMetric(rawHypotheticalPnlUsd);
 
             await writeTelemetryEventSafe("trade.shadow_pnl", {
                 strategy: globalThis.__CONFIG__.strategy,
+                signalId: signal.signalId,
                 reason: signal.reason,
                 rejectedAt: signal.rejectedAt,
                 preferredSide: signal.preferredSide,
@@ -609,6 +571,11 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                 downSellPriceAtRejection: signal.downSellPrice,
                 finalUpSellPrice: finalUpExitPrice,
                 finalDownSellPrice: finalDownExitPrice,
+                settlementStatus: settlement.status,
+                settlementSource: settlement.source,
+                settlementReason: settlement.reason,
+                settlementDetail: settlement.status === "unresolved" ? settlement.detail ?? null : null,
+                winningOutcome: settlement.winner,
                 feedAgeMsAtRejection: signal.feedAgeMs,
                 feedLatencyMsAtRejection: signal.feedLatencyMs,
                 feedRttMsAtRejection: signal.feedRttMs,
@@ -620,6 +587,45 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
 
     TradeClass.prototype.make_trading_decision = async function (): Promise<void> {
         await this.reconcileOpenExitOrders();
+        if (this.pendingEntryReconciliation?.orderId) {
+            const reconciled = await this.reconcilePendingEntryState();
+            if (!reconciled && this.pendingEntryReconciliation?.orderId) {
+                console.warn(`⛔ Entry reconciliation pending | orderId=${this.pendingEntryReconciliation.orderId} | providerStatus=${this.pendingEntryReconciliation.providerOrderStatus ?? "unknown"}`);
+                await writeTelemetryEventSafe("trade.signal_rejected", {
+                    strategy: globalThis.__CONFIG__.strategy,
+                    reason: "entry_reconciliation_pending",
+                    decisionSource: this.lastDecisionSnapshotSource,
+                    remainingTime: this.remainingTime,
+                    secondsToClose: this.remainingTime,
+                    observedMarketTicks: this.observedMarketTicks,
+                    holdingStatus: this.holdingStatus,
+                    feedAgeMs: this.latestFeedAgeMs,
+                    feedLatencyMs: this.latestFeedLatencyMs,
+                    feedRttMs: this.latestFeedRttMs,
+                    feedWsConnected: this.latestFeedWsConnected,
+                    feedSnapshotSource: this.latestFeedSnapshotSource,
+                    feedFallbackCount: this.latestFeedFallbackCount,
+                    feedLastFallbackReason: this.latestFeedLastFallbackReason,
+                    externalPriceUsd: this.latestExternalPriceUsd,
+                    externalPriceSource: this.latestExternalPriceSource,
+                    externalPriceFetchedAt: this.latestExternalPriceFetchedAt,
+                    priceToBeat: this.priceToBeat,
+                    finalPrice: this.finalPrice,
+                    priceToBeatSource: this.priceToBeatSource,
+                    upBuyPrice: this.upBuyPrice,
+                    upSellPrice: this.upSellPrice,
+                    downBuyPrice: this.downBuyPrice,
+                    downSellPrice: this.downSellPrice,
+                    orderId: this.pendingEntryReconciliation.orderId,
+                    providerOrderStatus: this.pendingEntryReconciliation.providerOrderStatus ?? null,
+                    blockedAt: this.pendingEntryReconciliation.blockedAt ?? null,
+                    tokenId: this.pendingEntryReconciliation.tokenId ?? null,
+                    positionState: this.positionState,
+                    marketSlug: this.marketSlug,
+                });
+                return;
+            }
+        }
 
         let remaining_time_ratio =
             (this.marketTime - this.remainingTime) / this.marketTime;
@@ -864,15 +870,20 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                 break;
             }
             case "trade_4":
-            case "trade_5x": {
+            case "trade_5x":
+            case "trade_5x_open_paper": {
                 const trade4 = getTrade4LikeConfig(globalThis.__CONFIG__)!;
                 const [entryRatioMin, entryRatioMax] = trade4.entry_price_ratio;
-                const elapsedTimeReached = remaining_time_ratio > trade4.entry_time_ratio;
                 const secondsToClose = this.remainingTime;
                 const graceActive = Date.now() < this.marketTransitionGraceUntilMs;
-                const inTimeWindow =
-                    secondsToClose >= trade4.min_seconds_to_close &&
-                    secondsToClose <= trade4.max_seconds_to_close;
+                const timing = evaluateEntryTiming({
+                    marketTimeSeconds: this.marketTime,
+                    secondsToClose,
+                    entryTimeRatio: trade4.entry_time_ratio,
+                    minSecondsToClose: trade4.min_seconds_to_close,
+                    maxSecondsToClose: trade4.max_seconds_to_close,
+                    latestEntrySecondsBeforeClose: trade4.latest_entry_seconds_before_close,
+                });
                 const feedTooOld =
                     this.latestFeedAgeMs !== null &&
                     Number.isFinite(this.latestFeedAgeMs) &&
@@ -1052,9 +1063,9 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                             break;
                         }
 
-                        if (!elapsedTimeReached) {
+                        if (!timing.elapsedTimeReached) {
                             await emitSignalRejected(this, "entry_time_ratio", {
-                                currentTimeRatio: roundMetric(remaining_time_ratio),
+                                currentTimeRatio: roundMetric(timing.elapsedRatio),
                                 requiredTimeRatio: trade4.entry_time_ratio,
                             });
                             break;
@@ -1077,10 +1088,10 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                             preferredEntryRatio !== null &&
                             preferredEntryRatio >= entryRatioMin &&
                             preferredEntryRatio <= entryRatioMax;
-                        const enforceEntryRatio = globalThis.__CONFIG__.strategy !== "trade_5x";
+                        const enforceEntryRatio = !["trade_5x", "trade_5x_open_paper"].includes(globalThis.__CONFIG__.strategy);
                         const rejectionDiagnosticContext = buildRejectionDiagnosticContext({
                             trade: this,
-                            currentTimeRatio: remaining_time_ratio,
+                            currentTimeRatio: timing.elapsedRatio,
                             entryPriceRatio: preferredEntryRatio,
                             entryPriceRatioMin: entryRatioMin,
                             entryPriceRatioMax: entryRatioMax,
@@ -1099,7 +1110,7 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                             break;
                         }
 
-                        if (secondsToClose <= trade4.latest_entry_seconds_before_close) {
+                        if (timing.pastLatestEntryCutoff) {
                             await emitSignalRejected(this, "latest_entry_seconds_before_close", {
                                 secondsToClose,
                                 latestEntrySecondsBeforeClose: trade4.latest_entry_seconds_before_close,
@@ -1107,7 +1118,7 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                             break;
                         }
 
-                        if (!inTimeWindow) {
+                        if (!timing.withinSecondsToCloseWindow) {
                             await emitSignalRejected(this, "seconds_to_close_window", {
                                 secondsToClose,
                                 minSecondsToClose: trade4.min_seconds_to_close,

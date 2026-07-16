@@ -23,6 +23,13 @@ export interface RejectionPayloadRecord {
   payload: Record<string, unknown>;
 }
 
+export interface EntryLatencyGateBreakdown {
+  age: number;
+  latency: number;
+  rtt: number;
+  unknown: number;
+}
+
 export interface Anomaly {
   priority: number;
   type: 'BUG' | 'FIX' | 'TUNE' | 'MONITOR' | 'PASS';
@@ -81,6 +88,8 @@ export interface SessionReport {
   sessionIds: string[];
   files: string[];
   totalEvents: number;
+  analysisScope: 'full' | 'tail';
+  tailLines: number | null;
   strategy: string;
   mode: string;
   startBalance: number;
@@ -93,6 +102,9 @@ export interface SessionReport {
   momEventCount: number;
   mcEventCount: number;
   shadowEventCount: number;
+  shadowResolvedEventCount: number;
+  shadowUnresolvedEventCount: number;
+  shadowWinCount: number;
   
   // PnL metrics
   netPnl: number;
@@ -119,11 +131,19 @@ export interface SessionReport {
   momScoreMin: number;
   momScoreMax: number;
   momConfAvg: number;
+  momUsableEventCount: number;
+  momMissingFieldEventCount: number;
   
   // Trades and analysis
   trades: TradeRecord[];
   rejectionBreakdown: RejectionBucket[];
   rejectionPayloads: Record<string, RejectionPayloadRecord[]>;
+  entryLatencyGateBreakdown: EntryLatencyGateBreakdown;
+  acceptedTradeMcConvAvg: number;
+  acceptedTradeMcConvMin: number;
+  acceptedTradeMcConvMax: number;
   anomalies: Anomaly[];
   gateChecks: GateCheck[];
+  rttSamples: number[];
+  seenShadowSignalIds: Set<string>;
 }

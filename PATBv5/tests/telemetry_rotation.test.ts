@@ -109,12 +109,42 @@ async function testInvalidRetentionConfigurationFallsBack(): Promise<void> {
     );
 }
 
+async function testHistoricalSessionWriteDoesNotPolluteActiveSession(): Promise<void> {
+    await resetStore();
+    const activeSession = await telemetry.startTelemetrySession("PAPER");
+    const historicalSessionPath = join(telemetryRoot, "sessions", "historical-session.jsonl");
+
+    await telemetry.writeTelemetryEventToSession(
+        "trade.shadow_pnl",
+        { signalId: "signal-1", settlementStatus: "resolved" },
+        {
+            botId: "polymarket-bot-v5",
+            sessionId: "historical-session",
+            sessionStartedAt: "2026-07-15T00:00:00.000Z",
+            sessionPath: historicalSessionPath,
+            originHost: "test-host",
+            versionContext: null,
+        },
+    );
+
+    const historicalEvents = await readEvents(historicalSessionPath);
+    assert.equal(historicalEvents.length, 1);
+    assert.equal(historicalEvents[0].sessionId, "historical-session");
+    assert.equal((historicalEvents[0].payload as { signalId?: string }).signalId, "signal-1");
+    await assert.rejects(readFile(activeSession.sessionPath, "utf8"), /ENOENT/);
+
+    const managedEvents = await readEvents(join(telemetryRoot, "events.jsonl"));
+    assert.equal(managedEvents.length, 1);
+    assert.equal(managedEvents[0].sessionId, "historical-session");
+}
+
 async function run(): Promise<void> {
     try {
         await testRotationPruningAndLegacyPreservation();
         await testConcurrentWritesRemainComplete();
         await testQueueRecoversAfterOversizedFileError();
         await testInvalidRetentionConfigurationFallsBack();
+        await testHistoricalSessionWriteDoesNotPolluteActiveSession();
         console.log("telemetry rotation tests passed");
     } finally {
         telemetry.__resetTelemetryModuleState();

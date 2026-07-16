@@ -1,6 +1,6 @@
 import { open } from "fs/promises";
 import { getTelemetryBotId, getTelemetryDbPath, loadPersistedPaperBalance } from "../../telemetry";
-import { TerminalState, TapeItem, TradeRow, PnLPoint } from "../types";
+import { TerminalState, TapeItem, TradeRow, PnLPoint, Candle, VolumeBar } from "../types";
 import { buildMockTerminalState } from "./mockTerminalState";
 
 type JsonRecord = Record<string, unknown>;
@@ -228,6 +228,127 @@ function buildCheckpointHistory(events: TelemetryEvent[]): PnLPoint[] {
     .filter((point): point is PnLPoint => Boolean(point));
 }
 
+interface PricePoint {
+  timestampMs: number;
+  price: number;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function buildTelemetryCandles(events: TelemetryEvent[], fallbackCandles: Candle[]): Candle[] {
+  const targetCount = Math.max(fallbackCandles.length, 1);
+  const bucketMs = 60_000;
+  const referencePoints = events
+    .filter((event) => event.type === "market.external_reference")
+    .map((event) => {
+      const price = asNumber(event.payload.priceUsd);
+      const timestamp = asString(event.payload.fetchedAt) || event.timestamp;
+      const timestampMs = new Date(timestamp).getTime();
+      if (price == null || Number.isNaN(timestampMs)) {
+        return null;
+      }
+      return {
+        timestampMs,
+        price,
+      };
+    })
+    .filter((point): point is PricePoint => Boolean(point))
+    .sort((left, right) => left.timestampMs - right.timestampMs);
+
+  if (referencePoints.length < 2) {
+    return fallbackCandles;
+  }
+
+  const firstPoint = referencePoints[0];
+  const lastPoint = referencePoints[referencePoints.length - 1];
+  const endBucketStartMs = Math.floor(lastPoint.timestampMs / bucketMs) * bucketMs;
+  const startTimeMs = endBucketStartMs - bucketMs * (targetCount - 1);
+
+  const buckets = Array.from({ length: targetCount }, (_, index) => {
+    const bucketStartMs = startTimeMs + index * bucketMs;
+    const bucketEndMs = bucketStartMs + bucketMs;
+    const points = referencePoints.filter((point) => (
+      point.timestampMs >= bucketStartMs
+      && (index === targetCount - 1 ? point.timestampMs <= bucketEndMs : point.timestampMs < bucketEndMs)
+    ));
+
+    return {
+      bucketStartMs,
+      points,
+    };
+  });
+
+  let previousClose = referencePoints[0].price;
+
+  return buckets.map((bucket, index) => {
+    const points = bucket.points;
+    if (points.length === 0) {
+      const time = new Date(bucket.bucketStartMs).toISOString();
+      return {
+        ...fallbackCandles[index],
+        time,
+        open: round(previousClose),
+        high: round(previousClose),
+        low: round(previousClose),
+        close: round(previousClose),
+      };
+    }
+
+    const open = points[0].price;
+    const close = points[points.length - 1].price;
+    const high = Math.max(...points.map((point) => point.price));
+    const low = Math.min(...points.map((point) => point.price));
+    previousClose = close;
+
+    return {
+      ...fallbackCandles[index],
+      time: new Date(bucket.bucketStartMs).toISOString(),
+      open: round(open),
+      high: round(high),
+      low: round(low),
+      close: round(close),
+    };
+  });
+}
+
+function buildTelemetryVolumeBars(events: TelemetryEvent[], candles: Candle[]): VolumeBar[] {
+  const volumeByMinute = new Map<number, number>();
+
+  for (const event of events) {
+    if (event.type !== "signal.momentum") {
+      continue;
+    }
+
+    const rawFieldsAvailable = event.payload.rawFieldsAvailable;
+    if (rawFieldsAvailable === false) {
+      continue;
+    }
+
+    const volume = asNumber(event.payload.rawLatestVolume);
+    const fetchedAt = asNumber(event.payload.fetchedAt);
+    const timestampMs = fetchedAt ?? new Date(event.timestamp).getTime();
+    if (volume == null || Number.isNaN(timestampMs)) {
+      continue;
+    }
+
+    const minuteStartMs = Math.floor(timestampMs / 60_000) * 60_000;
+    const current = volumeByMinute.get(minuteStartMs) ?? 0;
+    volumeByMinute.set(minuteStartMs, Math.max(current, volume));
+  }
+
+  return candles.map((candle) => {
+    const minuteStartMs = Math.floor(new Date(candle.time).getTime() / 60_000) * 60_000;
+    const value = volumeByMinute.get(minuteStartMs) ?? 0;
+    return {
+      time: candle.time,
+      value: round(value, 4),
+      color: candle.close >= candle.open ? "#00c08788" : "#ff5b4f88",
+    };
+  });
+}
+
 async function readRecentTelemetryEvents(botId: string): Promise<TelemetryEvent[]> {
   const file = await open(getTelemetryDbPath(), "r");
   try {
@@ -326,6 +447,8 @@ export async function buildLiveTerminalState(): Promise<TerminalState> {
   const upSell = asNumber(latestPrices?.upSellPrice) ?? 0.49;
   const downBuy = asNumber(latestPrices?.downBuyPrice) ?? 0.5;
   const downSell = asNumber(latestPrices?.downSellPrice) ?? 0.49;
+  const telemetryCandles = buildTelemetryCandles(sessionEvents, base.btcChart);
+  const telemetryVolume = buildTelemetryVolumeBars(sessionEvents, telemetryCandles);
 
   const bidBase = btcPrice - 4;
   const askBase = btcPrice + 4;
@@ -391,19 +514,11 @@ export async function buildLiveTerminalState(): Promise<TerminalState> {
       balance: paperBalance,
       liveBadge: status === "ok" ? "LIVE" : "DEGRADED",
     },
-    btcChart: (pnlHistory.length ? base.btcChart : base.btcChart).map((candle, index) => {
-      const drift = index - base.btcChart.length + 1;
-      const open = round(btcPrice - 15 + drift * 2.5, 2);
-      const close = round(open + (index % 2 === 0 ? upBuy * 40 : -upSell * 35), 2);
-      return {
-        ...candle,
-        open,
-        close,
-        high: Math.max(open, close) + 8,
-        low: Math.min(open, close) - 8,
-        marker: index === base.btcChart.length - 1 ? (downBuy > upBuy ? "DOWN" : "UP") : candle.marker,
-      };
-    }),
+    btcChart: telemetryCandles.map((candle, index) => ({
+      ...candle,
+      marker: index === telemetryCandles.length - 1 ? (downBuy > upBuy ? "DOWN" : "UP") : candle.marker,
+    })),
+    btcVolume: telemetryVolume,
     orderBook,
     forceGraph: {
       ...base.forceGraph,

@@ -8,6 +8,7 @@ async function run(): Promise<void> {
         upTokenId: "up-token",
         downTokenId: "down-token",
     }) as any;
+    feed.wsConnected = true;
 
     const baseline = Date.now() - 8_000;
     feed.stateByAsset["up-token"] = {

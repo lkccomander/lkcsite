@@ -7,6 +7,7 @@ import { parseTelemetry } from './parser';
 import { detectAnomalies, evaluateGateChecks } from './anomalies';
 import { renderReportHtml } from './renderer';
 import { SessionReport } from './types';
+import { createReportControlRouter } from './control/router';
 
 const app = express();
 let lastParsedAt: string | null = null;
@@ -19,7 +20,7 @@ const checkerJobs = new Map<string, {
 }>();
 
 app.use(express.json({ limit: '2mb' }));
-app.use('/reports', express.static(path.join(process.cwd(), 'polydb', 'reports')));
+app.use(createReportControlRouter());
 
 function resolveDefaultTelemetryFile(): string {
   return path.resolve(process.cwd(), '..', 'polydb', 'telemetry', 'events.jsonl');
@@ -98,7 +99,7 @@ function startCheckerJob(sessionId: string): string {
   return jobId;
 }
 
-app.get('/', (req, res) => {
+app.get('/checker', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html>

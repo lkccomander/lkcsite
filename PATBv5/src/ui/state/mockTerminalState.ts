@@ -1,5 +1,5 @@
 import { getTelemetryBotId, getTelemetryDbPath, loadPersistedPaperBalance } from "../../telemetry";
-import { TerminalState, ForceNode, ForceLink, TradeRow } from "../types";
+import { TerminalState, ForceNode, ForceLink, TradeRow, Candle, VolumeBar } from "../types";
 
 const BOT_STRATEGY_LABEL = "V4.2 · POLYMARKET BTC UP/DOWN 5MIN";
 
@@ -64,6 +64,18 @@ function buildOrderBook(basePrice: number, seed: number) {
     bids,
     asks,
   };
+}
+
+function buildVolumeBars(candles: Candle[], seed: number): VolumeBar[] {
+  return candles.map((candle, index) => {
+    const magnitude = Math.abs(candle.close - candle.open);
+    const value = round(0.8 + magnitude / 18 + Math.abs(seededWave(seed / 5 + index * 0.41, 1.9)), 4);
+    return {
+      time: candle.time,
+      value,
+      color: candle.close >= candle.open ? "#00c08788" : "#ff5b4f88",
+    };
+  });
 }
 
 function buildGraph(seed: number, basePrice: number): { nodes: ForceNode[]; links: ForceLink[] } {
@@ -162,6 +174,7 @@ export async function buildMockTerminalState(requestedMode: "mock" | "live"): Pr
   const ethPrice = round(3_670.99 + seededWave(seed / 11, 44), 2);
   const paperBalance = round(await loadPersistedPaperBalance(2_500), 2);
   const graph = buildGraph(seed, basePrice);
+  const btcChart = buildCandles(basePrice, seed);
 
   return {
     meta: {
@@ -194,7 +207,8 @@ export async function buildMockTerminalState(requestedMode: "mock" | "live"): Pr
       balance: paperBalance,
       liveBadge: liveRequested ? "LIVE" : "PAPER",
     },
-    btcChart: buildCandles(basePrice, seed),
+    btcChart,
+    btcVolume: buildVolumeBars(btcChart, seed),
     orderBook: buildOrderBook(basePrice, seed),
     forceGraph: {
       ...graph,

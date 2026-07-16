@@ -77,13 +77,22 @@ export interface TelemetryEvent<TPayload = Record<string, unknown>> {
     versionContext?: Record<string, unknown>;
 }
 
-interface TelemetrySession {
+export interface TelemetrySession {
     botId: string;
     id: string;
     originHost: string | null;
     startedAt: string;
     mode: "PAPER" | "LIVE";
     sessionPath: string;
+}
+
+export interface TelemetrySessionTarget {
+    botId: string;
+    sessionId: string;
+    sessionStartedAt: string;
+    sessionPath: string;
+    originHost: string | null;
+    versionContext: Record<string, unknown> | null;
 }
 
 interface PersistedPaperBalance {
@@ -239,7 +248,10 @@ async function pruneManagedArchives(activeSize: number): Promise<void> {
     }
 }
 
-async function appendSerializedTelemetryEvent(serialized: string): Promise<void> {
+async function appendSerializedTelemetryEvent(
+    serialized: string,
+    targetSessionPath?: string | null,
+): Promise<void> {
     await ensureTelemetryStore();
 
     const eventSize = Buffer.byteLength(serialized, "utf8");
@@ -264,8 +276,12 @@ async function appendSerializedTelemetryEvent(serialized: string): Promise<void>
 
     await appendFile(TELEMETRY_DB_PATH, serialized, "utf8");
 
-    if (telemetrySession) {
-        await appendFile(telemetrySession.sessionPath, serialized, "utf8");
+    const sessionPath = targetSessionPath === undefined
+        ? telemetrySession?.sessionPath ?? null
+        : targetSessionPath;
+    if (sessionPath) {
+        await mkdir(dirname(sessionPath), { recursive: true });
+        await appendFile(sessionPath, serialized, "utf8");
     }
 
     if (rotated) {
@@ -355,6 +371,26 @@ export async function writeTelemetryEvent<TPayload = Record<string, unknown>>(
 
     const serialized = `${JSON.stringify(event)}\n`;
     await enqueueTelemetryWrite(() => appendSerializedTelemetryEvent(serialized));
+}
+
+export async function writeTelemetryEventToSession<TPayload = Record<string, unknown>>(
+    type: TelemetryEventType,
+    payload: TPayload,
+    target: TelemetrySessionTarget,
+): Promise<void> {
+    const event: TelemetryEvent<TPayload> = {
+        type,
+        payload,
+        timestamp: new Date().toISOString(),
+        botId: target.botId,
+        originHost: target.originHost ?? undefined,
+        sessionId: target.sessionId,
+        sessionStartedAt: target.sessionStartedAt,
+        versionContext: target.versionContext ?? undefined,
+    };
+
+    const serialized = `${JSON.stringify(event)}\n`;
+    await enqueueTelemetryWrite(() => appendSerializedTelemetryEvent(serialized, target.sessionPath));
 }
 
 export async function writeTelemetryEventSafe<TPayload = Record<string, unknown>>(

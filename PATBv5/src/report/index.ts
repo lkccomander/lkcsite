@@ -1,8 +1,5 @@
 // src/report/index.ts
-import { parseTelemetry } from './parser';
-import { detectAnomalies, evaluateGateChecks } from './anomalies';
-import { renderReport } from './renderer';
-import { SessionReport } from './types';
+import { buildReportOutputPath, generateReport } from './generation';
 import fs from 'fs';
 import path from 'path';
 
@@ -29,7 +26,7 @@ async function main() {
   const options = {
     files: [] as string[],
     botId: '',
-    tail: 50000,
+    tail: undefined as number | undefined,
     out: '',
     serve: false,
     port: 4242
@@ -50,10 +47,17 @@ async function main() {
         }
         break;
       case '--tail':
-        if (i + 1 < args.length) {
-          options.tail = parseInt(args[i + 1]);
-          i++;
+        if (i + 1 >= args.length) {
+          console.error('--tail requires a positive integer.');
+          process.exit(1);
         }
+        const parsedTail = Number(args[i + 1]);
+        if (!Number.isInteger(parsedTail) || parsedTail <= 0) {
+          console.error(`--tail requires a positive integer; received ${args[i + 1]}.`);
+          process.exit(1);
+        }
+        options.tail = parsedTail;
+        i++;
         break;
       case '--out':
         if (i + 1 < args.length) {
@@ -110,21 +114,17 @@ async function main() {
   }
   
   try {
-    console.log('Parsing telemetry data...');
-    const report = await parseTelemetry(options.files, options.tail);
-    
-    // Add anomalies and gate checks
-    (report as any).anomalies = detectAnomalies(report);
-    (report as any).gateChecks = evaluateGateChecks(report);
-    
     // Generate output path if not specified
     if (!options.out) {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      options.out = path.join('polydb', 'reports', `session-review-${timestamp}.html`);
+      options.out = buildReportOutputPath(path.join('polydb', 'reports'));
     }
-    
-    // Render the report
-    await renderReport(report, options.out);
+
+    const { report } = await generateReport({
+      files: options.files,
+      outputPath: options.out,
+      tailLines: options.tail,
+      onProgress: (message) => console.log(`${message}...`),
+    });
     
     console.log(`✓ Report written (${report.trades.length} trades · ${report.sessionIds.length} sessions · ${report.totalEvents} events)`);
   } catch (error) {

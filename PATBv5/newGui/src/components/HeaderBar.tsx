@@ -3,9 +3,10 @@ import { formatCurrency, formatPercent, formatSigned } from "../lib/formatters";
 
 interface HeaderBarProps {
   data: HeaderData;
+  balance: number;
 }
 
-export function HeaderBar({ data }: HeaderBarProps) {
+export function HeaderBar({ data, balance }: HeaderBarProps) {
   return (
     <header className="terminal-header panel">
       <div className="header-brand">
@@ -17,6 +18,7 @@ export function HeaderBar({ data }: HeaderBarProps) {
         <div className="header-strategy">{data.strategyLabel}</div>
       </div>
       <div className="header-metrics">
+        <span className="metric positive">BAL {formatCurrency(balance)}</span>
         <span className="metric info">BTC {formatCurrency(data.btcPrice)}</span>
         <span className={`metric ${data.btcChange >= 0 ? "positive" : "negative"}`}>{formatSigned(data.btcChange)}</span>
         <span className="metric secondary">ETH {formatCurrency(data.ethPrice)}</span>

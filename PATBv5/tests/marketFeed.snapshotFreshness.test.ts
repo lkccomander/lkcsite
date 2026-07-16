@@ -8,6 +8,7 @@ async function run(): Promise<void> {
         upTokenId: "up-token",
         downTokenId: "down-token",
     }) as any;
+    feed.wsConnected = true;
 
     const now = Date.now();
     feed.stateByAsset["up-token"] = {

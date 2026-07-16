@@ -4,6 +4,7 @@ import type { MomentumSignal } from "../signals/momentum";
 import { Market, type MarketRuntimeConfig } from "../types";
 
 interface ShadowSignalRecord {
+    signalId: string;
     reason: string;
     rejectedAt: string;
     preferredSide: Market;
@@ -46,6 +47,23 @@ interface ExecutedEntryRecord {
     feeUsd: number;
     rebateUsd: number;
     makerMode: boolean;
+}
+
+interface PendingEntryReconciliationRecord {
+    blockedAt: string;
+    side: "UP" | "DOWN";
+    marketSlug: string;
+    tokenId: string;
+    orderId: string;
+    requestedUsd: number | null;
+    entryPrice: number | null;
+    decisionTimestamp: string | null;
+    providerOrderStatus: string | null;
+    providerFilledSize: number | null;
+    providerRemainingSize: number | null;
+    providerAvgPrice: number | null;
+    lastCheckedAt: string | null;
+    source?: string;
 }
 
 export type PositionState =
@@ -115,6 +133,7 @@ export class Trade {
     shadowSignals!: ShadowSignalRecord[];
     marketSlug!: string;
     pendingEntrySignal!: EntrySignalRecord | null;
+    pendingEntryReconciliation!: PendingEntryReconciliationRecord | null;
     lastExecutedEntry!: ExecutedEntryRecord | null;
     pendingExitReason!: string | null;
     pendingExitErrorContext!: string | null;
@@ -190,6 +209,7 @@ export class Trade {
         this.priceTickTimestamps = [];
         this.shadowSignals = [];
         this.pendingEntrySignal = null;
+        this.pendingEntryReconciliation = null;
         this.lastExecutedEntry = null;
         this.pendingExitReason = null;
         this.pendingExitErrorContext = null;

@@ -33,6 +33,15 @@
   stroke: var(--negative);
 }
 
+.candle-body {
+  shape-rendering: crispEdges;
+}
+
+.candle-wick {
+  stroke-width: 1.25;
+  shape-rendering: crispEdges;
+}
+
 .trade-marker {
   fill: var(--warning);
   font-size: 12px;

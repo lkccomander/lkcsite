@@ -6,7 +6,19 @@ import { writeTelemetryEventSafe } from "../telemetry";
 import { Market } from "../types";
 import { GLOBAL_TX_PROCESS, TxProcess } from "../constant";
 import { retryWithInstantRetry } from "../utils/retry";
-import { spawn } from "child_process";
+import { playCliAlertSound } from "../utils/cliAlert";
+import {
+    clampPrice,
+    CRYPTO_TAKER_FEE_RATE,
+    MAKER_PRICE_STEP,
+    makerRebateUsd as calculateMakerRebateUsd,
+    midMarketPrice,
+    passiveMakerBuyPrice,
+    passiveMakerSellPrice,
+    protocolFeeFactor,
+    takerFeeRate,
+    takerFeeUsd as calculateTakerFeeUsd,
+} from "./policy/executionPricing";
 
 declare module "./index" {
     interface Trade {
@@ -20,6 +32,8 @@ declare module "./index" {
         validateExecutionSafety(side: "UP" | "DOWN", executionPrice: number): Promise<boolean>;
         recordExecutedEntry(side: "UP" | "DOWN", entryPrice: number, executedAt?: string, details?: Record<string, unknown>): void;
         recordExternalPricePoint(priceUsd: number, fetchedAt: string): void;
+        reconcilePendingEntryState(): Promise<boolean>;
+        hydrateOpenEntryOrders(): Promise<void>;
         getExitOrderStatus(orderId: string): Promise<{
             status: "live" | "matched" | "partial" | "canceled" | "expired" | "rejected" | "unknown";
             filledSize?: number;
@@ -35,82 +49,16 @@ declare module "./index" {
 export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
     const roundCurrency = (value: number): number => Math.round(value * 100) / 100;
     const roundFeeUsd = (value: number): number => Math.round(value * 100000) / 100000;
-    const CRYPTO_TAKER_FEE_RATE = 0.072;
-    const MAKER_PRICE_STEP = 0.01;
     const MAX_LIVE_SELL_SPREAD = 0.20;
     const EXIT_SKIP_TELEMETRY_COOLDOWN_MS = 15_000;
     const POSITION_DUST_THRESHOLD_SHARES = 0.05;
 
-    const clampPrice = (value: number): number => {
-        if (!Number.isFinite(value)) {
-            return 0;
-        }
-        return Math.max(0.01, Math.min(0.99, Math.round(value * 100) / 100));
-    };
+    const takerFeeUsd = (price: number, notionalUsd: number): number =>
+        calculateTakerFeeUsd(price, notionalUsd, 5);
 
-    const takerFeeRate = (price: number): number => {
-        if (!Number.isFinite(price) || price <= 0 || price >= 1) {
-            return 0;
-        }
-        // Effective fee as a fraction of notional for crypto markets.
-        return CRYPTO_TAKER_FEE_RATE * (1 - price);
-    };
-
-    const protocolFeeFactor = (price: number): number => {
-        if (!Number.isFinite(price) || price <= 0 || price >= 1) {
-            return 0;
-        }
-        return CRYPTO_TAKER_FEE_RATE * price * (1 - price);
-    };
-
-    const takerFeeUsd = (price: number, notionalUsd: number): number => {
-        if (!Number.isFinite(notionalUsd) || notionalUsd <= 0) {
-            return 0;
-        }
-        return roundFeeUsd(notionalUsd * takerFeeRate(price));
-    };
-
-    const makerRebateUsd = (price: number, notionalUsd: number): number => {
+    const makerRebateUsd = (_price: number, notionalUsd: number): number => {
         const rebateBps = Number(getTrade4LikeConfig(globalThis.__CONFIG__)?.maker_rebate_bps ?? 0);
-        if (!Number.isFinite(notionalUsd) || notionalUsd <= 0 || !Number.isFinite(rebateBps) || rebateBps <= 0) {
-            return 0;
-        }
-        return roundFeeUsd(notionalUsd * (rebateBps / 10000));
-    };
-
-    const passiveMakerBuyPrice = (askPrice: number, bidPrice: number): number => {
-        if (!Number.isFinite(askPrice) || askPrice <= 0) {
-            return 0;
-        }
-        if (!Number.isFinite(bidPrice) || bidPrice <= 0 || bidPrice >= askPrice) {
-            return clampPrice(askPrice);
-        }
-        const insidePrice = bidPrice + MAKER_PRICE_STEP;
-        if (insidePrice >= askPrice) {
-            return clampPrice((askPrice + bidPrice) / 2);
-        }
-        return clampPrice(insidePrice);
-    };
-
-    const passiveMakerSellPrice = (bidPrice: number, askPrice: number): number => {
-        if (!Number.isFinite(bidPrice) || bidPrice <= 0) {
-            return 0;
-        }
-        if (!Number.isFinite(askPrice) || askPrice <= 0 || askPrice <= bidPrice) {
-            return clampPrice(bidPrice);
-        }
-        const insidePrice = askPrice - MAKER_PRICE_STEP;
-        if (insidePrice <= bidPrice) {
-            return clampPrice((askPrice + bidPrice) / 2);
-        }
-        return clampPrice(insidePrice);
-    };
-
-    const midMarketPrice = (askPrice: number, bidPrice: number): number | null => {
-        if (!Number.isFinite(askPrice) || !Number.isFinite(bidPrice) || askPrice <= 0 || bidPrice <= 0) {
-            return null;
-        }
-        return clampPrice((askPrice + bidPrice) / 2);
+        return calculateMakerRebateUsd(notionalUsd, rebateBps, 5);
     };
 
     const affordablePaperTradeAmount = (availableUsd: number, targetTradeUsd: number, price: number): number => {
@@ -123,27 +71,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
     };
 
     const playCliTradeSound = (action: "buy" | "sell"): void => {
-        const beepSpec = action === "buy"
-            ? [{ frequency: 1046, durationMs: 140 }, { frequency: 1318, durationMs: 180 }]
-            : [{ frequency: 659, durationMs: 120 }, { frequency: 494, durationMs: 180 }];
-
-        if (process.platform === "win32") {
-            const script = beepSpec
-                .map((tone) => `[console]::Beep(${tone.frequency}, ${tone.durationMs})`)
-                .join("; ");
-            try {
-                const child = spawn("powershell.exe", ["-NoProfile", "-Command", script], {
-                    detached: true,
-                    stdio: "ignore",
-                });
-                child.unref();
-                return;
-            } catch {
-                // Fall through to the terminal bell.
-            }
-        }
-
-        process.stdout.write("\u0007");
+        playCliAlertSound(action);
     };
 
     const getTradeAmount = (trade: any): number => {
@@ -342,6 +270,14 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
     const sleepMs = async (ms: number): Promise<void> => {
         await new Promise((resolve) => setTimeout(resolve, ms));
     };
+    const decisionToExecutionMs = (decisionTimestamp: string, executionTimestamp: string): number => {
+        const decisionAtMs = Date.parse(decisionTimestamp);
+        const executionAtMs = Date.parse(executionTimestamp);
+        if (!Number.isFinite(decisionAtMs) || !Number.isFinite(executionAtMs)) {
+            return -1;
+        }
+        return Math.max(0, executionAtMs - decisionAtMs);
+    };
     const normalizeExitReason = (reason: string | null | undefined): string => {
         switch (reason) {
             case "market_close":
@@ -496,6 +432,12 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
 
         trade.positionState = trade.hasBought ? "CLOSED" : "NONE";
     };
+    const clearPendingEntryReconciliation = (trade: any): void => {
+        trade.pendingEntryReconciliation = null;
+        syncPositionStateFromHoldings(trade);
+    };
+    const isPendingEntryReconciliationActive = (trade: any): boolean =>
+        Boolean(trade.pendingEntryReconciliation?.orderId);
     const emitExitEvent = async (type: "trade.exit_attempt" | "trade.exit_pending" | "trade.exit_partial" | "trade.exit_filled" | "trade.exit_failed" | "trade.exit_skipped_existing_live_order" | "trade.exit_skipped_stale_snapshot" | "trade.exit_balance_reserved_by_live_order", trade: any, payload: Record<string, unknown>): Promise<void> => {
         await writeTelemetryEventSafe(type, {
             strategy: globalThis.__CONFIG__.strategy,
@@ -508,6 +450,9 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
             marketSlug: trade.marketSlug,
             ...payload,
         });
+        if (type === "trade.exit_failed") {
+            playCliAlertSound("error");
+        }
     };
     const shouldSkipLiveSellForStaleSnapshot = async (
         trade: any,
@@ -548,6 +493,173 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
         await writeTelemetryEventSafe("trade.entry_filled", {
             ...buildBuyTelemetryPayload(trade, payload as any),
         });
+    };
+    const emitEntryPostedEvent = async (
+        trade: any,
+        payload: Record<string, unknown>,
+    ): Promise<void> => {
+        await writeTelemetryEventSafe("trade.entry_posted", {
+            ...buildBuyTelemetryPayload(trade, payload as any),
+        });
+    };
+    const emitEntryTimeoutEvent = async (
+        trade: any,
+        payload: Record<string, unknown>,
+    ): Promise<void> => {
+        await writeTelemetryEventSafe("trade.entry_timeout", {
+            ...buildBuyTelemetryPayload(trade, payload as any),
+        });
+    };
+    const getLiveEntryOrderStatus = async (
+        trade: any,
+        orderId: string,
+    ): Promise<{
+        status: "live" | "matched" | "partial" | "canceled" | "expired" | "rejected" | "unknown";
+        filledSize?: number;
+        remainingSize?: number;
+        avgPrice?: number;
+    }> => {
+        if (!orderId) {
+            return { status: "unknown" };
+        }
+        ensureLiveClient(trade);
+        try {
+            const order = await trade.authorizedClob.getOrder(orderId);
+            return deriveExitStatusFromOpenOrder(order);
+        } catch {
+            try {
+                const openOrders = await trade.authorizedClob.getOpenOrders({ id: orderId }, true);
+                if (Array.isArray(openOrders) && openOrders.length > 0) {
+                    return deriveExitStatusFromOpenOrder(openOrders[0]);
+                }
+            } catch {
+                // Fallback below.
+            }
+            return { status: "unknown" };
+        }
+    };
+    const cancelLiveEntryOrderIfOpen = async (
+        trade: any,
+        orderId: string,
+        context: Record<string, unknown> = {},
+    ): Promise<{
+        status: "live" | "matched" | "partial" | "canceled" | "expired" | "rejected" | "unknown";
+        filledSize?: number;
+        remainingSize?: number;
+        avgPrice?: number;
+    }> => {
+        if (!orderId) {
+            return { status: "unknown" };
+        }
+
+        const initialStatus = await getLiveEntryOrderStatus(trade, orderId);
+        if (initialStatus.status !== "live" && initialStatus.status !== "partial") {
+            return initialStatus;
+        }
+
+        try {
+            ensureLiveClient(trade);
+            await trade.authorizedClob.cancelOrder({ orderID: orderId });
+        } catch (error) {
+            await writeTelemetryEventSafe("trade.entry_order_status_after_timeout", {
+                strategy: globalThis.__CONFIG__.strategy,
+                marketSlug: trade.marketSlug,
+                orderId,
+                reason: "entry_cancel_failed",
+                errorMessage: error instanceof Error ? error.message : String(error),
+                providerOrderStatus: initialStatus.status,
+                ...context,
+            });
+            return initialStatus;
+        }
+
+        let latestStatus = initialStatus;
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+            await sleepMs(250);
+            latestStatus = await getLiveEntryOrderStatus(trade, orderId);
+            if (latestStatus.status !== "live" && latestStatus.status !== "partial") {
+                break;
+            }
+        }
+
+        await writeTelemetryEventSafe("trade.entry_order_status_after_timeout", {
+            strategy: globalThis.__CONFIG__.strategy,
+            marketSlug: trade.marketSlug,
+            orderId,
+            reason: "entry_cancel_after_timeout",
+            providerOrderStatus: latestStatus.status,
+            providerFilledSize: latestStatus.filledSize ?? null,
+            providerRemainingSize: latestStatus.remainingSize ?? null,
+            providerAvgPrice: latestStatus.avgPrice ?? null,
+            ...context,
+        });
+        return latestStatus;
+    };
+    const reconcilePendingEntryState = async (trade: any): Promise<boolean> => {
+        const pending = trade.pendingEntryReconciliation;
+        if (!pending?.orderId) {
+            clearPendingEntryReconciliation(trade);
+            return true;
+        }
+
+        await trade.updateTokenBalances();
+        const hasHoldings = (trade.holdingStatus === Market.Up || trade.holdingStatus === Market.Down) && Number(trade.share) > 0;
+        if (hasHoldings) {
+            await writeTelemetryEventSafe("trade.position_resolved", {
+                strategy: globalThis.__CONFIG__.strategy,
+                marketSlug: pending.marketSlug ?? trade.marketSlug,
+                reason: "entry_timeout_balance_detected",
+                sideBefore: pending.side ?? null,
+                orderId: pending.orderId,
+                tokenId: pending.tokenId ?? null,
+                holdingStatusAfter: trade.holdingStatus,
+                sharesAfter: trade.share,
+                positionStateAfter: trade.positionState,
+                resolvedAfterMs: Date.now() - Date.parse(String(pending.blockedAt ?? new Date().toISOString())),
+                providerOrderStatus: pending.providerOrderStatus ?? null,
+            });
+            clearPendingEntryReconciliation(trade);
+            return true;
+        }
+
+        const status = await getLiveEntryOrderStatus(trade, String(pending.orderId));
+        trade.pendingEntryReconciliation = {
+            ...pending,
+            providerOrderStatus: status.status,
+            providerFilledSize: status.filledSize ?? null,
+            providerRemainingSize: status.remainingSize ?? null,
+            providerAvgPrice: status.avgPrice ?? null,
+            lastCheckedAt: new Date().toISOString(),
+        };
+
+        const noOpenExitOrders = Object.keys(trade.openExitOrders ?? {}).length === 0;
+        const terminalNoFill = ["canceled", "expired", "rejected"].includes(status.status);
+        if (terminalNoFill && noOpenExitOrders) {
+            trade.hasBought = false;
+            trade.pendingEntrySignal = null;
+            syncPositionStateFromHoldings(trade);
+            await writeTelemetryEventSafe("trade.position_resolved", {
+                strategy: globalThis.__CONFIG__.strategy,
+                marketSlug: pending.marketSlug ?? trade.marketSlug,
+                reason: "entry_timeout_reconciled_no_fill",
+                sideBefore: pending.side ?? null,
+                orderId: pending.orderId,
+                tokenId: pending.tokenId ?? null,
+                holdingStatusAfter: trade.holdingStatus,
+                sharesAfter: trade.share,
+                positionStateAfter: trade.positionState,
+                resolvedAfterMs: Date.now() - Date.parse(String(pending.blockedAt ?? new Date().toISOString())),
+                providerOrderStatus: status.status,
+                providerFilledSize: status.filledSize ?? null,
+                providerRemainingSize: status.remainingSize ?? null,
+                providerAvgPrice: status.avgPrice ?? null,
+            });
+            clearPendingEntryReconciliation(trade);
+            return true;
+        }
+
+        trade.positionState = "ERROR";
+        return false;
     };
     const buildSellTelemetryPayload = (
         trade: any,
@@ -1093,6 +1205,87 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
         }
     };
 
+    TradeClass.prototype.hydrateOpenEntryOrders = async function (): Promise<void> {
+        if (PAPER_TRADING || !this.authorizedClob) {
+            return;
+        }
+
+        ensureLiveClient(this);
+        let openOrders: any[] = [];
+        try {
+            const response = await this.authorizedClob.getOpenOrders({}, true);
+            openOrders = Array.isArray(response) ? response : [];
+        } catch (error) {
+            await writeTelemetryEventSafe("trade.entry_order_status_after_timeout", {
+                strategy: globalThis.__CONFIG__.strategy,
+                reason: "hydrate_open_entry_orders_failed",
+                marketSlug: this.marketSlug,
+                errorMessage: error instanceof Error ? error.message : String(error),
+            });
+            return;
+        }
+
+        let hydratedCount = 0;
+        for (const order of openOrders) {
+            const status = String(order?.status ?? "").toLowerCase();
+            const orderSide = String(order?.side ?? "").toUpperCase();
+            const tokenId = String(order?.asset_id ?? order?.token_id ?? order?.tokenID ?? "");
+            const orderId = String(order?.id ?? order?.orderID ?? order?.orderId ?? "");
+            const side =
+                tokenId === this.upTokenId ? "UP" :
+                tokenId === this.downTokenId ? "DOWN" :
+                null;
+
+            if (status !== "live" || orderSide !== "BUY" || !side || !orderId) {
+                continue;
+            }
+
+            const requestedSize = toRoundedSize(order?.original_size ?? order?.size ?? 0);
+            const price = Number(order?.price ?? 0);
+            const nowIso = new Date().toISOString();
+            this.pendingEntryReconciliation = {
+                blockedAt: nowIso,
+                side,
+                marketSlug: this.marketSlug,
+                tokenId,
+                orderId,
+                requestedUsd: Number.isFinite(price) && requestedSize > 0 ? roundCurrency(price * requestedSize) : null,
+                entryPrice: Number.isFinite(price) ? price : null,
+                decisionTimestamp: null,
+                providerOrderStatus: "live",
+                providerFilledSize: toRoundedSize(order?.size_matched ?? 0),
+                providerRemainingSize: requestedSize,
+                providerAvgPrice: Number.isFinite(price) ? price : null,
+                lastCheckedAt: nowIso,
+                source: "startup_open_entry_order_hydration",
+            };
+            this.positionState = "ERROR";
+            hydratedCount += 1;
+
+            const finalStatus = await cancelLiveEntryOrderIfOpen(this, orderId, {
+                side,
+                tokenId,
+                source: "startup_open_entry_order_hydration",
+            });
+            this.pendingEntryReconciliation = {
+                ...this.pendingEntryReconciliation,
+                providerOrderStatus: finalStatus.status,
+                providerFilledSize: finalStatus.filledSize ?? this.pendingEntryReconciliation.providerFilledSize ?? null,
+                providerRemainingSize: finalStatus.remainingSize ?? this.pendingEntryReconciliation.providerRemainingSize ?? null,
+                providerAvgPrice: finalStatus.avgPrice ?? this.pendingEntryReconciliation.providerAvgPrice ?? null,
+                lastCheckedAt: new Date().toISOString(),
+            };
+            await reconcilePendingEntryState(this);
+            if (isPendingEntryReconciliationActive(this)) {
+                break;
+            }
+        }
+
+        if (hydratedCount > 0) {
+            console.log(`↩️  Hydrated ${hydratedCount} open entry order(s) from CLOB`);
+        }
+    };
+
     TradeClass.prototype.validateExecutionSafety = async function (side: "UP" | "DOWN", executionPrice: number): Promise<boolean> {
         const trade4 = getTrade4LikeConfig(globalThis.__CONFIG__);
         if (!trade4) {
@@ -1100,6 +1293,21 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
         }
 
         await this.reconcileOpenExitOrders();
+        if (isPendingEntryReconciliationActive(this)) {
+            const reconciled = await reconcilePendingEntryState(this);
+            if (!reconciled && isPendingEntryReconciliationActive(this)) {
+                await writeTelemetryEventSafe("trade.signal_rejected", buildSignalRejectedPayload(this, "entry_reconciliation_pending", {
+                    requestedSide: sideToMarket(side),
+                    orderId: this.pendingEntryReconciliation?.orderId ?? null,
+                    providerOrderStatus: this.pendingEntryReconciliation?.providerOrderStatus ?? null,
+                    blockedAt: this.pendingEntryReconciliation?.blockedAt ?? null,
+                    tokenId: this.pendingEntryReconciliation?.tokenId ?? null,
+                    marketSlug: this.marketSlug,
+                    positionState: this.positionState,
+                }));
+                return false;
+            }
+        }
 
         const blockingExitOrder = getBlockingExitOrder(this);
         if (blockingExitOrder) {
@@ -1175,6 +1383,56 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
             return false;
         }
 
+        return true;
+    };
+    TradeClass.prototype.reconcilePendingEntryState = async function (): Promise<boolean> {
+        return reconcilePendingEntryState(this);
+    };
+    const maybeProtectLateFilledEntry = async (
+        trade: any,
+        payload: {
+            side: "UP" | "DOWN";
+            decisionTimestamp: string;
+            executionTimestamp: string;
+        },
+    ): Promise<boolean> => {
+        if (PAPER_TRADING) {
+            return false;
+        }
+
+        const trade4 = getTrade4LikeConfig(globalThis.__CONFIG__);
+        if (!trade4) {
+            return false;
+        }
+
+        const elapsedMs = decisionToExecutionMs(payload.decisionTimestamp, payload.executionTimestamp);
+        const maxEntryFillDelayMs = Number(trade4.max_entry_fill_delay_ms ?? 12000);
+        if (!Number.isFinite(elapsedMs) || elapsedMs < 0 || elapsedMs <= maxEntryFillDelayMs) {
+            return false;
+        }
+
+        const remainingSeconds = Math.max(0, Number(trade.remainingTime) || 0);
+        const detail = `decisionToExecutionMs=${elapsedMs} > maxEntryFillDelayMs=${maxEntryFillDelayMs} | remainingSeconds=${remainingSeconds}`;
+        console.warn(`⚠️  Late fill guard triggered | side=${payload.side} | ${detail}`);
+        await writeTelemetryEventSafe("feed.error", {
+            slug: trade.marketSlug,
+            source: "late_fill_guard",
+            side: payload.side,
+            decisionTimestamp: payload.decisionTimestamp,
+            executionTimestamp: payload.executionTimestamp,
+            decisionToExecutionMs: elapsedMs,
+            maxEntryFillDelayMs,
+            remainingSeconds,
+        });
+
+        trade.pendingExitReason = "late_fill_guard";
+        trade.pendingExitErrorContext = detail;
+        GLOBAL_TX_PROCESS.current = TxProcess.Idle;
+        if (payload.side === "UP") {
+            await trade.sellUpToken();
+        } else {
+            await trade.sellDownToken();
+        }
         return true;
     };
     const simulatePaperMakerLifecycle = async (
@@ -1626,10 +1884,123 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
 
             // Mark as bought
             this.hasBought = true;
+            const decisionTimestamp = this.pendingEntrySignal?.signalTimestamp ?? new Date().toISOString();
+            const orderId = String(order?.orderID ?? order?.orderId ?? "");
+            const postedAt = new Date().toISOString();
+            await emitEntryPostedEvent(this, {
+                entrySignal,
+                side: "UP",
+                tokenId: this.upTokenId,
+                entryPrice: initialExecutionPrice,
+                decisionTimestamp,
+                executionTimestamp: postedAt,
+                shares: 0,
+                orderId,
+                orderStatus: String(order?.status ?? ""),
+                requestedUsd: roundedTradeAmount,
+                availableUsdAfterFill: this.usd,
+                makerMode,
+                momentumDirection,
+                momentumScore,
+                momentumConfidence,
+                mcConvergence,
+                mcSimulatedDirection,
+                mcBullPaths,
+                mcBearPaths,
+            });
 
             // Poll balance every 1 second until up token balance is received
-            await this.waitForBalance("up");
-            const decisionTimestamp = this.pendingEntrySignal?.signalTimestamp ?? new Date().toISOString();
+            try {
+                await this.waitForBalance("up");
+            } catch (error: any) {
+                const timeoutAt = new Date().toISOString();
+                let providerOrderStatus = await getLiveEntryOrderStatus(this, orderId);
+                providerOrderStatus = await cancelLiveEntryOrderIfOpen(this, orderId, {
+                    side: "UP",
+                    tokenId: this.upTokenId,
+                    tokenType: "up",
+                    source: "entry_balance_timeout",
+                });
+                await emitEntryTimeoutEvent(this, {
+                    entrySignal,
+                    side: "UP",
+                    tokenId: this.upTokenId,
+                    entryPrice: initialExecutionPrice,
+                    decisionTimestamp,
+                    executionTimestamp: timeoutAt,
+                    shares: this.share,
+                    orderId,
+                    orderStatus: String(order?.status ?? ""),
+                    requestedUsd: roundedTradeAmount,
+                    availableUsdAfterFill: this.usd,
+                    makerMode,
+                    momentumDirection,
+                    momentumScore,
+                    momentumConfidence,
+                    mcConvergence,
+                    mcSimulatedDirection,
+                    mcBullPaths,
+                    mcBearPaths,
+                    timeoutMs: 60000,
+                    tokenType: "up",
+                    errorMessage: error?.message ?? String(error),
+                    providerOrderStatus: providerOrderStatus.status,
+                    providerFilledSize: providerOrderStatus.filledSize ?? null,
+                    providerRemainingSize: providerOrderStatus.remainingSize ?? null,
+                    providerAvgPrice: providerOrderStatus.avgPrice ?? null,
+                });
+                this.pendingEntryReconciliation = {
+                    blockedAt: timeoutAt,
+                    side: "UP",
+                    marketSlug: this.marketSlug,
+                    tokenId: this.upTokenId,
+                    orderId,
+                    requestedUsd: roundedTradeAmount,
+                    entryPrice: initialExecutionPrice,
+                    decisionTimestamp,
+                    providerOrderStatus: providerOrderStatus.status,
+                    providerFilledSize: providerOrderStatus.filledSize ?? null,
+                    providerRemainingSize: providerOrderStatus.remainingSize ?? null,
+                    providerAvgPrice: providerOrderStatus.avgPrice ?? null,
+                    lastCheckedAt: timeoutAt,
+                };
+                this.positionState = "ERROR";
+                playCliAlertSound("critical");
+                await writeTelemetryEventSafe("trade.entry_order_status_after_timeout", {
+                    ...buildBuyTelemetryPayload(this, {
+                        entrySignal,
+                        side: "UP",
+                        tokenId: this.upTokenId,
+                        entryPrice: initialExecutionPrice,
+                        decisionTimestamp,
+                        executionTimestamp: timeoutAt,
+                        shares: this.share,
+                        orderId,
+                        orderStatus: String(order?.status ?? ""),
+                        requestedUsd: roundedTradeAmount,
+                        availableUsdAfterFill: this.usd,
+                        makerMode,
+                        momentumDirection,
+                        momentumScore,
+                        momentumConfidence,
+                        mcConvergence,
+                        mcSimulatedDirection,
+                        mcBullPaths,
+                        mcBearPaths,
+                        timeoutMs: 60000,
+                        tokenType: "up",
+                        providerOrderStatus: providerOrderStatus.status,
+                        providerFilledSize: providerOrderStatus.filledSize ?? null,
+                        providerRemainingSize: providerOrderStatus.remainingSize ?? null,
+                        providerAvgPrice: providerOrderStatus.avgPrice ?? null,
+                    }),
+                });
+                const reconciled = await reconcilePendingEntryState(this);
+                if (reconciled && !isPendingEntryReconciliationActive(this)) {
+                    return;
+                }
+                throw error;
+            }
             const executionTimestamp = new Date().toISOString();
             const entryPrice = makerMode ? initialPassivePrice : Number(this.upBuyPrice);
             this.recordExecutedEntry("UP", entryPrice, executionTimestamp, {
@@ -1646,7 +2017,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                 decisionTimestamp,
                 executionTimestamp,
                 shares: this.share,
-                orderId: String(order?.orderID ?? order?.orderId ?? ""),
+                orderId,
                 orderStatus: String(order?.status ?? ""),
                 requestedUsd: roundedTradeAmount,
                 availableUsdAfterFill: this.usd,
@@ -1663,7 +2034,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                 decisionTimestamp,
                 executionTimestamp,
                 shares: this.share,
-                orderId: String(order?.orderID ?? order?.orderId ?? ""),
+                orderId,
                 orderStatus: String(order?.status ?? ""),
                 requestedUsd: roundedTradeAmount,
                 availableUsdAfterFill: this.usd,
@@ -1676,6 +2047,13 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                 mcBullPaths,
                 mcBearPaths,
             }));
+            if (await maybeProtectLateFilledEntry(this, {
+                side: "UP",
+                decisionTimestamp,
+                executionTimestamp,
+            })) {
+                return;
+            }
             playCliTradeSound("buy");
         } catch (error: any) {
             console.error("❌ Error buying up token:", error);
@@ -1928,10 +2306,123 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
 
             // Mark as bought
             this.hasBought = true;
+            const decisionTimestamp = this.pendingEntrySignal?.signalTimestamp ?? new Date().toISOString();
+            const orderId = String(order?.orderID ?? order?.orderId ?? "");
+            const postedAt = new Date().toISOString();
+            await emitEntryPostedEvent(this, {
+                entrySignal,
+                side: "DOWN",
+                tokenId: this.downTokenId,
+                entryPrice: initialExecutionPrice,
+                decisionTimestamp,
+                executionTimestamp: postedAt,
+                shares: 0,
+                orderId,
+                orderStatus: String(order?.status ?? ""),
+                requestedUsd: roundedTradeAmount,
+                availableUsdAfterFill: this.usd,
+                makerMode,
+                momentumDirection,
+                momentumScore,
+                momentumConfidence,
+                mcConvergence,
+                mcSimulatedDirection,
+                mcBullPaths,
+                mcBearPaths,
+            });
 
             // Poll balance every 1 second until down token balance is received
-            await this.waitForBalance("down");
-            const decisionTimestamp = this.pendingEntrySignal?.signalTimestamp ?? new Date().toISOString();
+            try {
+                await this.waitForBalance("down");
+            } catch (error: any) {
+                const timeoutAt = new Date().toISOString();
+                let providerOrderStatus = await getLiveEntryOrderStatus(this, orderId);
+                providerOrderStatus = await cancelLiveEntryOrderIfOpen(this, orderId, {
+                    side: "DOWN",
+                    tokenId: this.downTokenId,
+                    tokenType: "down",
+                    source: "entry_balance_timeout",
+                });
+                await emitEntryTimeoutEvent(this, {
+                    entrySignal,
+                    side: "DOWN",
+                    tokenId: this.downTokenId,
+                    entryPrice: initialExecutionPrice,
+                    decisionTimestamp,
+                    executionTimestamp: timeoutAt,
+                    shares: this.share,
+                    orderId,
+                    orderStatus: String(order?.status ?? ""),
+                    requestedUsd: roundedTradeAmount,
+                    availableUsdAfterFill: this.usd,
+                    makerMode,
+                    momentumDirection,
+                    momentumScore,
+                    momentumConfidence,
+                    mcConvergence,
+                    mcSimulatedDirection,
+                    mcBullPaths,
+                    mcBearPaths,
+                    timeoutMs: 60000,
+                    tokenType: "down",
+                    errorMessage: error?.message ?? String(error),
+                    providerOrderStatus: providerOrderStatus.status,
+                    providerFilledSize: providerOrderStatus.filledSize ?? null,
+                    providerRemainingSize: providerOrderStatus.remainingSize ?? null,
+                    providerAvgPrice: providerOrderStatus.avgPrice ?? null,
+                });
+                this.pendingEntryReconciliation = {
+                    blockedAt: timeoutAt,
+                    side: "DOWN",
+                    marketSlug: this.marketSlug,
+                    tokenId: this.downTokenId,
+                    orderId,
+                    requestedUsd: roundedTradeAmount,
+                    entryPrice: initialExecutionPrice,
+                    decisionTimestamp,
+                    providerOrderStatus: providerOrderStatus.status,
+                    providerFilledSize: providerOrderStatus.filledSize ?? null,
+                    providerRemainingSize: providerOrderStatus.remainingSize ?? null,
+                    providerAvgPrice: providerOrderStatus.avgPrice ?? null,
+                    lastCheckedAt: timeoutAt,
+                };
+                this.positionState = "ERROR";
+                playCliAlertSound("critical");
+                await writeTelemetryEventSafe("trade.entry_order_status_after_timeout", {
+                    ...buildBuyTelemetryPayload(this, {
+                        entrySignal,
+                        side: "DOWN",
+                        tokenId: this.downTokenId,
+                        entryPrice: initialExecutionPrice,
+                        decisionTimestamp,
+                        executionTimestamp: timeoutAt,
+                        shares: this.share,
+                        orderId,
+                        orderStatus: String(order?.status ?? ""),
+                        requestedUsd: roundedTradeAmount,
+                        availableUsdAfterFill: this.usd,
+                        makerMode,
+                        momentumDirection,
+                        momentumScore,
+                        momentumConfidence,
+                        mcConvergence,
+                        mcSimulatedDirection,
+                        mcBullPaths,
+                        mcBearPaths,
+                        timeoutMs: 60000,
+                        tokenType: "down",
+                        providerOrderStatus: providerOrderStatus.status,
+                        providerFilledSize: providerOrderStatus.filledSize ?? null,
+                        providerRemainingSize: providerOrderStatus.remainingSize ?? null,
+                        providerAvgPrice: providerOrderStatus.avgPrice ?? null,
+                    }),
+                });
+                const reconciled = await reconcilePendingEntryState(this);
+                if (reconciled && !isPendingEntryReconciliationActive(this)) {
+                    return;
+                }
+                throw error;
+            }
             const executionTimestamp = new Date().toISOString();
             const entryPrice = makerMode ? initialPassivePrice : Number(this.downBuyPrice);
             this.recordExecutedEntry("DOWN", entryPrice, executionTimestamp, {
@@ -1948,7 +2439,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                 decisionTimestamp,
                 executionTimestamp,
                 shares: this.share,
-                orderId: String(order?.orderID ?? order?.orderId ?? ""),
+                orderId,
                 orderStatus: String(order?.status ?? ""),
                 requestedUsd: roundedTradeAmount,
                 availableUsdAfterFill: this.usd,
@@ -1965,7 +2456,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                 decisionTimestamp,
                 executionTimestamp,
                 shares: this.share,
-                orderId: String(order?.orderID ?? order?.orderId ?? ""),
+                orderId,
                 orderStatus: String(order?.status ?? ""),
                 requestedUsd: roundedTradeAmount,
                 availableUsdAfterFill: this.usd,
@@ -1978,6 +2469,13 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                 mcBullPaths,
                 mcBearPaths,
             }));
+            if (await maybeProtectLateFilledEntry(this, {
+                side: "DOWN",
+                decisionTimestamp,
+                executionTimestamp,
+            })) {
+                return;
+            }
             playCliTradeSound("buy");
         } catch (error: any) {
             console.error("❌ Error buying down token:", error);

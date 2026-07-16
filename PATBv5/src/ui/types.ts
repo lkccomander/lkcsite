@@ -33,6 +33,12 @@ export interface Candle {
   marker?: "UP" | "DOWN";
 }
 
+export interface VolumeBar {
+  time: string;
+  value: number;
+  color?: string;
+}
+
 export interface OrderBookLevel {
   price: number;
   size: number;
@@ -167,6 +173,7 @@ export interface TerminalState {
   header: HeaderData;
   wallet: WalletData;
   btcChart: Candle[];
+  btcVolume: VolumeBar[];
   orderBook: OrderBookData;
   forceGraph: ForceGraphData;
   recentTrades: TradeRow[];

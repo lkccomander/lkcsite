@@ -53,6 +53,7 @@ const Trade4Schema = Trade3Schema.extend({
   maker_rebate_bps: z.number().default(0),
   reject_if_price_moves_against_us_fast: z.boolean().default(true),
   max_price_change_after_signal: z.number().default(0.025),
+  max_entry_fill_delay_ms: z.number().default(12000),
   prevent_opposite_side_reentry: z.boolean().default(true),
   opposite_side_cooldown_seconds: z.number().default(120),
   up_min_entry_price: z.number().optional(),
@@ -75,7 +76,7 @@ const Trade4Schema = Trade3Schema.extend({
 });
 
 const ConfigSchema = z.object({
-  strategy: z.enum(["trade_1", "trade_2", "trade_3", "trade_4", "trade_5x"]),
+  strategy: z.enum(["trade_1", "trade_2", "trade_3", "trade_4", "trade_5x", "trade_5x_open_paper"]),
   trade_usd: z.number(),
   max_retries: z.number().default(3),
   market: z.object({
@@ -99,6 +100,7 @@ const ConfigSchema = z.object({
   trade_3: Trade3Schema.optional(),
   trade_4: Trade4Schema.optional(),
   trade_5x: Trade4Schema.optional(),
+  trade_5x_open_paper: Trade4Schema.optional(),
 }).superRefine((config, ctx) => {
   if (!config[config.strategy]) {
     ctx.addIssue({
@@ -131,6 +133,9 @@ export function getTrade4LikeConfig(config: Config | undefined = globalThis.__CO
   }
   if (config.strategy === "trade_5x") {
     return config.trade_5x ?? config.trade_4;
+  }
+  if (config.strategy === "trade_5x_open_paper") {
+    return config.trade_5x_open_paper ?? config.trade_5x ?? config.trade_4;
   }
   return config.trade_4;
 }

@@ -1,11 +1,17 @@
 // src/report/parser.ts
-import { openSync, closeSync, readSync, statSync } from 'fs';
+import { createReadStream, openSync, closeSync, readSync, statSync } from 'fs';
+import { createInterface } from 'readline';
 import { SessionReport, TradeRecord, FeedWindow, RejectionBucket, Anomaly, GateCheck, RejectionPayloadRecord } from './types';
 
 const CAPTURED_REJECTION_REASONS = new Set([
   'entry_price_window',
   'up_bias_filter',
+  'entry_latency_gate',
 ]);
+
+function toFiniteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
 
 // Utility function to read last N lines from a file
 async function readLastLines(filePath: string, n: number): Promise<string[]> {
@@ -34,13 +40,39 @@ async function readLastLines(filePath: string, n: number): Promise<string[]> {
   }
 }
 
+function processLine(line: string, report: SessionReport): void {
+  try {
+    const event = JSON.parse(line);
+    processEvent(event, report);
+  } catch {
+    // Skip malformed JSON lines.
+  }
+}
+
+async function processFullFile(filePath: string, report: SessionReport): Promise<void> {
+  const input = createReadStream(filePath, { encoding: 'utf8' });
+  const lines = createInterface({ input, crlfDelay: Infinity });
+
+  for await (const line of lines) {
+    if (line.length === 0) continue;
+    report.totalEvents++;
+    processLine(line, report);
+  }
+}
+
 // Parse telemetry events into a SessionReport
-export async function parseTelemetry(files: string[], tailLines: number = 50000): Promise<SessionReport> {
+export async function parseTelemetry(files: string[], tailLines?: number): Promise<SessionReport> {
+  if (tailLines !== undefined && (!Number.isInteger(tailLines) || tailLines <= 0)) {
+    throw new Error(`tailLines must be a positive integer; received ${tailLines}`);
+  }
+
   // Initialize report structure
   const report: SessionReport = {
     sessionIds: [],
     files: files,
     totalEvents: 0,
+    analysisScope: tailLines === undefined ? 'full' : 'tail',
+    tailLines: tailLines ?? null,
     strategy: '',
     mode: '',
     startBalance: 0,
@@ -51,6 +83,9 @@ export async function parseTelemetry(files: string[], tailLines: number = 50000)
     momEventCount: 0,
     mcEventCount: 0,
     shadowEventCount: 0,
+    shadowResolvedEventCount: 0,
+    shadowUnresolvedEventCount: 0,
+    shadowWinCount: 0,
     netPnl: 0,
     grossPnl: 0,
     totalFees: 0,
@@ -69,26 +104,39 @@ export async function parseTelemetry(files: string[], tailLines: number = 50000)
     momScoreMin: 0,
     momScoreMax: 0,
     momConfAvg: 0,
+    momUsableEventCount: 0,
+    momMissingFieldEventCount: 0,
     trades: [],
     rejectionBreakdown: [],
     rejectionPayloads: {},
+    entryLatencyGateBreakdown: {
+      age: 0,
+      latency: 0,
+      rtt: 0,
+      unknown: 0,
+    },
+    acceptedTradeMcConvAvg: 0,
+    acceptedTradeMcConvMin: 0,
+    acceptedTradeMcConvMax: 0,
     anomalies: [],
-    gateChecks: []
+    gateChecks: [],
+    rttSamples: [],
+    seenShadowSignalIds: new Set<string>(),
   };
+  Object.defineProperty(report, 'rttSamples', { enumerable: false, writable: true, value: [] });
+  Object.defineProperty(report, 'seenShadowSignalIds', { enumerable: false, writable: true, value: new Set<string>() });
 
   // Process each file
   for (const file of files) {
     try {
-      const lines = await readLastLines(file, tailLines);
-      report.totalEvents += lines.length;
-      
-      for (const line of lines) {
-        try {
-          const event = JSON.parse(line);
-          await processEvent(event, report);
-        } catch (e) {
-          // Skip malformed JSON lines
-          continue;
+      if (tailLines === undefined) {
+        await processFullFile(file, report);
+      } else {
+        const lines = await readLastLines(file, tailLines);
+        report.totalEvents += lines.length;
+
+        for (const line of lines) {
+          processLine(line, report);
         }
       }
     } catch (error) {
@@ -103,7 +151,7 @@ export async function parseTelemetry(files: string[], tailLines: number = 50000)
 }
 
 // Process individual telemetry events
-async function processEvent(event: any, report: SessionReport): Promise<void> {
+function processEvent(event: any, report: SessionReport): void {
   const eventType = event.type || event.event;
   const payload = event.payload || {};
 
@@ -203,28 +251,74 @@ async function processEvent(event: any, report: SessionReport): Promise<void> {
         records.push(capturedPayload);
         report.rejectionPayloads[reason] = records;
       }
+      if (reason === 'entry_latency_gate') {
+        const feedAgeMs = toFiniteNumber(payload.feedAgeMs);
+        const maxEntryFeedAgeMs = toFiniteNumber(payload.maxEntryFeedAgeMs);
+        const feedLatencyMs = toFiniteNumber(payload.feedLatencyMs);
+        const maxEntryFeedLatencyMs = toFiniteNumber(payload.maxEntryFeedLatencyMs);
+        const feedRttMs = toFiniteNumber(payload.feedRttMs);
+        const maxEntryFeedRttMs = toFiniteNumber(payload.maxEntryFeedRttMs);
+        const ageExceeded = feedAgeMs !== null && maxEntryFeedAgeMs !== null && feedAgeMs > maxEntryFeedAgeMs;
+        const latencyExceeded = feedLatencyMs !== null && maxEntryFeedLatencyMs !== null && feedLatencyMs > maxEntryFeedLatencyMs;
+        const rttExceeded = feedRttMs !== null && maxEntryFeedRttMs !== null && feedRttMs > maxEntryFeedRttMs;
+
+        if (ageExceeded) report.entryLatencyGateBreakdown.age++;
+        if (latencyExceeded) report.entryLatencyGateBreakdown.latency++;
+        if (rttExceeded) report.entryLatencyGateBreakdown.rtt++;
+        if (!ageExceeded && !latencyExceeded && !rttExceeded) {
+          report.entryLatencyGateBreakdown.unknown++;
+        }
+      }
       break;
       
     case 'trade.shadow_pnl':
+      if (typeof payload.signalId === 'string' && payload.signalId.length > 0) {
+        if (report.seenShadowSignalIds.has(payload.signalId)) {
+          break;
+        }
+        report.seenShadowSignalIds.add(payload.signalId);
+      }
       report.shadowEventCount++;
-      // Track shadow PnL for win rate calculation
-      if (payload.hypotheticalPnlUsd !== undefined) {
+      if (typeof payload.hypotheticalPnlUsd === 'number' && Number.isFinite(payload.hypotheticalPnlUsd)) {
+        report.shadowResolvedEventCount++;
         report.shadowTotalHypothetical += payload.hypotheticalPnlUsd;
         if (payload.hypotheticalPnlUsd > 0) {
-          // This would need to be tracked separately for win rate calculation
+          report.shadowWinCount++;
         }
+      } else {
+        report.shadowUnresolvedEventCount++;
       }
       break;
       
     case 'signal.momentum':
       report.momEventCount++;
-      const direction = payload.momentumDirection || 'NEUTRAL';
-      report.momDirections[direction] = (report.momDirections[direction] || 0) + 1;
-      // Track min/max scores and confidence
-      const score = payload.momentumScore || 0;
-      if (score < report.momScoreMin || report.momScoreMin === 0) report.momScoreMin = score;
-      if (score > report.momScoreMax) report.momScoreMax = score;
-      report.momConfAvg = ((report.momConfAvg * (report.momEventCount - 1)) + (payload.momentumConfidence || 0)) / report.momEventCount;
+      const rawDirection = payload.direction ?? payload.momentumDirection;
+      const rawScore = payload.score ?? payload.momentumScore;
+      const rawConfidence = payload.confidence ?? payload.momentumConfidence;
+      const hasDirection = typeof rawDirection === 'string' && rawDirection.trim().length > 0;
+      const hasScore = typeof rawScore === 'number' && Number.isFinite(rawScore);
+      const hasConfidence = typeof rawConfidence === 'number' && Number.isFinite(rawConfidence);
+
+      if (hasDirection && hasScore && hasConfidence) {
+        const direction = rawDirection.trim();
+        const score = rawScore;
+        const confidence = rawConfidence;
+        report.momUsableEventCount++;
+        report.momDirections[direction] = (report.momDirections[direction] || 0) + 1;
+
+        if (report.momUsableEventCount === 1) {
+          report.momScoreMin = score;
+          report.momScoreMax = score;
+        } else {
+          report.momScoreMin = Math.min(report.momScoreMin, score);
+          report.momScoreMax = Math.max(report.momScoreMax, score);
+        }
+        report.momConfAvg = (
+          (report.momConfAvg * (report.momUsableEventCount - 1)) + confidence
+        ) / report.momUsableEventCount;
+      } else {
+        report.momMissingFieldEventCount++;
+      }
       break;
       
     case 'signal.montecarlo':
@@ -243,9 +337,9 @@ async function processEvent(event: any, report: SessionReport): Promise<void> {
         slug: payload.slug || '',
         status: 'OK', // Will be updated based on fallbacks
         fallbacks: payload.fallbackCount || 0,
-        rttAvg: payload.rttAvg || 0,
-        rttMax: payload.rttMax || 0,
-        rttP95: payload.rttP95 || 0,
+        rttAvg: toFiniteNumber(payload.averageRttMs) ?? toFiniteNumber(payload.rttAvg) ?? 0,
+        rttMax: toFiniteNumber(payload.maxRttMs) ?? toFiniteNumber(payload.rttMax) ?? 0,
+        rttP95: toFiniteNumber(payload.p95RttMs) ?? toFiniteNumber(payload.rttP95) ?? 0,
         start: event.timestamp || new Date().toISOString(),
         end: event.timestamp || new Date().toISOString(),
         reconnectEvents: payload.reconnectEvents || 0,
@@ -266,9 +360,11 @@ async function processEvent(event: any, report: SessionReport): Promise<void> {
       
     case 'feed.rtt':
       // Track RTT metrics
-      const rtt = payload.rttMs || 0;
+      const rtt = toFiniteNumber(payload.rttMs) ?? 0;
       if (rtt > report.rttMax) report.rttMax = rtt;
-      // RTT average and P95 would need more complex calculation
+      if (rtt > 0) {
+        report.rttSamples.push(rtt);
+      }
       break;
       
     case 'feed.fallback':
@@ -318,15 +414,32 @@ function calculateDerivedMetrics(report: SessionReport): void {
   }
   report.netPnl = report.grossPnl - report.totalFees;
   
-  // Calculate RTT average (simplified)
-  if (report.feedWindows.length > 0) {
+  if (report.rttSamples.length > 0) {
+    const sorted = [...report.rttSamples].sort((left, right) => left - right);
+    const totalRtt = sorted.reduce((sum, sample) => sum + sample, 0);
+    report.rttAvg = totalRtt / sorted.length;
+    report.rttMax = sorted[sorted.length - 1];
+    const p95Index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * 0.95) - 1));
+    report.rttP95 = sorted[p95Index];
+  } else if (report.feedWindows.length > 0) {
     const totalRtt = report.feedWindows.reduce((sum, window) => sum + window.rttAvg, 0);
     report.rttAvg = totalRtt / report.feedWindows.length;
+    report.rttMax = Math.max(...report.feedWindows.map((window) => window.rttMax));
+    report.rttP95 = Math.max(...report.feedWindows.map((window) => window.rttP95));
   }
-  
-  // Calculate shadow win rate (simplified)
-  if (report.shadowEventCount > 0) {
-    report.shadowWinRate = (report.shadowTotalHypothetical > 0) ? 
-      Math.round((report.shadowTotalHypothetical / report.shadowEventCount) * 100) : 0;
+
+  if (report.shadowResolvedEventCount > 0) {
+    report.shadowWinRate = Math.round(
+      (report.shadowWinCount / report.shadowResolvedEventCount) * 1000,
+    ) / 10;
+  }
+
+  const acceptedTradeConvergences = report.trades
+    .map((trade) => trade.mcConvergence)
+    .filter((value) => Number.isFinite(value) && value > 0);
+  if (acceptedTradeConvergences.length > 0) {
+    report.acceptedTradeMcConvAvg = acceptedTradeConvergences.reduce((sum, value) => sum + value, 0) / acceptedTradeConvergences.length;
+    report.acceptedTradeMcConvMin = Math.min(...acceptedTradeConvergences);
+    report.acceptedTradeMcConvMax = Math.max(...acceptedTradeConvergences);
   }
 }

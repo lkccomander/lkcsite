@@ -44,7 +44,7 @@ function App() {
   return (
     <main className="terminal-app">
       <div className="atmosphere-grid" />
-      <HeaderBar data={data.header} />
+      <HeaderBar data={data.header} balance={data.wallet.balance} />
       <div className="mode-rack panel">
         <div className="mode-controls">
           <span className="mode-button active">LIVE FEED</span>
@@ -57,7 +57,7 @@ function App() {
       <LiveTape items={data.liveTape} />
       <section className="dashboard-grid">
         <WalletPanel data={data.wallet} />
-        <MarketPanel candles={data.btcChart} orderBook={data.orderBook} btcPrice={data.header.btcPrice} btcChange={data.header.btcChange} />
+        <MarketPanel candles={data.btcChart} volumeBars={data.btcVolume} orderBook={data.orderBook} btcPrice={data.header.btcPrice} btcChange={data.header.btcChange} />
         <BestTradePanel data={data.bestTrade} />
         <ExecutionCycle data={data.executionCycle} />
         <ForceGraphPanel data={data.forceGraph} />
