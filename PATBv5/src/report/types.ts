@@ -9,7 +9,12 @@ export interface FeedWindow {
   start: string;
   end: string;
   reconnectEvents: number;
+  scheduledReconnects: number;
+  forcedReconnects: number;
+  disconnects: number;
   fallbackReasons: Record<string, number>;
+  disconnectCodes: Record<string, number>;
+  websocketErrorCategories: Record<string, number>;
 }
 
 export interface RejectionBucket {
@@ -99,6 +104,12 @@ export interface SessionReport {
   sells: number;
   rejectionCount: number;
   fallbackCount: number;
+  reconnectScheduledCount: number;
+  forcedReconnectCount: number;
+  disconnectCount: number;
+  fallbackReasons: Record<string, number>;
+  disconnectCodes: Record<string, number>;
+  websocketErrorCategories: Record<string, number>;
   momEventCount: number;
   mcEventCount: number;
   shadowEventCount: number;

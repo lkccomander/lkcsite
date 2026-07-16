@@ -67,6 +67,10 @@ function slug(value: string): string {
     .slice(0, 80);
 }
 
+function dominantCounter(counter: Record<string, number>): [string, number] | null {
+  return Object.entries(counter).sort((left, right) => right[1] - left[1])[0] ?? null;
+}
+
 function buildWhatWentWell(report: SessionReport): ReportActionItem[] {
   const items: ReportActionItem[] = [];
   const completedTrades = report.trades.length;
@@ -158,6 +162,22 @@ function buildWhatWentWell(report: SessionReport): ReportActionItem[] {
 
 function buildProblems(report: SessionReport): ReportActionItem[] {
   const items: ReportActionItem[] = [];
+
+  const dominantTransportError = dominantCounter(report.websocketErrorCategories);
+  if (dominantTransportError || report.reconnectScheduledCount > 0 || report.disconnectCount > 0) {
+    const [category, categoryCount] = dominantTransportError ?? ['unknown', 0];
+    pushUnique(items, {
+      id: 'feed-transport-incident',
+      title: 'Feed transport recovery remained active',
+      severity: category === 'tls_certificate_policy' ? 'high' : 'medium',
+      evidence: `${category} errors=${categoryCount}; scheduled reconnects=${report.reconnectScheduledCount}; forced reconnects=${report.forcedReconnectCount}; disconnects=${report.disconnectCount}`,
+      impact: 'Transport incidents can create fallback bursts and invalidate timing-sensitive feed evidence.',
+      recommendation: category === 'tls_certificate_policy'
+        ? 'Keep TLS verification enabled, run the readiness check, and wait for the certificate circuit breaker before another session.'
+        : 'Inspect the dominant close code and fallback reason before another session.',
+      verification: 'The readiness command passes and a fresh report shows no sustained transport-error burst.',
+    });
+  }
 
   if (report.shadowUnresolvedEventCount > 0) {
     const ratio = report.shadowEventCount > 0

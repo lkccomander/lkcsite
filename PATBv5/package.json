@@ -37,6 +37,7 @@
     "test:report-tabs": "tsx tests/report_static_tabs.test.ts",
     "test:report-actions": "tsx tests/report_actions.test.ts",
     "test:report-accuracy": "tsx tests/report_accuracy.test.ts",
+    "test:report-feed-events": "tsx scripts/run_isolated_test.ts tests/report_feed_events.test.ts",
     "test:report-control": "tsx tests/report_control.test.ts",
     "test:feedgate": "tsx scripts/run_isolated_test.ts tests/feedgate.test.ts",
     "test:feed-transport-error": "tsx scripts/run_isolated_test.ts tests/feed_transport_error.test.ts",

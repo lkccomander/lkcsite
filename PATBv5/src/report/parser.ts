@@ -2,6 +2,7 @@
 import { createReadStream, openSync, closeSync, readSync, statSync } from 'fs';
 import { createInterface } from 'readline';
 import { SessionReport, TradeRecord, FeedWindow, RejectionBucket, Anomaly, GateCheck, RejectionPayloadRecord } from './types';
+import { classifyTransportError } from '../feed/transportError';
 
 const CAPTURED_REJECTION_REASONS = new Set([
   'entry_price_window',
@@ -11,6 +12,49 @@ const CAPTURED_REJECTION_REASONS = new Set([
 
 function toFiniteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function incrementCounter(counter: Record<string, number>, key: unknown): void {
+  const normalized = key === undefined || key === null || String(key).length === 0
+    ? 'unknown'
+    : String(key);
+  counter[normalized] = (counter[normalized] || 0) + 1;
+}
+
+function updateFeedWindowStatus(window: FeedWindow): void {
+  window.status = window.fallbacks >= 20 ? 'SPIKE' : window.fallbacks >= 7 ? 'ELEVATED' : 'OK';
+}
+
+function getOrCreateFeedWindow(report: SessionReport, slugValue: unknown, timestampValue: unknown): FeedWindow {
+  const slug = typeof slugValue === 'string' && slugValue.length > 0 ? slugValue : 'unknown';
+  const timestamp = typeof timestampValue === 'string' && timestampValue.length > 0
+    ? timestampValue
+    : new Date(0).toISOString();
+  let window = report.feedWindows.find((candidate) => candidate.slug === slug);
+  if (!window) {
+    window = {
+      slug,
+      status: 'OK',
+      fallbacks: 0,
+      rttAvg: 0,
+      rttMax: 0,
+      rttP95: 0,
+      start: timestamp,
+      end: timestamp,
+      reconnectEvents: 0,
+      scheduledReconnects: 0,
+      forcedReconnects: 0,
+      disconnects: 0,
+      fallbackReasons: {},
+      disconnectCodes: {},
+      websocketErrorCategories: {},
+    };
+    report.feedWindows.push(window);
+  } else {
+    if (timestamp < window.start) window.start = timestamp;
+    if (timestamp > window.end) window.end = timestamp;
+  }
+  return window;
 }
 
 // Utility function to read last N lines from a file
@@ -80,6 +124,12 @@ export async function parseTelemetry(files: string[], tailLines?: number): Promi
     sells: 0,
     rejectionCount: 0,
     fallbackCount: 0,
+    reconnectScheduledCount: 0,
+    forcedReconnectCount: 0,
+    disconnectCount: 0,
+    fallbackReasons: {},
+    disconnectCodes: {},
+    websocketErrorCategories: {},
     momEventCount: 0,
     mcEventCount: 0,
     shadowEventCount: 0,
@@ -332,30 +382,21 @@ function processEvent(event: any, report: SessionReport): void {
       break;
       
     case 'feed.summary':
-      // Process feed window data
-      const feedWindow: FeedWindow = {
-        slug: payload.slug || '',
-        status: 'OK', // Will be updated based on fallbacks
-        fallbacks: payload.fallbackCount || 0,
-        rttAvg: toFiniteNumber(payload.averageRttMs) ?? toFiniteNumber(payload.rttAvg) ?? 0,
-        rttMax: toFiniteNumber(payload.maxRttMs) ?? toFiniteNumber(payload.rttMax) ?? 0,
-        rttP95: toFiniteNumber(payload.p95RttMs) ?? toFiniteNumber(payload.rttP95) ?? 0,
-        start: event.timestamp || new Date().toISOString(),
-        end: event.timestamp || new Date().toISOString(),
-        reconnectEvents: payload.reconnectEvents || 0,
-        fallbackReasons: payload.fallbackReasons || {}
-      };
-      
-      // Determine status based on fallbacks
-      if (feedWindow.fallbacks >= 20) {
-        feedWindow.status = 'SPIKE';
-      } else if (feedWindow.fallbacks >= 7) {
-        feedWindow.status = 'ELEVATED';
-      } else {
-        feedWindow.status = 'OK';
+      const feedWindow = getOrCreateFeedWindow(report, payload.slug, event.timestamp);
+      if (feedWindow.fallbacks === 0) {
+        feedWindow.fallbacks = toFiniteNumber(payload.fallbackCount) ?? 0;
       }
-      
-      report.feedWindows.push(feedWindow);
+      feedWindow.rttAvg = toFiniteNumber(payload.averageRttMs) ?? toFiniteNumber(payload.rttAvg) ?? feedWindow.rttAvg;
+      feedWindow.rttMax = toFiniteNumber(payload.maxRttMs) ?? toFiniteNumber(payload.rttMax) ?? feedWindow.rttMax;
+      feedWindow.rttP95 = toFiniteNumber(payload.p95RttMs) ?? toFiniteNumber(payload.rttP95) ?? feedWindow.rttP95;
+      if (feedWindow.scheduledReconnects === 0) {
+        feedWindow.scheduledReconnects = toFiniteNumber(payload.reconnectEvents) ?? 0;
+        feedWindow.reconnectEvents = feedWindow.scheduledReconnects;
+      }
+      if (Object.keys(feedWindow.fallbackReasons).length === 0 && payload.fallbackReasons && typeof payload.fallbackReasons === 'object') {
+        feedWindow.fallbackReasons = { ...payload.fallbackReasons };
+      }
+      updateFeedWindowStatus(feedWindow);
       break;
       
     case 'feed.rtt':
@@ -369,6 +410,46 @@ function processEvent(event: any, report: SessionReport): void {
       
     case 'feed.fallback':
       report.fallbackCount += (payload.count || 1);
+      incrementCounter(report.fallbackReasons, payload.reason);
+      const fallbackWindow = getOrCreateFeedWindow(report, payload.slug, event.timestamp);
+      fallbackWindow.fallbacks += (payload.count || 1);
+      incrementCounter(fallbackWindow.fallbackReasons, payload.reason);
+      updateFeedWindowStatus(fallbackWindow);
+      break;
+
+    case 'feed.reconnect_scheduled':
+      report.reconnectScheduledCount++;
+      const reconnectWindow = getOrCreateFeedWindow(report, payload.slug, event.timestamp);
+      reconnectWindow.scheduledReconnects++;
+      reconnectWindow.reconnectEvents = reconnectWindow.scheduledReconnects;
+      break;
+
+    case 'feed.reconnect_forced':
+      report.forcedReconnectCount++;
+      getOrCreateFeedWindow(report, payload.slug, event.timestamp).forcedReconnects++;
+      break;
+
+    case 'feed.disconnected':
+      report.disconnectCount++;
+      incrementCounter(report.disconnectCodes, payload.code);
+      const disconnectWindow = getOrCreateFeedWindow(report, payload.slug, event.timestamp);
+      disconnectWindow.disconnects++;
+      incrementCounter(disconnectWindow.disconnectCodes, payload.code);
+      break;
+
+    case 'feed.error':
+      if (payload.source === 'websocket') {
+        const category = payload.category || classifyTransportError({
+          message: payload.error,
+          code: payload.errorCode,
+          cause: { code: payload.causeCode },
+        }).category;
+        incrementCounter(report.websocketErrorCategories, category);
+        incrementCounter(
+          getOrCreateFeedWindow(report, payload.slug, event.timestamp).websocketErrorCategories,
+          category,
+        );
+      }
       break;
   }
 }
@@ -407,6 +488,15 @@ function isNewSignalReason(reason: string): boolean {
 
 // Calculate derived metrics after processing all events
 function calculateDerivedMetrics(report: SessionReport): void {
+  report.feedWindows.sort((left, right) => left.start.localeCompare(right.start));
+  if (report.fallbackCount === 0 && report.feedWindows.length > 0) {
+    report.fallbackCount = report.feedWindows.reduce((sum, window) => sum + window.fallbacks, 0);
+    for (const window of report.feedWindows) {
+      for (const [reason, count] of Object.entries(window.fallbackReasons)) {
+        report.fallbackReasons[reason] = (report.fallbackReasons[reason] || 0) + count;
+      }
+    }
+  }
   // Calculate net PnL and total fees
   for (const trade of report.trades) {
     report.grossPnl += trade.grossPnl;

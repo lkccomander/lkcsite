@@ -1,6 +1,14 @@
 // src/report/anomalies.ts
 import { SessionReport, Anomaly, TradeRecord } from './types';
 
+function dominantCounter(counter: Record<string, number>): [string, number] | null {
+  return Object.entries(counter).sort((left, right) => right[1] - left[1])[0] ?? null;
+}
+
+function formatSignedCurrency(value: number): string {
+  return value < 0 ? `-$${Math.abs(value).toFixed(2)}` : `$${value.toFixed(2)}`;
+}
+
 // Detect anomalies in the session report
 export function detectAnomalies(report: SessionReport): Anomaly[] {
   const anomalies: Anomaly[] = [];
@@ -75,44 +83,61 @@ export function detectAnomalies(report: SessionReport): Anomaly[] {
     });
   }
   
-  // 5. TUNE (amber, priority 5)
-  // Trigger: any loss where mcConvergence >= 0.62 AND mcConvergence < 0.68
-  for (const trade of report.trades) {
-    if (trade.grossPnl < 0 && trade.mcConvergence >= 0.62 && trade.mcConvergence < 0.68) {
+  // 5. TUNE (amber, priority 5): aggregate evidence by side.
+  const convergenceLossesBySide = new Map<string, TradeRecord[]>();
+  for (const trade of report.trades.filter((candidate) => (
+    candidate.grossPnl < 0
+    && candidate.mcConvergence >= 0.62
+    && candidate.mcConvergence < 0.68
+  ))) {
+    const side = trade.side || 'UNKNOWN';
+    const losses = convergenceLossesBySide.get(side) ?? [];
+    losses.push(trade);
+    convergenceLossesBySide.set(side, losses);
+  }
+  for (const [side, losses] of convergenceLossesBySide) {
+    const values = losses.map((trade) => trade.mcConvergence);
+    const pnl = losses.reduce((sum, trade) => sum + trade.grossPnl, 0);
       anomalies.push({
         priority: 5,
         type: 'TUNE',
         severity: 'amber',
-        title: "Lost trade had convergence below 0.68 — raise threshold",
-        detail: `MC avg=${report.mcConvAvg.toFixed(3)}. Raising to 0.68 would block ${(report.mcBelow068 / report.mcEventCount * 100).toFixed(1)}% of signals.`
+        title: `${side} losses had convergence in the 0.62–0.68 band`,
+        detail: `${losses.length} ${side} loss${losses.length === 1 ? '' : 'es'} totaled ${formatSignedCurrency(pnl)}; observed convergence ${Math.min(...values).toFixed(3)}–${Math.max(...values).toFixed(3)}. Treat this as side-specific evidence, not a global threshold change.`
       });
-    }
   }
   
-  // 6. TUNE (amber, priority 6)
-  // Trigger: any stop_loss exit where holdSeconds < 15
-  for (const trade of report.trades) {
-    if (trade.sellReason === 'stop_loss' && trade.holdSeconds < 15) {
+  // 6. TUNE (amber, priority 6): aggregate fast exits.
+  const fastStops = report.trades.filter((trade) => trade.sellReason === 'stop_loss' && trade.holdSeconds < 15);
+  if (fastStops.length > 0) {
+    const holds = fastStops.map((trade) => trade.holdSeconds);
+    const pnl = fastStops.reduce((sum, trade) => sum + trade.grossPnl, 0);
       anomalies.push({
         priority: 6,
         type: 'TUNE',
         severity: 'amber',
-        title: `Stop loss in ${trade.holdSeconds.toFixed(0)}s — possible spread noise trigger`,
-        detail: ""
+        title: `${fastStops.length} stop losses within 15s — possible spread noise`,
+        detail: `${fastStops.length} stop-losses totaled ${formatSignedCurrency(pnl)} with holds from ${Math.min(...holds).toFixed(0)}s to ${Math.max(...holds).toFixed(0)}s.`
       });
-    }
   }
   
   // 7. MONITOR (gray, priority 7)
   // Trigger: any FeedWindow with fallbacks > 20
   for (const window of report.feedWindows) {
     if (window.fallbacks > 20) {
+      const dominantFallback = dominantCounter(window.fallbackReasons);
+      const dominantError = dominantCounter(window.websocketErrorCategories);
+      const dominant = dominantError
+        ? `dominant WebSocket error ${dominantError[0]} (${dominantError[1]})`
+        : dominantFallback
+          ? `dominant fallback ${dominantFallback[0]} (${dominantFallback[1]})`
+          : 'dominant cause unknown';
       anomalies.push({
         priority: 7,
         type: 'MONITOR',
         severity: 'gray',
         title: `Window ${window.slug} had ${window.fallbacks} fallbacks — feed recovery pressure`,
-        detail: "Inspect fallback reasons and forced reconnects; keep entries blocked for 5s after a fallback."
+        detail: `${dominant}; scheduled reconnects=${window.scheduledReconnects}, forced reconnects=${window.forcedReconnects}, disconnects=${window.disconnects}.`
       });
     }
   }

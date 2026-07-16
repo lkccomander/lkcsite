@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 
 import { buildReportActions } from "../src/report/actions";
+import { detectAnomalies } from "../src/report/anomalies";
 import { TradeRecord } from "../src/report/types";
 import { buildReportFixture } from "./report_fixture";
 
@@ -92,6 +93,36 @@ function run(): void {
     assert.ok(ids(insufficient.problems).includes("insufficient-trade-sample"));
     assert.ok(ids(insufficient.recommendations).includes("collect-paper-evidence"));
     assert.equal(insufficient.whatWentWell.length, 0, "empty evidence must not produce vacuous wins");
+
+    const incidentReport = buildReportFixture({
+        fallbackCount: 30,
+        reconnectScheduledCount: 40,
+        forcedReconnectCount: 1,
+        disconnectCount: 42,
+        fallbackReasons: { stale_snapshot: 25, ws_closed: 5 },
+        websocketErrorCategories: { tls_certificate_policy: 35 },
+        disconnectCodes: { "1006": 40, "1005": 2 },
+        trades: [
+            trade({ tokenId: "down-1", side: "DOWN", grossPnl: -0.99, mcConvergence: 0.657, sellReason: "stop_loss", holdSeconds: 14 }),
+            trade({ tokenId: "down-2", side: "DOWN", grossPnl: -0.86, mcConvergence: 0.675, sellReason: "stop_loss", holdSeconds: 9 }),
+            trade({ tokenId: "up-1", side: "UP", grossPnl: -1.06, mcConvergence: 0.71, sellReason: "stop_loss", holdSeconds: 10 }),
+        ],
+    });
+    incidentReport.anomalies = detectAnomalies(incidentReport);
+    const incident = buildReportActions(incidentReport);
+    assert.equal(
+        incident.problems.filter((item) => item.title.includes("convergence")).length,
+        1,
+        "convergence evidence must be grouped by side instead of duplicated per trade",
+    );
+    assert.match(
+        incident.problems.find((item) => item.title.includes("stop losses within 15s"))?.evidence ?? "",
+        /3 stop-losses.*-\$2\.91/i,
+    );
+    assert.match(
+        incident.problems.find((item) => item.id === "feed-transport-incident")?.evidence ?? "",
+        /tls_certificate_policy.*35/i,
+    );
 }
 
 run();

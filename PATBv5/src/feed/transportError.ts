@@ -23,7 +23,7 @@ export function classifyTransportError(error: unknown): TransportErrorDetails {
     const cause = typeof record.cause === "object" && record.cause !== null
         ? record.cause as Record<string, unknown>
         : {};
-    const message = error instanceof Error ? error.message : String(error);
+    const message = error instanceof Error ? error.message : stringField(record.message) ?? String(error);
     const errorCode = stringField(record.code);
     const causeCode = stringField(cause.code);
     const searchable = [message, errorCode, causeCode].filter(Boolean).join(" ").toLowerCase();

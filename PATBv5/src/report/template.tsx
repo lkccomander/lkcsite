@@ -307,7 +307,9 @@ function buildFeedNarrative(report: SessionReport): string {
     return 'No feed.summary windows were captured in this slice. Feed health inference is limited to fallback and RTT counters.';
   }
 
-  return `${formatNumber(report.feedWindows.length)} feed windows were summarized. ${formatNumber(spiked)} spiked and ${formatNumber(elevated)} were elevated. Use this table to correlate fallback bursts, RTT outliers, and reconnect pressure with trade timing and rejection bursts.`;
+  const dominantFallback = Object.entries(report.fallbackReasons).sort((a, b) => b[1] - a[1])[0];
+  const dominantError = Object.entries(report.websocketErrorCategories).sort((a, b) => b[1] - a[1])[0];
+  return `${formatNumber(report.feedWindows.length)} feed windows were summarized. ${formatNumber(spiked)} spiked and ${formatNumber(elevated)} were elevated. Scheduled reconnects=${formatNumber(report.reconnectScheduledCount)}, forced=${formatNumber(report.forcedReconnectCount)}, disconnects=${formatNumber(report.disconnectCount)}. Dominant fallback=${dominantFallback ? `${dominantFallback[0]} (${dominantFallback[1]})` : 'unknown'}; dominant WebSocket error=${dominantError ? `${dominantError[0]} (${dominantError[1]})` : 'none'}.`;
 }
 
 function buildShadowNarrative(report: SessionReport): string {
@@ -777,7 +779,10 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
             <Metric label="RTT avg" value={`${formatNumber(report.rttAvg, 0)}ms`} sub={`p95=${formatNumber(report.rttP95, 0)}ms · max=${formatNumber(report.rttMax, 0)}ms`} />
             <Metric label="Total fallbacks" value={formatNumber(report.fallbackCount)} sub={`${report.feedWindows.length} feed windows`} color={report.fallbackCount > Math.max(report.sessionIds.length * 20, 20) ? colors.amber.text : colors.green.text} />
-            <Metric label="Reconnect windows" value={formatNumber(report.feedWindows.filter((window) => window.reconnectEvents > 0).length)} sub="windows with reconnectEvents > 0" />
+            <Metric label="Reconnect scheduled" value={formatNumber(report.reconnectScheduledCount)} sub={`${report.feedWindows.filter((window) => window.reconnectEvents > 0).length} affected windows`} />
+            <Metric label="Forced reconnects" value={formatNumber(report.forcedReconnectCount)} sub="explicit feed reconnects" />
+            <Metric label="Disconnects" value={formatNumber(report.disconnectCount)} sub={Object.entries(report.disconnectCodes).sort((a, b) => b[1] - a[1])[0]?.[0] ? `dominant code ${Object.entries(report.disconnectCodes).sort((a, b) => b[1] - a[1])[0][0]}` : 'no close codes'} />
+            <Metric label="WS transport errors" value={formatNumber(Object.values(report.websocketErrorCategories).reduce((sum, count) => sum + count, 0))} sub={Object.entries(report.websocketErrorCategories).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'none'} />
           </div>
 
           <Section title={`Per-window feed health — ${formatNumber(report.feedWindows.length)} windows`}>
