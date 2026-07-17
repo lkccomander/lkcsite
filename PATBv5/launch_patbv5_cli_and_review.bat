@@ -97,7 +97,20 @@ echo.
 echo Review flow finished for session %LATEST_SESSION_ID%.
 
 @rem Copy the latest session telemetry to the Samba share.
-set "TELEMETRY_SHARE=\\192.1.50.1\Bot-Telemetry\sessions"
+if not defined TELEMETRY_SHARE_PATH (
+    echo WARNING: Samba upload skipped because TELEMETRY_SHARE_PATH is not configured.
+    goto upload_done
+)
+if not defined TELEMETRY_SHARE_USER (
+    echo WARNING: Samba upload skipped because TELEMETRY_SHARE_USER is not configured.
+    goto upload_done
+)
+if not defined TELEMETRY_SHARE_PASSWORD (
+    echo WARNING: Samba upload skipped because TELEMETRY_SHARE_PASSWORD is not configured.
+    goto upload_done
+)
+
+set "TELEMETRY_SHARE=%TELEMETRY_SHARE_PATH%\sessions"
 echo Copying session telemetry to %TELEMETRY_SHARE% ...
 echo.
 
@@ -105,7 +118,7 @@ echo.
 net use T: /DELETE >nul 2>&1
 
 @rem Authenticate to the Samba share.
-net use T: \\192.1.50.1\Bot-Telemetry /USER:lego1 moco23
+net use T: "%TELEMETRY_SHARE_PATH%" /USER:"%TELEMETRY_SHARE_USER%" "%TELEMETRY_SHARE_PASSWORD%"
 if errorlevel 1 (
     echo ERROR: Could not authenticate to the Samba share.
     echo.
@@ -125,6 +138,8 @@ if errorlevel 1 (
         echo WARNING: Could not disconnect T: drive.
     )
 )
+
+:upload_done
 
 :end
 pause

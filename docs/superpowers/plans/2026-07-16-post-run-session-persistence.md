@@ -279,7 +279,7 @@ Append these assertions to `check_run_bot_session_summary.ps1` before the succes
 $launcher = Get-Content (Join-Path $ScriptDir "..\run_bot.ps1") -Raw
 if ($launcher -notmatch 'Set-Location\s+\$ScriptDir') { throw "launcher must fix its working directory" }
 if ($launcher -match '\$PgPassword\s*=\s*"') { throw "launcher must not contain a PostgreSQL password literal" }
-if ($launcher -match '/USER:lego1|moco23') { throw "launcher must not contain Samba credentials" }
+if ($launcher -match 'net\s+use.+/USER:\S+\s+\S+') { throw "launcher must not contain Samba credentials" }
 if ($launcher -match 'VALUES\s*\([^\)]*0,\s*NULL,\s*NULL') { throw "launcher must not pre-insert an incomplete row" }
 if ($launcher -notmatch 'get_session_summary\.ps1') { throw "launcher must use the complete session summary" }
 if ($launcher -notmatch 'ON CONFLICT\s*\(session_id\)') { throw "launcher persistence must be idempotent" }
@@ -649,7 +649,7 @@ Expected: exit code `0`.
 - [ ] **Step 3: Verify secrets and obsolete references are absent**
 
 ```powershell
-rg -n "moco23|/USER:lego1|PgPassword|get_session_balances" PATBv5/run_bot.ps1 PATBv5/scripts PATBv5/.env.example
+rg -n '\$PgPassword\s*=\s*"|net\s+use.+/USER:\S+\s+\S+|get_session_balances' PATBv5/run_bot.ps1 PATBv5/scripts PATBv5/.env.example
 ```
 
 Expected: no matches.
