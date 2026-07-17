@@ -55,6 +55,14 @@ try {
     $incomplete = Invoke-Summary ([datetime]"2026-07-16T23:59:59Z")
     Assert-Equal $incomplete.complete $false "missing shutdown must remain incomplete"
     if ($null -ne $incomplete.initialBalance) { throw "missing balance must remain null" }
+
+    $launcher = Get-Content (Join-Path $ScriptDir "..\run_bot.ps1") -Raw
+    if ($launcher -notmatch 'Set-Location\s+\$ScriptDir') { throw "launcher must fix its working directory" }
+    if ($launcher -match '\$PgPassword\s*=\s*"') { throw "launcher must not contain a PostgreSQL password literal" }
+    if ($launcher -match 'net\s+use.+/USER:\S+\s+\S+') { throw "launcher must not contain Samba credentials" }
+    if ($launcher -match 'VALUES\s*\([^\)]*0,\s*NULL,\s*NULL') { throw "launcher must not pre-insert an incomplete row" }
+    if ($launcher -notmatch 'get_session_summary\.ps1') { throw "launcher must use the complete session summary" }
+    if ($launcher -notmatch 'ON CONFLICT\s*\(session_id\)') { throw "launcher persistence must be idempotent" }
     Write-Host "run_bot session summary tests passed"
 }
 finally {
