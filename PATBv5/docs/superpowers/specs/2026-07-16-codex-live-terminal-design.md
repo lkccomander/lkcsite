@@ -7,7 +7,7 @@ Status: Approved for implementation planning
 
 Add a separate, real-time operator view to the existing PATBv5 terminal UI. The new view adopts the design DNA of the supplied retro trading-terminal reference while using only PATBv5 telemetry and preserving the existing dashboard unchanged.
 
-The new page lives at `/codex`. The existing page remains at `/`.
+Inside the React client, the new view path is `/codex` and the existing view path is `/`. The server mounts the client beneath `UI_ROUTE_BASE`, so the default deployed URLs are `/terminal-v5/codex` and `/terminal-v5` respectively.
 
 ## Approved product decisions
 
@@ -87,12 +87,12 @@ There is no decorative pulsing. With `prefers-reduced-motion: reduce`, all three
 
 ### Route isolation
 
-`newGui/src/App.tsx` becomes a small path dispatcher:
+`newGui/src/App.tsx` becomes a small path dispatcher after stripping the Vite base path:
 
 - `/` renders the current terminal page.
 - `/codex` renders `CodexLivePage`.
 
-No router dependency is required. The UI server must serve the same built `index.html` for `/codex` so direct navigation and refresh work.
+No router dependency is required. With the default `UI_ROUTE_BASE`, the external URL is `/terminal-v5/codex`. The UI server must serve the same built `index.html` for that nested route so direct navigation and refresh work.
 
 The current `App` body should move to a legacy page component with behavior preserved. Shared panels remain shared components.
 
@@ -217,8 +217,8 @@ Every feed row preserves the source event timestamp and a stable event-derived i
 ### UI tests
 
 - `/` renders the existing terminal page.
-- `/codex` renders the new CODEX page.
-- Direct navigation and refresh on `/codex` return the UI shell.
+- `/terminal-v5/codex` renders the new CODEX page with the default route base.
+- Direct navigation and refresh on `/terminal-v5/codex` return the UI shell.
 - Initial loading, empty, degraded, stale, retained-data error, and initial-fault states render correctly.
 - Tabs filter events and support keyboard navigation.
 - LIVE, PAPER, and UNKNOWN labels are visually and textually distinct.
@@ -236,7 +236,7 @@ Every feed row preserves the source event timestamp and a stable event-derived i
 The feature is complete when:
 
 - The existing dashboard is unchanged at `/`.
-- `/codex` presents the approved CODEX / VERSION 5.6 SOL hierarchy.
+- `/terminal-v5/codex` presents the approved CODEX / VERSION 5.6 SOL hierarchy when the default route base is active.
 - All headline metrics and chart points come from the complete active session.
 - The activity feed contains normalized real telemetry rather than placeholder values.
 - LIVE/PAPER/UNKNOWN, freshness, degraded, and stale states are always explicit.
