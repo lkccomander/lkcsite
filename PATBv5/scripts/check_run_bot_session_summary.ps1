@@ -63,6 +63,9 @@ try {
     if ($launcher -match 'VALUES\s*\([^\)]*0,\s*NULL,\s*NULL') { throw "launcher must not pre-insert an incomplete row" }
     if ($launcher -notmatch 'get_session_summary\.ps1') { throw "launcher must use the complete session summary" }
     if ($launcher -notmatch 'ON CONFLICT\s*\(session_id\)') { throw "launcher persistence must be idempotent" }
+    if ($launcher -match 'return\s+if\s*\(') {
+        throw "launcher must not use return if; Windows PowerShell treats if as a command"
+    }
 
     $legacyLauncher = Get-Content (Join-Path $ScriptDir "..\launch_patbv5_cli_and_review.bat") -Raw
     if ($legacyLauncher -match 'net\s+use.+/USER:(?!["%])\S+\s+\S+') { throw "legacy launcher must not contain Samba credentials" }

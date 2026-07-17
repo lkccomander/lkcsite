@@ -73,7 +73,10 @@ function Invoke-PsqlScalar {
             throw "psql failed with exit code $LASTEXITCODE."
         }
         $value = $result | Where-Object { $_ -is [string] -and -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
-        return if ($value) { $value.Trim() } else { $null }
+        if ($value) {
+            return $value.Trim()
+        }
+        return $null
     }
     finally {
         if ($null -ne $previousPgPassword) {
