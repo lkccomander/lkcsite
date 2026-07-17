@@ -162,7 +162,7 @@ SELECT count(*) AS row_count,
              AND finish_timestamp IS NOT NULL
        ) AS complete_count
 FROM public.strategy_performance
-WHERE session_id = 'fd6c1181-3793-479e-afbc-c00ec94ad1ad'::uuid;
+WHERE session_id = 'fd6c1181-3793-479e-afbc-c00ec94ad1ad';
 ```
 
 Expected: `row_count=1` and `complete_count=1`.
