@@ -117,6 +117,10 @@ try {
 
     $launcher = Get-Content (Join-Path $ScriptDir "..\run_bot.ps1") -Raw
     if ($launcher -notmatch 'Set-Location\s+\$ScriptDir') { throw "launcher must fix its working directory" }
+    if ($launcher -notmatch 'runtime_env\.ps1') { throw "launcher must use the tested runtime env helper" }
+    if ($launcher -notmatch 'OverrideNames\s+@\("PAPER_TRADING"\)') { throw "launcher must make file PAPER_TRADING authoritative" }
+    if ($launcher -notmatch 'RequiredNames\s+@\("PAPER_TRADING"\)') { throw "launcher must require PAPER_TRADING in .env" }
+    if ($launcher -notmatch 'Resolve-TradingMode') { throw "launcher must validate and display its effective trading mode" }
     if ($launcher -match '\$PgPassword\s*=\s*"') { throw "launcher must not contain a PostgreSQL password literal" }
     if ($launcher -match 'net\s+use.+/USER:\S+\s+\S+') { throw "launcher must not contain Samba credentials" }
     if ($launcher -match 'VALUES\s*\([^\)]*0,\s*NULL,\s*NULL') { throw "launcher must not pre-insert an incomplete row" }

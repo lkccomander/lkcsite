@@ -15,28 +15,18 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Split-Path -Parent $ScriptDir
 $SessionsDirectory = Join-Path $RepoRoot "polydb\telemetry\sessions"
+$RuntimeEnvPath = Join-Path $ScriptDir ".env"
+$RuntimeEnvScript = Join-Path $ScriptDir "scripts\runtime_env.ps1"
 $PostgresEnvPath = Join-Path $RepoRoot "polydb\postgres\.env"
 $BotId = "polymarket-bot-v5"
 $StrategyId = "16041373-deb2-4183-9dda-5d5ff6dc5fff"
 Set-Location $ScriptDir
 
 # --- Helpers -----------------------------------------------------------------
-function Import-DotEnv {
-    param([Parameter(Mandatory = $true)][string]$Path)
-
-    if (-not (Test-Path -LiteralPath $Path)) { return }
-    foreach ($line in Get-Content -LiteralPath $Path) {
-        if ($line -notmatch '^\s*([^#][^=]*)=(.*)$') { continue }
-        $name = $matches[1].Trim()
-        $value = $matches[2].Trim().Trim('"').Trim("'")
-        if (-not [Environment]::GetEnvironmentVariable($name, "Process")) {
-            [Environment]::SetEnvironmentVariable($name, $value, "Process")
-        }
-    }
-}
-
-Import-DotEnv (Join-Path $ScriptDir ".env")
-Import-DotEnv $PostgresEnvPath
+. $RuntimeEnvScript
+Import-DotEnv -Path $RuntimeEnvPath -OverrideNames @("PAPER_TRADING") -RequiredNames @("PAPER_TRADING")
+Import-DotEnv -Path $PostgresEnvPath
+$TradingMode = Resolve-TradingMode -Value $env:PAPER_TRADING -SourcePath $RuntimeEnvPath
 
 $PgHost = if ($env:POSTGRES_HOST) { $env:POSTGRES_HOST } else { "localhost" }
 $PgPort = if ($env:POSTGRES_PORT) { $env:POSTGRES_PORT } else { "5432" }
@@ -157,6 +147,7 @@ RETURNING id;
 }
 
 # --- Header ------------------------------------------------------------------
+Write-Host "Trading mode: $TradingMode (source=$RuntimeEnvPath)"
 Write-Host "Starting PATBv5 CLI bot with post-run persistence and review..."
 Write-Host "Repo: $ScriptDir"
 Write-Host "Bot ID: $BotId"
