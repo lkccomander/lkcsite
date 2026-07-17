@@ -1,32 +1,20 @@
 import { open } from "fs/promises";
+import { dirname, resolve } from "node:path";
 import { getTelemetryBotId, getTelemetryDbPath, loadPersistedPaperBalance } from "../../telemetry";
 import { TerminalState, TapeItem, TradeRow, PnLPoint, Candle, VolumeBar } from "../types";
+import { createActiveSessionReader } from "./activeSessionReader";
 import { buildMockTerminalState } from "./mockTerminalState";
+import { buildActiveSessionTelemetry, buildRealizedTradeRecords } from "./sessionTelemetry";
+import type { TelemetryEvent } from "./telemetryEvent";
 
 type JsonRecord = Record<string, unknown>;
 
-interface TelemetryEvent {
-  type: string;
-  payload: JsonRecord;
-  timestamp: string;
-  botId?: string;
-  sessionId?: string;
-  sessionStartedAt?: string;
-}
-
-interface RealizedTradeRecord {
-  id: string;
-  timestamp: string;
-  side: TradeRow["side"];
-  price: number;
-  pnl: number | null;
-  confidence: number;
-  status: TradeRow["status"];
-  label: string;
-}
-
 const TELEMETRY_TAIL_BYTES = 2 * 1024 * 1024;
 const TELEMETRY_MAX_EVENTS = 4000;
+const readActiveSessionEvents = createActiveSessionReader(
+  resolve(dirname(getTelemetryDbPath()), "sessions"),
+  getTelemetryBotId(),
+);
 
 function round(value: number, digits = 2): number {
   const factor = 10 ** digits;
@@ -130,43 +118,6 @@ function buildTapeItem(event: TelemetryEvent): TapeItem | null {
 
 function inferStatusFromShadowPnl(value: number): TradeRow["status"] {
   return value >= 0 ? "WIN" : "LOSS";
-}
-
-function buildRealizedTradeRecords(events: TelemetryEvent[]): RealizedTradeRecord[] {
-  return events
-    .filter((event) => ["paper_trade.buy", "paper_trade.sell", "live_trade.buy", "live_trade.sell", "trade.entry_filled", "trade.exit_filled"].includes(event.type))
-    .map((event, index) => {
-      const payload = event.payload;
-      const side = ((asString(payload.side) || "UP").toUpperCase() === "DOWN" ? "DOWN" : "UP") as TradeRow["side"];
-      const price =
-        asNumber(payload.entryPrice)
-        ?? asNumber(payload.exitPrice)
-        ?? asNumber(payload.price)
-        ?? 0;
-      const pnl = asNumber(payload.pnlUsd) ?? asNumber(payload.realizedTradePnl);
-      const confidence = Math.max(
-        50,
-        Math.min(
-          99,
-          100 - (asNumber(payload.feedLatencyMs) || 0) / 35 - (asNumber(payload.feedRttMs) || 0) / 45,
-        ),
-      );
-      const isExit = event.type.includes("sell") || event.type === "trade.exit_filled";
-      const status: TradeRow["status"] =
-        isExit
-          ? (pnl == null ? "OPEN" : pnl >= 0 ? "WIN" : "LOSS")
-          : "OPEN";
-      return {
-        id: `${event.type}-${event.timestamp}-${index}`,
-        timestamp: event.timestamp,
-        side,
-        price,
-        pnl: isExit ? pnl : null,
-        confidence: round(confidence, 1),
-        status,
-        label: isExit ? "FILLED EXIT" : "FILLED ENTRY",
-      };
-    });
 }
 
 function ensureRecentTrades(events: TelemetryEvent[]): TradeRow[] {
@@ -350,7 +301,13 @@ function buildTelemetryVolumeBars(events: TelemetryEvent[], candles: Candle[]): 
 }
 
 async function readRecentTelemetryEvents(botId: string): Promise<TelemetryEvent[]> {
-  const file = await open(getTelemetryDbPath(), "r");
+  let file;
+  try {
+    file = await open(getTelemetryDbPath(), "r");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
   try {
     const stats = await file.stat();
     const start = Math.max(0, stats.size - TELEMETRY_TAIL_BYTES);
@@ -383,29 +340,40 @@ async function readRecentTelemetryEvents(botId: string): Promise<TelemetryEvent[
 export async function buildLiveTerminalState(): Promise<TerminalState> {
   const base = await buildMockTerminalState("live");
   const botId = getTelemetryBotId();
-  const events = await readRecentTelemetryEvents(botId);
+  const recentEvents = await readRecentTelemetryEvents(botId);
+  const completeSessionEvents = await readActiveSessionEvents();
+  const events = recentEvents.length ? recentEvents : completeSessionEvents;
 
   if (events.length === 0) {
     return {
       ...base,
       meta: {
         ...base.meta,
-        sourceMode: "live",
+        sourceMode: "mock",
         status: "degraded",
         note: "No telemetry events found for live mode.",
       },
+      sessionSummary: {
+        ...base.sessionSummary,
+        runtimeMode: "UNKNOWN",
+        settledTrades: 0,
+      },
+      activityFeed: [],
     };
   }
 
   const latestEvent = events[events.length - 1];
   const latestSessionId = latestEvent.sessionId;
   const sessionEvents = latestSessionId ? events.filter((event) => event.sessionId === latestSessionId) : events;
+  const activeSession = buildActiveSessionTelemetry(
+    completeSessionEvents,
+    Date.now(),
+  );
 
   const latestReference = [...sessionEvents].reverse().find((event) => event.type === "market.external_reference");
   const latestFeedTick = [...sessionEvents].reverse().find((event) => event.type === "feed.tick");
   const latestFeedSummary = [...sessionEvents].reverse().find((event) => event.type === "feed.summary");
   const latestRtt = [...sessionEvents].reverse().find((event) => event.type === "feed.rtt");
-  const latestShutdown = [...sessionEvents].reverse().find((event) => event.type === "bot.shutdown");
   const latestRejection = [...sessionEvents].reverse().find((event) => event.type === "trade.signal_rejected");
   const paperBalance = await loadPersistedPaperBalance(base.wallet.balance);
   const realizedTrades = buildRealizedTradeRecords(sessionEvents);
@@ -475,11 +443,15 @@ export async function buildLiveTerminalState(): Promise<TerminalState> {
   const realizedClosed = recentTrades.filter((trade) => trade.status !== "OPEN").length;
   const strategy = asString(latestRejection?.payload.strategy) || "trade_4";
 
-  const runtimeMode = latestShutdown ? "PAPER" : base.header.runtimeMode;
+  const runtimeMode = activeSession.sessionSummary.runtimeMode === "UNKNOWN"
+    ? base.header.runtimeMode
+    : activeSession.sessionSummary.runtimeMode;
   const status: TerminalState["meta"]["status"] = staleSeconds > 20 || (rttMs != null && rttMs > 2500) ? "degraded" : "ok";
 
   return {
     ...base,
+    sessionSummary: activeSession.sessionSummary,
+    activityFeed: activeSession.activityFeed,
     meta: {
       requestedMode: "live",
       sourceMode: "live",

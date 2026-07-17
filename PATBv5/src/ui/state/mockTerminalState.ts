@@ -167,6 +167,7 @@ function buildTape(basePrice: number, seed: number) {
 
 export async function buildMockTerminalState(requestedMode: "mock" | "live"): Promise<TerminalState> {
   const now = new Date();
+  const nowIso = now.toISOString();
   const seed = now.getTime() / 1000;
   const botId = getTelemetryBotId();
   const liveRequested = requestedMode === "live";
@@ -175,16 +176,35 @@ export async function buildMockTerminalState(requestedMode: "mock" | "live"): Pr
   const paperBalance = round(await loadPersistedPaperBalance(2_500), 2);
   const graph = buildGraph(seed, basePrice);
   const btcChart = buildCandles(basePrice, seed);
+  const recentTrades = buildRecentTrades(basePrice, seed);
+  const pnlHistory = buildPnlHistory(seed);
+  const liveTape = buildTape(basePrice, seed);
 
   return {
     meta: {
       requestedMode,
       sourceMode: "mock",
-      generatedAt: now.toISOString(),
+      generatedAt: nowIso,
       stale: false,
       status: liveRequested ? "degraded" : "ok",
       note: liveRequested ? `Live telemetry adapter not wired yet. Serving generated state from ${getTelemetryDbPath()}.` : "Generated terminal state",
     },
+    sessionSummary: {
+      sessionId: "mock",
+      startedAt: nowIso,
+      runtimeMode: liveRequested ? "UNKNOWN" : "PAPER",
+      startingBalance: paperBalance,
+      currentBalance: paperBalance,
+      realizedPnl: 0,
+      settledTrades: 0,
+      wins: 0,
+      losses: 0,
+      winRate: null,
+      pnlHistory: [{ time: nowIso, value: 0 }],
+      dataAgeSeconds: 0,
+      status: liveRequested ? "degraded" : "ok",
+    },
+    activityFeed: [],
     header: {
       botId,
       strategyLabel: BOT_STRATEGY_LABEL,
@@ -226,8 +246,8 @@ export async function buildMockTerminalState(requestedMode: "mock" | "live"): Pr
       referencePrice: round(basePrice - 322.07, 2),
       priceLevels: Array.from({ length: 5 }, (_, index) => round(basePrice + (2 - index) * 140, 0)),
     },
-    recentTrades: buildRecentTrades(basePrice, seed),
-    pnlHistory: buildPnlHistory(seed),
+    recentTrades,
+    pnlHistory,
     analytics: {
       widgets: [
         { label: "MONTE CARLO", value: `${Math.round(2053 + seededWave(seed / 14, 90))}`, tone: "info" },
@@ -251,7 +271,7 @@ export async function buildMockTerminalState(requestedMode: "mock" | "live"): Pr
         { id: "settle", title: "06 Settle", sublabel: "CONFIRM", metric: "609ms", durationMs: 609, state: "idle" },
       ],
     },
-    liveTape: buildTape(basePrice, seed),
+    liveTape,
     bestTrade: {
       title: "#1 BTC TRADER",
       timeframeLabel: "BEST 3 DAY",
