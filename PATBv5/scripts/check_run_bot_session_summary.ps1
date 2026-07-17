@@ -5,6 +5,8 @@ $RuntimeEnvScript = Join-Path $ScriptDir "runtime_env.ps1"
 . $RuntimeEnvScript
 $OriginalPaperTrading = [Environment]::GetEnvironmentVariable("PAPER_TRADING", "Process")
 $OriginalUnrelatedSetting = [Environment]::GetEnvironmentVariable("PATBV5_TEST_UNRELATED", "Process")
+$OriginalCommentedSetting = [Environment]::GetEnvironmentVariable("PATBV5_TEST_COMMENTED", "Process")
+$OriginalHashCommentedSetting = [Environment]::GetEnvironmentVariable("#PATBV5_TEST_COMMENTED", "Process")
 $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("patbv5-session-summary-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $TempRoot | Out-Null
 
@@ -47,13 +49,18 @@ try {
     Set-Content -LiteralPath $authorityEnv -Value @(
         "PAPER_TRADING=false"
         "PATBV5_TEST_UNRELATED=file"
+        "  #PATBV5_TEST_COMMENTED=file"
     ) -Encoding UTF8
     $env:PAPER_TRADING = "true"
     $env:PATBV5_TEST_UNRELATED = "process"
+    $env:PATBV5_TEST_COMMENTED = "process"
+    [Environment]::SetEnvironmentVariable("#PATBV5_TEST_COMMENTED", $null, "Process")
     Import-DotEnv -Path $authorityEnv -OverrideNames @("PAPER_TRADING") -RequiredNames @("PAPER_TRADING")
     Assert-Equal $env:PAPER_TRADING "false" "file PAPER_TRADING must override inherited true"
     Assert-Equal (Resolve-TradingMode -Value $env:PAPER_TRADING -SourcePath $authorityEnv) "LIVE" "false must resolve to LIVE"
     Assert-Equal $env:PATBV5_TEST_UNRELATED "process" "non-overridden process values must retain precedence"
+    Assert-Equal $env:PATBV5_TEST_COMMENTED "process" "commented values must not replace process values"
+    Assert-Equal ([Environment]::GetEnvironmentVariable("#PATBV5_TEST_COMMENTED", "Process")) $null "indented comments must not create process variables"
 
     Set-Content -LiteralPath $authorityEnv -Value "PAPER_TRADING=true" -Encoding UTF8
     $env:PAPER_TRADING = "false"
@@ -136,5 +143,12 @@ finally {
     else {
         $env:PATBV5_TEST_UNRELATED = $OriginalUnrelatedSetting
     }
+    if ($null -eq $OriginalCommentedSetting) {
+        Remove-Item Env:PATBV5_TEST_COMMENTED -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:PATBV5_TEST_COMMENTED = $OriginalCommentedSetting
+    }
+    [Environment]::SetEnvironmentVariable("#PATBV5_TEST_COMMENTED", $OriginalHashCommentedSetting, "Process")
     Remove-Item -LiteralPath $TempRoot -Recurse -Force -ErrorAction SilentlyContinue
 }

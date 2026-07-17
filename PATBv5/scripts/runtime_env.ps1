@@ -15,6 +15,8 @@ function Import-DotEnv {
     $values = @{}
     $counts = @{}
     foreach ($line in Get-Content -LiteralPath $Path) {
+        $trimmedLine = $line.TrimStart()
+        if ([string]::IsNullOrWhiteSpace($trimmedLine) -or $trimmedLine.StartsWith("#")) { continue }
         if ($line -notmatch '^\s*([^#][^=]*)=(.*)$') { continue }
         $name = $matches[1].Trim()
         $value = $matches[2].Trim().Trim('"').Trim("'")
