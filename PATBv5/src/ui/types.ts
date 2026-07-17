@@ -109,6 +109,40 @@ export interface PnLPoint {
   value: number;
 }
 
+export type SessionRuntimeMode = "PAPER" | "LIVE" | "UNKNOWN";
+export type SessionStatus = "ok" | "degraded" | "stale";
+
+export interface SessionSummary {
+  sessionId: string;
+  startedAt: string;
+  runtimeMode: SessionRuntimeMode;
+  startingBalance: number | null;
+  currentBalance: number | null;
+  realizedPnl: number;
+  settledTrades: number;
+  wins: number;
+  losses: number;
+  winRate: number | null;
+  pnlHistory: PnLPoint[];
+  dataAgeSeconds: number;
+  status: SessionStatus;
+}
+
+export type ActivityCategory = "trade" | "settlement" | "rejection" | "gate" | "feed";
+export type ActivityAction = "BUY" | "SELL" | "FILL" | "SETTLED" | "REJECT" | "GATE" | "FEED";
+
+export interface ActivityEvent {
+  id: string;
+  timestamp: string;
+  category: ActivityCategory;
+  action: ActivityAction;
+  market: string | null;
+  detail: string;
+  amountUsd: number | null;
+  pnlUsd: number | null;
+  tone: TapeTone;
+}
+
 export interface AnalyticsWidget {
   label: string;
   value: string;
@@ -178,6 +212,8 @@ export interface TerminalState {
   forceGraph: ForceGraphData;
   recentTrades: TradeRow[];
   pnlHistory: PnLPoint[];
+  sessionSummary: SessionSummary;
+  activityFeed: ActivityEvent[];
   analytics: AnalyticsData;
   executionCycle: CycleData;
   liveTape: TapeItem[];
