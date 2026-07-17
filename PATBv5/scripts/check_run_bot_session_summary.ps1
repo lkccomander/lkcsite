@@ -1,6 +1,10 @@
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SummaryScript = Join-Path $ScriptDir "get_session_summary.ps1"
+$RuntimeEnvScript = Join-Path $ScriptDir "runtime_env.ps1"
+. $RuntimeEnvScript
+$OriginalPaperTrading = [Environment]::GetEnvironmentVariable("PAPER_TRADING", "Process")
+$OriginalUnrelatedSetting = [Environment]::GetEnvironmentVariable("PATBV5_TEST_UNRELATED", "Process")
 $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("patbv5-session-summary-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $TempRoot | Out-Null
 
@@ -8,6 +12,20 @@ function Assert-Equal($Actual, $Expected, [string]$Message) {
     if ($Actual -ne $Expected) {
         throw "$Message | expected=$Expected actual=$Actual"
     }
+}
+
+function Assert-Throws([scriptblock]$Action, [string]$Pattern, [string]$Message) {
+    $threw = $false
+    try {
+        & $Action
+    }
+    catch {
+        $threw = $true
+        if ($_.Exception.Message -notmatch $Pattern) {
+            throw "$Message | unexpected error=$($_.Exception.Message)"
+        }
+    }
+    if (-not $threw) { throw "$Message | expected an exception" }
 }
 
 function Add-Event([string]$Path, [hashtable]$Event) {
@@ -25,6 +43,40 @@ function Invoke-Summary([datetime]$StartedAfterUtc, [string]$OriginHost = "test-
 }
 
 try {
+    $authorityEnv = Join-Path $TempRoot "authority.env"
+    Set-Content -LiteralPath $authorityEnv -Value @(
+        "PAPER_TRADING=false"
+        "PATBV5_TEST_UNRELATED=file"
+    ) -Encoding UTF8
+    $env:PAPER_TRADING = "true"
+    $env:PATBV5_TEST_UNRELATED = "process"
+    Import-DotEnv -Path $authorityEnv -OverrideNames @("PAPER_TRADING") -RequiredNames @("PAPER_TRADING")
+    Assert-Equal $env:PAPER_TRADING "false" "file PAPER_TRADING must override inherited true"
+    Assert-Equal (Resolve-TradingMode -Value $env:PAPER_TRADING -SourcePath $authorityEnv) "LIVE" "false must resolve to LIVE"
+    Assert-Equal $env:PATBV5_TEST_UNRELATED "process" "non-overridden process values must retain precedence"
+
+    Set-Content -LiteralPath $authorityEnv -Value "PAPER_TRADING=true" -Encoding UTF8
+    $env:PAPER_TRADING = "false"
+    Import-DotEnv -Path $authorityEnv -OverrideNames @("PAPER_TRADING") -RequiredNames @("PAPER_TRADING")
+    Assert-Equal $env:PAPER_TRADING "true" "file PAPER_TRADING must override inherited false"
+    Assert-Equal (Resolve-TradingMode -Value $env:PAPER_TRADING -SourcePath $authorityEnv) "PAPER" "true must resolve to PAPER"
+
+    $missingFile = Join-Path $TempRoot "missing.env"
+    Assert-Throws { Import-DotEnv -Path $missingFile -RequiredNames @("PAPER_TRADING") } "Required environment file" "missing .env must fail"
+
+    $missingKeyEnv = Join-Path $TempRoot "missing-key.env"
+    Set-Content -LiteralPath $missingKeyEnv -Value "OTHER=value" -Encoding UTF8
+    Assert-Throws { Import-DotEnv -Path $missingKeyEnv -RequiredNames @("PAPER_TRADING") } "Required environment variable 'PAPER_TRADING'" "missing PAPER_TRADING must fail"
+
+    $duplicateEnv = Join-Path $TempRoot "duplicate.env"
+    Set-Content -LiteralPath $duplicateEnv -Value @("PAPER_TRADING=true", "PAPER_TRADING=false") -Encoding UTF8
+    Assert-Throws { Import-DotEnv -Path $duplicateEnv -OverrideNames @("PAPER_TRADING") -RequiredNames @("PAPER_TRADING") } "Duplicate environment variable 'PAPER_TRADING'" "duplicate PAPER_TRADING must fail"
+
+    $invalidEnv = Join-Path $TempRoot "invalid.env"
+    Set-Content -LiteralPath $invalidEnv -Value "PAPER_TRADING=maybe" -Encoding UTF8
+    Import-DotEnv -Path $invalidEnv -OverrideNames @("PAPER_TRADING") -RequiredNames @("PAPER_TRADING")
+    Assert-Throws { Resolve-TradingMode -Value $env:PAPER_TRADING -SourcePath $invalidEnv } "Invalid PAPER_TRADING" "invalid PAPER_TRADING must fail"
+
     $paperPath = Join-Path $TempRoot "paper.jsonl"
     Add-Event $paperPath @{ type="bot.startup"; payload=@{mode="PAPER";paperStartingUsd=210.48}; timestamp="2026-07-16T22:19:13.700Z"; botId="polymarket-bot-v5"; originHost="test-host"; sessionId="paper-session"; sessionStartedAt="2026-07-16T22:19:13.685Z" }
     Add-Content -LiteralPath $paperPath -Value ('{"type":"padding","payload":{"value":"' + ('x' * 120000) + '"}}') -Encoding UTF8
@@ -72,5 +124,17 @@ try {
     Write-Host "run_bot session summary tests passed"
 }
 finally {
+    if ($null -eq $OriginalPaperTrading) {
+        Remove-Item Env:PAPER_TRADING -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:PAPER_TRADING = $OriginalPaperTrading
+    }
+    if ($null -eq $OriginalUnrelatedSetting) {
+        Remove-Item Env:PATBV5_TEST_UNRELATED -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:PATBV5_TEST_UNRELATED = $OriginalUnrelatedSetting
+    }
     Remove-Item -LiteralPath $TempRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
