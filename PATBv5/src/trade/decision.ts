@@ -273,7 +273,13 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
 
     const emitSignalRejected = async (trade: any, reason: string, extra: Record<string, unknown> = {}): Promise<void> => {
         const activeTradeConfig = getTrade4LikeConfig(globalThis.__CONFIG__);
-        const requireRejectReason = !["trade_4", "trade_5x", "trade_5x_open_paper"].includes(globalThis.__CONFIG__.strategy)
+        const requireRejectReason = ![
+            "trade_4",
+            "trade_5x",
+            "trade_5x_close31_paper",
+            "trade_5x_close31_down_paper",
+            "trade_5x_close31_down_paper_relaxed",
+        ].includes(globalThis.__CONFIG__.strategy)
             || activeTradeConfig?.require_reject_reason !== false;
         if (!requireRejectReason) {
             return;
@@ -871,7 +877,9 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
             }
             case "trade_4":
             case "trade_5x":
-            case "trade_5x_open_paper": {
+            case "trade_5x_close31_paper":
+            case "trade_5x_close31_down_paper":
+            case "trade_5x_close31_down_paper_relaxed": {
                 const trade4 = getTrade4LikeConfig(globalThis.__CONFIG__)!;
                 const [entryRatioMin, entryRatioMax] = trade4.entry_price_ratio;
                 const secondsToClose = this.remainingTime;
@@ -1088,7 +1096,12 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                             preferredEntryRatio !== null &&
                             preferredEntryRatio >= entryRatioMin &&
                             preferredEntryRatio <= entryRatioMax;
-                        const enforceEntryRatio = !["trade_5x", "trade_5x_open_paper"].includes(globalThis.__CONFIG__.strategy);
+                        const enforceEntryRatio = ![
+                            "trade_5x",
+                            "trade_5x_close31_paper",
+                            "trade_5x_close31_down_paper",
+                            "trade_5x_close31_down_paper_relaxed",
+                        ].includes(globalThis.__CONFIG__.strategy);
                         const rejectionDiagnosticContext = buildRejectionDiagnosticContext({
                             trade: this,
                             currentTimeRatio: timing.elapsedRatio,

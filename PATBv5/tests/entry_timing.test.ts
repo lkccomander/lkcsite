@@ -57,6 +57,17 @@ async function run(): Promise<void> {
     }
 
     assert.equal(
+        evaluate({ minSecondsToClose: 31, secondsToClose: 31 }).withinSecondsToCloseWindow,
+        true,
+        "expected the PAPER close-window experiment to admit the 31-second boundary",
+    );
+    assert.equal(
+        evaluate({ minSecondsToClose: 31, secondsToClose: 30 }).withinSecondsToCloseWindow,
+        false,
+        "expected the PAPER close-window experiment to reject below 31 seconds",
+    );
+
+    assert.equal(
         evaluate({ secondsToClose: 10_000, maxSecondsToClose: Number.POSITIVE_INFINITY }).withinSecondsToCloseWindow,
         true,
     );

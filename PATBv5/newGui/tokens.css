@@ -1,0 +1,54 @@
+/* Hallmark · macrostructure: Stat-Led · theme: studied-DNA (source: image) · studied: yes · DNA-source: user reference */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
+/* Hallmark · audit: 58/58 · contrast: pass (40–41) · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · mobile: pass (34, 49, 50–57) */
+:root {
+  --color-codex-coal: oklch(12% 0.012 55);
+  --color-codex-char: oklch(15% 0.015 55);
+  --color-codex-plate: oklch(18% 0.02 55);
+  --color-codex-hover: oklch(24% 0.028 55);
+  --color-codex-rule: oklch(68% 0.12 52 / 18%);
+  --color-codex-rule-strong: oklch(68% 0.12 52 / 42%);
+  --color-codex-ember: oklch(68% 0.2 52);
+  --color-codex-phosphor: oklch(78% 0.15 60);
+  --color-codex-settled: oklch(77% 0.15 154);
+  --color-codex-fault: oklch(66% 0.18 25);
+  --color-codex-bone: oklch(84% 0.045 70);
+  --color-codex-ash: oklch(52% 0.025 65);
+  --color-codex-muted: oklch(72% 0.025 65);
+  --color-codex-focus: oklch(88% 0.17 90);
+  --color-codex-accent-ink: oklch(12% 0.012 55);
+  --color-codex-transparent: oklch(12% 0.012 55 / 0%);
+  --color-codex-glow: oklch(68% 0.2 52 / 55%);
+  --color-codex-overlay: oklch(12% 0.012 55 / 88%);
+  --font-codex-display: "Jersey 10", Impact, sans-serif;
+  --font-codex-data: "IBM Plex Mono", Consolas, monospace;
+  --space-codex-1: 4px;
+  --space-codex-2: 8px;
+  --space-codex-3: 12px;
+  --space-codex-4: 16px;
+  --space-codex-5: 20px;
+  --space-codex-6: 24px;
+  --space-codex-7: 32px;
+  --space-codex-8: 40px;
+  --space-codex-9: 48px;
+  --space-codex-10: 64px;
+  --space-codex-11: 80px;
+  --text-codex-label: 0.6875rem;
+  --text-codex-data: 0.8125rem;
+  --text-codex-body: 0.9375rem;
+  --text-codex-title: clamp(1rem, 2vw, 1.25rem);
+  --text-codex-metric: clamp(2rem, 4vw, 3.25rem);
+  --text-codex-wordmark: clamp(3.25rem, 12vw, 10rem);
+  --ease-codex-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-codex-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-codex-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-codex-fast: 120ms;
+  --dur-codex-state: 180ms;
+  --rule-codex: 1px;
+  --rule-codex-focus: 2px;
+  --rule-codex-graph: 3px;
+  --radius-codex: 0;
+  --size-codex-touch: 44px;
+  --shadow-codex-wordmark: 0 0 8px var(--color-codex-glow);
+  --shadow-codex-pnl: drop-shadow(0 0 8px var(--color-codex-glow));
+}

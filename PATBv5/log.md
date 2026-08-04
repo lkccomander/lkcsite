@@ -215,6 +215,7 @@ TypeError [ERR_INVALID_ARG_TYPE]: The first argument must be of type string or a
 - `authenticated_bot_access`: `ok`
 - `likely_issue`: `none`
 
+
 ## Connectivity Test - 2026-05-09T17:46:05Z
 # =====================================================
 
@@ -1407,4 +1408,97 @@ TypeError [ERR_INVALID_ARG_TYPE]: The first argument must be of type string or a
 - `public_api`: `reachable`
 - `authenticated_bot_access`: `ok`
 - `likely_issue`: `none`
+
+## Paper Trading Session Review - 2026-07-28
+
+- Telemetry session: `C:\Projects\lkcsite\polydb\telemetry\sessions\2026-07-28T01-49-42-875Z__5f3eb9ee-5fc7-415f-834e-554c395a23ad.jsonl`
+- Mode: `PAPER`; strategy: `trade_5x_close31_paper`.
+- Observed period: `2026-07-28T01:49:44Z` to `2026-07-28T16:15:39Z`; the session was still emitting events when reviewed.
+- Markets processed: `174`; entries and completed exits: `20` each (no open paper position observed).
+- Balance: `$201.20` initial → `$197.56` latest; realized P&L: `-$3.64` (`-1.81%`).
+- Exits: `10` take-profits for `+$7.10` total and `10` stop-losses for `-$10.74` total.
+- Signal filtering: `98,194` rejections. Main reasons were `up_bias_filter` (`31,478`), `entry_price_window` (`19,515`), `entry_time_ratio` (`9,400`), `spread_too_wide` (`8,702`), and `down_blocked_neutral_momentum` (`6,547`).
+- Feed resilience: `311` disconnect/reconnect cycles, `1,329` fallbacks, `3,723` fallback recoveries, and `50` feed errors (including REST-fallback timeouts). Trades were still completed using websocket decisions.
+
+### Follow-up
+
+- Keep this run in paper mode. Before changing entry thresholds or enabling live trading, export the completed session metrics and compare trade outcomes by side, entry price, hold time, and feed state; the current 20-trade sample is too small and negative to justify loosening filters.
+- Investigate the feed instability separately: correlate `feed.error`, fallback, and reconnect events with rejected or losing trades, then address timeouts/reconnect behavior if a material relationship appears.
+
+### Per-trade analysis
+
+- `UP`: `14` trades, `7` wins / `7` losses, realized P&L `-$3.26`.
+- `DOWN`: `6` trades, `3` wins / `3` losses, realized P&L `-$0.38`.
+- Take-profit outcomes averaged `+$0.71` (`+$7.10 / 10`), while stop-loss outcomes averaged `-$1.07` (`-$10.74 / 10`). At those payoffs, break-even requires roughly a `60.2%` win rate; the observed win rate was `50%`.
+- Only `3/20` completed trades had a nonzero fallback count. Their combined P&L was `+$0.44` (two winners, one loser), so this sample does not support blaming fallback/reconnect events for the negative result.
+- No live-trading change is justified. Prioritize testing a better reward-to-risk structure (smaller stop loss and/or a larger take-profit) in a separate paper configuration, while keeping the current configuration as the control.
+
+## Consolidated PAPER Review - 2026-07-29
+
+Sessions:
+
+- `2026-07-28T01-49-42-875Z__5f3eb9ee-5fc7-415f-834e-554c395a23ad.jsonl`: `175` markets selected, `20` completed trades, `-$3.64` P&L, and `$5.89` maximum peak-to-trough drawdown. The last balance checkpoint was `$197.56`. There is no `bot.shutdown` event; normal trading telemetry stops at `2026-07-28T16:15:39Z`, while delayed `trade.shadow_pnl` settlement events continue afterward.
+- `2026-07-29T19-03-54-747Z__f3e07433-7022-4210-a9ef-de13df7d4097.jsonl`: `56` markets selected, `16` completed trades, `+$2.15` P&L, and `$3.53` maximum peak-to-trough drawdown. It shut down normally by `SIGINT` with a final balance of `$198.11`.
+
+### Combined trade results
+
+- `231` markets selected and `36` completed trades (`36` buys / `36` sells).
+- P&L: `-$1.49`; `19` wins / `17` losses; win rate `52.78%`.
+- Gross wins: `+$15.96`; gross losses: `-$17.45`; profit factor `0.91`.
+- Average win: `+$0.84`; average loss: `-$1.03`; expectancy: `-$0.041` per trade.
+- All `36` sells report `feeUsd=0`, so the consolidated PAPER result is optimistic relative to any execution that incurs costs.
+- `6/36` trades had a nonzero fallback count and together produced `+$0.55`; the sample still does not identify feed fallback as the source of the negative expectancy.
+
+### Side split and experiment decision
+
+- `DOWN`: `15` trades, `9` wins / `6` losses, P&L `+$1.85`, profit factor `1.33`, expectancy `+$0.123` per trade, observed win rate `60.0%` versus approximately `52.95%` required to break even.
+- `UP`: `21` trades, `10` wins / `11` losses, P&L `-$3.34`, profit factor `0.72`, expectancy `-$0.159` per trade, observed win rate `47.62%` versus approximately `55.83%` required to break even.
+- Do not change the global `stop_loss_offset=0.13`; that would also alter the currently profitable DOWN side.
+- Selected next experiment: a separate DOWN-only PAPER profile based on `trade_5x_close31_paper`, changing only `paper_disable_up_entries=true`. Keep take profit, stop loss, entry filters, and feed gates unchanged, and preserve the current profile as the control.
+- Minimum evaluation gate: collect at least `50` completed DOWN trades, require positive expectancy after modeled fees/slippage and profit factor above `1.0`, and compare drawdown against the unchanged control before considering another adjustment. No LIVE promotion is authorized by this sample.
+
+### DOWN-only PAPER profile implemented - 2026-07-29
+
+- Added the inactive strategy/profile `trade_5x_close31_down_paper`.
+- The active strategy remains `trade_5x_close31_paper`, so this change does not alter the running control.
+- The experiment is a parsed copy of the control and differs only in `paper_disable_up_entries=true`; `stop_loss_offset=0.13`, take profit, entry filters, feed gates, and all other settings remain identical.
+- Added runtime routing for the new strategy and a regression test that loads both profiles, proves that only the UP-disable flag differs, and parses a temporary configuration with the experiment selected.
+- Validation passed: `strategy_profiles`, `entry_ratio`, `entry_timing`, and `feedgate` tests; TypeScript build also passed.
+- Operational next step: during a planned PAPER-only start, explicitly select `trade_5x_close31_down_paper`, confirm UP signals are rejected as `paper_up_entries_disabled`, and collect at least `50` completed DOWN trades before evaluating the gate above. Do not promote to LIVE.
+
+Codebase-map note: the installed Graphify `0.8.37` does not accept backend `nvidia`, but the backend-free update ultimately refreshed the report and graph from current commit `1724acc5`.
+
+### Manual PAPER launcher correction - 2026-07-29
+
+- The operator selected `trade_5x_close31_down_paper` and retained `PAPER_TRADING=true`.
+- The first manual `run_bot.ps1` attempt stopped before build/start because the launcher explicitly passed empty `Mode` and `RequestedMode` values into PowerShell `ValidateSet` parameters.
+- Corrected `run_bot.ps1` to bind those parameters only for complete controlled launches. Manual launches now omit them and resolve the mode authoritatively from `.env`; partial controlled launches still fail closed.
+- Validation passed: PowerShell parse, manual-mode smoke check (`controlled=False`, `mode=PAPER`, `source=ENV_FILE`), controlled-launcher regression suite, and run-bot session-summary suite.
+
+## PAPER versus LIVE realism audit - 2026-07-30
+
+- Current overall realism estimate for reproducing LIVE P&L: **35/100**.
+- Market data, signals, strategy filters, and timing are relatively realistic: approximately **80/100**.
+- Execution and P&L simulation are weak: approximately **20/100**.
+- Across the July 28-30 sessions there were `36` closed PAPER trades and `72` simulated legs. Every leg was reported as a complete maker fill after `139-234 ms` (average `182.6 ms`), with no partial fills, rejects, or cancellations.
+- All `72` legs reported `makerMode=true`, `feeUsd=0`, and zero rebate. However, `35/36` entries were priced at the then-best ask and therefore were marketable/taker-like rather than proven maker fills.
+- PAPER estimates maker queue position only from spread and guarantees a complete fill after a short delay unless feed age, RTT, or spread crosses a simple rejection threshold. It does not model L2 depth, queue volume ahead, trade-through, partial fills, order submission failures, price movement while resting, or adverse selection.
+- The exit assumption is especially optimistic: `16/17` stop-loss exits were resting or inside the spread rather than immediately marketable, but PAPER marked every one as filled. A comparable LIVE exit could remain pending while the market continues moving against the position.
+- Polymarket charges zero fee only when an order actually provides maker liquidity. GTC orders may rest or fill partially, and orders that consume liquidity are taker executions subject to the market's current fee parameters.
+- The combined PAPER result was already `-$1.49`; it is not evidence of a reproducible LIVE edge. Keep the bot in PAPER mode and use the run to evaluate stability, signal frequency, direction, and feed quality—not LIVE-equivalent profitability.
+
+### TODO before considering LIVE
+
+- [ ] Keep collecting PAPER telemetry and perform the next formal review after approximately `100` closed trades; retain the existing minimum gate of `50` completed DOWN trades for the DOWN-only experiment.
+- [ ] Replace guaranteed maker fills with an L2-aware model using displayed depth, queue ahead, subsequent trades/book depletion, and price revalidation.
+- [ ] Model partial fills, unfilled GTC orders, cancellations, rejects, submission latency, repricing, and adverse selection.
+- [ ] Determine maker/taker status from the simulated execution rather than the requested `makerMode` flag.
+- [ ] Load current fee parameters per market and apply taker fees only when liquidity is consumed; model maker rebates separately and conservatively.
+- [ ] Add tests and telemetry for the cases above, then recalibrate PAPER against controlled, minimal-risk LIVE observations before any promotion decision.
+- [ ] Do not authorize LIVE solely from PAPER P&L or win rate.
+
+References:
+
+- Polymarket fees: https://docs.polymarket.com/trading/fees
+- Polymarket order behavior: https://docs.polymarket.com/trading/orders/overview
 

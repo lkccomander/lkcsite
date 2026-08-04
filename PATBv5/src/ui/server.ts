@@ -21,18 +21,22 @@ const CONTENT_TYPES: Record<string, string> = {
   ".svg": "image/svg+xml; charset=utf-8",
 };
 
-function getUiPort(): number {
+export function getUiPort(): number {
   const raw = readOptionalConfigEnv("UI_PORT");
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_UI_PORT;
 }
 
-function getUiRouteBase(): string {
+export function getUiRouteBase(): string {
   const raw = readOptionalConfigEnv("UI_ROUTE_BASE").trim();
   if (!raw) {
     return DEFAULT_UI_ROUTE;
   }
-  return raw.startsWith("/") ? raw.replace(/\/+$/, "") || "/" : `/${raw.replace(/\/+$/, "")}`;
+  const normalized = raw.startsWith("/") ? raw.replace(/\/+$/, "") || "/" : `/${raw.replace(/\/+$/, "")}`;
+  if (normalized !== DEFAULT_UI_ROUTE) {
+    throw new Error(`UI_ROUTE_BASE is fixed to ${DEFAULT_UI_ROUTE}; received ${normalized}.`);
+  }
+  return DEFAULT_UI_ROUTE;
 }
 
 function shouldOpenBrowser(): boolean {
@@ -40,7 +44,7 @@ function shouldOpenBrowser(): boolean {
   return ["1", "true", "yes", "on"].includes(raw);
 }
 
-function openBrowser(url: string): void {
+export function openBrowser(url: string): void {
   if (process.platform === "win32") {
     spawn("cmd.exe", ["/c", "start", "", url], {
       cwd: process.cwd(),
@@ -158,8 +162,11 @@ async function serveStaticAsset(assetPath: string, response: ServerResponse): Pr
   createReadStream(assetPath).pipe(response);
 }
 
-async function handleUiRequest(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
-  const routeBase = getUiRouteBase();
+export async function handleUiRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  routeBase = getUiRouteBase(),
+): Promise<boolean> {
   const requestUrl = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
   const pathname = requestUrl.pathname;
 

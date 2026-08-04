@@ -9,6 +9,16 @@
     after database persistence and cannot corrupt the stored session row.
 #>
 
+param(
+    [ValidateSet("PAPER", "LIVE")][string]$Mode,
+    [string]$RunId,
+    [string]$ControlDirectory,
+    [string]$StartGatePath,
+    [switch]$NonInteractive,
+    [switch]$SkipBuild,
+    [switch]$DisableEmbeddedUi
+)
+
 $ErrorActionPreference = "Stop"
 
 # --- Paths and constants -----------------------------------------------------
@@ -26,7 +36,43 @@ Set-Location $ScriptDir
 . $RuntimeEnvScript
 Import-DotEnv -Path $RuntimeEnvPath -OverrideNames @("PAPER_TRADING") -RequiredNames @("PAPER_TRADING")
 Import-DotEnv -Path $PostgresEnvPath
-$TradingMode = Resolve-TradingMode -Value $env:PAPER_TRADING -SourcePath $RuntimeEnvPath
+$RuntimeTradingMode = Resolve-TradingMode -Value $env:PAPER_TRADING -SourcePath $RuntimeEnvPath
+$ControlledParameterArguments = @{
+    RunId = $RunId
+    ControlDirectory = $ControlDirectory
+    StartGatePath = $StartGatePath
+}
+if (-not [string]::IsNullOrWhiteSpace($Mode)) {
+    $ControlledParameterArguments["Mode"] = $Mode
+}
+$ControlledParameters = Resolve-ControlledLauncherParameters @ControlledParameterArguments
+
+$EffectiveModeArguments = @{
+    EnvValue = $env:PAPER_TRADING
+    SourcePath = $RuntimeEnvPath
+}
+if (-not [string]::IsNullOrWhiteSpace($ControlledParameters.Mode)) {
+    $EffectiveModeArguments["RequestedMode"] = $ControlledParameters.Mode
+}
+$EffectiveMode = Resolve-EffectiveTradingMode @EffectiveModeArguments
+$TradingMode = $EffectiveMode.Name
+$env:PAPER_TRADING = $EffectiveMode.PaperTradingValue
+
+$ControlledRun = $ControlledParameters.IsControlled
+if ($ControlledRun) {
+    $env:CODEX_CONTROL_RUN_ID = $ControlledParameters.RunId
+    $env:CODEX_CONTROL_DIR = $ControlledParameters.ControlDirectory
+    $env:TRADING_MODE_SOURCE = "CONTROL_OVERRIDE"
+    Wait-ControlledStartGate -StartGatePath $ControlledParameters.StartGatePath -ControlDirectory $ControlledParameters.ControlDirectory -RunId $ControlledParameters.RunId -TimeoutMilliseconds 60000
+}
+else {
+    Remove-Item Env:CODEX_CONTROL_RUN_ID -ErrorAction SilentlyContinue
+    Remove-Item Env:CODEX_CONTROL_DIR -ErrorAction SilentlyContinue
+    $env:TRADING_MODE_SOURCE = "ENV_FILE"
+    if ($TradingMode -ne $RuntimeTradingMode) {
+        throw "Manual launch trading mode mismatch between runtime env and effective mode."
+    }
+}
 
 $PgHost = if ($env:POSTGRES_HOST) { $env:POSTGRES_HOST } else { "localhost" }
 $PgPort = if ($env:POSTGRES_PORT) { $env:POSTGRES_PORT } else { "5432" }
@@ -147,7 +193,7 @@ RETURNING id;
 }
 
 # --- Header ------------------------------------------------------------------
-Write-Host "Trading mode: $TradingMode (source=$RuntimeEnvPath)"
+Write-Host "Trading mode: $TradingMode (source=$($EffectiveMode.Source))"
 Write-Host "Starting PATBv5 CLI bot with post-run persistence and review..."
 Write-Host "Repo: $ScriptDir"
 Write-Host "Bot ID: $BotId"
@@ -155,36 +201,53 @@ Write-Host ""
 
 # --- UI choice ---------------------------------------------------------------
 $LaunchedUi = $false
-$choice = Read-Host "Enable embedded live-data UI for this bot run? [Y/N]"
-if ($choice -match "^[Yy]") {
-    $LaunchedUi = $true
-    Write-Host "Building newGui assets for the embedded UI..."
-    & npm run ui:build
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "UI build failed with code $LASTEXITCODE."
-        Read-Host "Press Enter to exit"
-        exit $LASTEXITCODE
+if ($DisableEmbeddedUi) {
+    $env:UI_SERVER_ENABLED = "0"
+    $env:UI_OPEN_BROWSER = "0"
+}
+elseif (-not $NonInteractive) {
+    $choice = Read-Host "Enable embedded live-data UI for this bot run? [Y/N]"
+    if ($choice -match "^[Yy]") {
+        $LaunchedUi = $true
+        Write-Host "Building newGui assets for the embedded UI..."
+        & npm run ui:build
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "UI build failed with code $LASTEXITCODE."
+            if (-not $NonInteractive) {
+                Read-Host "Press Enter to exit"
+            }
+            exit $LASTEXITCODE
+        }
+        $env:UI_SERVER_ENABLED = "1"
+        $env:UI_OPEN_BROWSER = "1"
     }
-    $env:UI_SERVER_ENABLED = "1"
-    $env:UI_OPEN_BROWSER = "1"
 }
 
 # --- Build -------------------------------------------------------------------
-Write-Host "Building PATBv5..."
-& npm run build
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Build failed with code $LASTEXITCODE."
-    Read-Host "Press Enter to exit"
-    exit $LASTEXITCODE
+if (-not $SkipBuild) {
+    Write-Host "Building PATBv5..."
+    & npm run build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Build failed with code $LASTEXITCODE."
+        if (-not $NonInteractive) {
+            Read-Host "Press Enter to exit"
+        }
+        exit $LASTEXITCODE
+    }
+    Write-Host "Build succeeded."
+}
+else {
+    Write-Host "Build skipped for controlled launcher execution."
 }
 
 # --- Run and finalize --------------------------------------------------------
 $RunStartedAfterUtc = [datetime]::UtcNow
 $BotExitCode = 1
 $PersistenceSucceeded = $false
+$PersistenceError = $null
 $SessionSummary = $null
 
-Write-Host "Build succeeded. Starting bot..."
+Write-Host "Starting bot..."
 if ($LaunchedUi) { Write-Host "Embedded UI enabled for this run." }
 Write-Host "Running: npm start"
 Write-Host ""
@@ -210,6 +273,7 @@ finally {
         Write-Host "strategy_performance row saved: id=$rowId session=$($SessionSummary.sessionId) type=$($SessionSummary.sessionType)"
     }
     catch {
+        $PersistenceError = $_.Exception.Message
         Write-Host "SESSION PERSISTENCE FAILED: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
@@ -246,5 +310,40 @@ if ($PersistenceSucceeded -and $SessionSummary) {
 
 $FinalExitCode = if ($BotExitCode -eq 0 -and -not $PersistenceSucceeded) { 1 } else { $BotExitCode }
 Write-Host ""
-Read-Host "Press Enter to exit"
+if (-not $NonInteractive) {
+    Read-Host "Press Enter to exit"
+}
+
+if ($ControlledRun) {
+    $WrapperResult = [ordered]@{
+        schemaVersion = 1
+        runId = $env:CODEX_CONTROL_RUN_ID
+        outcome = if ($BotExitCode -eq 0 -and $PersistenceSucceeded) { "COMPLETE" } else { "ERROR" }
+        botExitCode = $BotExitCode
+        finalExitCode = $FinalExitCode
+        persistenceSucceeded = $PersistenceSucceeded
+        completedAt = [datetime]::UtcNow.ToString("o")
+        error = if (-not $PersistenceSucceeded) {
+            if ($PersistenceError) { $PersistenceError } else { "Session persistence did not complete." }
+        }
+        elseif ($BotExitCode -ne 0) {
+            "Bot exited with code $BotExitCode."
+        }
+        else {
+            $null
+        }
+    }
+    $WrapperResultPath = Join-Path $env:CODEX_CONTROL_DIR "wrapper-result.json"
+    $WrapperResultTempPath = "$WrapperResultPath.$PID.$([guid]::NewGuid()).tmp"
+    try {
+        $WrapperResultJson = $WrapperResult | ConvertTo-Json -Compress
+        $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($WrapperResultTempPath, $WrapperResultJson, $Utf8NoBom)
+        Move-Item -LiteralPath $WrapperResultTempPath -Destination $WrapperResultPath -Force
+    }
+    finally {
+        Remove-Item -LiteralPath $WrapperResultTempPath -Force -ErrorAction SilentlyContinue
+    }
+}
+
 exit $FinalExitCode

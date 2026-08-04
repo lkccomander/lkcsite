@@ -114,6 +114,14 @@ export function createReportControlRouter(
         response.status(404).json({ error: 'Report source not found.' });
         return;
       }
+      const existingReport = reportCatalog.findReportForSource(source.id);
+      if (existingReport) {
+        response.status(409).json({
+          error: 'A report for this source already exists.',
+          report: existingReport,
+        });
+        return;
+      }
       response.status(202).json(jobManager.createJob(source));
     } catch (error) {
       response.status(500).json({ error: errorMessage(error) });

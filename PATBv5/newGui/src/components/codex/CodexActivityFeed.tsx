@@ -1,5 +1,10 @@
-import { useRef, useState, type KeyboardEvent } from "react";
-import { filterActivityFeed, nextFeedTab, type ActivityFilter } from "../../lib/activityFeed";
+import React, { useRef, useState, type KeyboardEvent } from "react";
+import {
+  filterActivityFeed,
+  MAX_ACTIVITY_FEED_ITEMS,
+  nextFeedTab,
+  type ActivityFilter,
+} from "../../lib/activityFeed";
 import type { ActivityEvent } from "../../types";
 
 interface CodexActivityFeedProps {
@@ -23,7 +28,7 @@ export function CodexActivityFeed({ events }: CodexActivityFeedProps) {
   const [activeFilter, setActiveFilter] = useState<ActivityFilter>("trades");
   const tradesTabRef = useRef<HTMLButtonElement>(null);
   const allTabRef = useRef<HTMLButtonElement>(null);
-  const filteredEvents = filterActivityFeed(events, activeFilter);
+  const filteredEvents = filterActivityFeed(events, activeFilter).slice(0, MAX_ACTIVITY_FEED_ITEMS);
 
   function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>): void {
     if (!navigationKeys.has(event.key)) return;

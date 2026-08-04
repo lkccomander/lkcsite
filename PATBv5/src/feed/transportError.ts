@@ -8,7 +8,9 @@ export interface TransportErrorDetails {
     causeCode: string | null;
 }
 
-const ORDINARY_RECONNECT_BACKOFF_MS = [250, 500, 1000, 2000, 4000, 8000] as const;
+// Recover a single, transient socket close quickly. Consecutive failures still
+// back off aggressively enough to avoid reconnect churn.
+const ORDINARY_RECONNECT_BACKOFF_MS = [250, 1000, 2000, 4000, 8000] as const;
 const TLS_POLICY_BASE_DELAY_MS = 60_000;
 const TLS_POLICY_MAX_DELAY_MS = 15 * 60_000;
 

@@ -65,6 +65,9 @@ import {
   reconcilePendingShadowSettlementBatch,
   type PendingShadowSettlementBatch,
 } from "./trade/policy/shadowSettlementQueue";
+import { createBotRuntimeControl, readControlledRunConfig } from "./control/botRuntimeControl";
+import { createControlPaths, ControlRuntimeStore } from "./control/runtimeStore";
+import { createShutdownCoordinator } from "./control/shutdownCoordinator";
 
 loadConfig();
 
@@ -337,6 +340,8 @@ async function main() {
   }
   const signerAddress = PAPER_TRADING ? "paper-trading" : SIGNER_ADDRESS ?? "unknown";
   const runtimeMode = PAPER_TRADING ? "PAPER" : "LIVE";
+  const controlledRun = readControlledRunConfig();
+  let botRuntimeControl: ReturnType<typeof createBotRuntimeControl> | null = null;
   await startTelemetrySession(runtimeMode);
   const versionContext = await initializeVersionContext(globalThis.__CONFIG__);
   setTelemetryVersionContext(versionContext);
@@ -644,41 +649,46 @@ async function main() {
     });
   };
 
-  const handleSignal = async (signal: string) => {
-    console.log(chalk.yellow(`Received ${signal}. Saving paper balance before exit...`));
+  const requestShutdown = createShutdownCoordinator(async (reason) => {
+    console.log(chalk.yellow(`Received ${reason}. Saving session state before exit...`));
+    await botRuntimeControl?.publish("STOPPING");
     if (activeTrade && (activeTrade.holdingStatus === Market.Up || activeTrade.holdingStatus === Market.Down) && activeTrade.share > 0) {
       try {
-        activeTrade.setPendingExitIntent("manual", `shutdown_signal:${signal}`);
+        activeTrade.setPendingExitIntent("manual", `shutdown_signal:${reason}`);
         const exitPromise = activeTrade.holdingStatus === Market.Up
           ? activeTrade.sellUpToken()
           : activeTrade.sellDownToken();
         await Promise.race([
           exitPromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error("manual exit timeout")), 5000)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("manual exit timeout")), 5_000)),
         ]);
       } catch (error) {
-        console.error(chalk.yellow(`Manual exit attempt failed during ${signal}: ${error instanceof Error ? error.message : String(error)}`));
+        console.error(chalk.yellow(
+          `Manual exit attempt failed during ${reason}: ${error instanceof Error ? error.message : String(error)}`,
+        ));
       }
     }
     if (!PAPER_TRADING && activeTrade?.authorizedClob) {
       await writeLiveBalanceCheckpoint({
         client: activeTrade.authorizedClob,
-        reason: `shutdown_${signal}`,
+        reason: `shutdown_${reason}`,
         marketSlug: activeTrade.marketSlug,
         upTokenId: activeTrade.upTokenId,
         downTokenId: activeTrade.downTokenId,
       });
     }
-    await persistPaperBalance(signal);
+    await persistPaperBalance(reason);
+    await botRuntimeControl?.publish("SHUTDOWN_COMPLETE");
+    await botRuntimeControl?.close();
     process.exit(0);
-  };
+  });
 
   process.once("SIGINT", () => {
-    void handleSignal("SIGINT");
+    void requestShutdown("SIGINT");
   });
 
   process.once("SIGTERM", () => {
-    void handleSignal("SIGTERM");
+    void requestShutdown("SIGTERM");
   });
 
   playCliAlertSound("buy");
@@ -706,6 +716,8 @@ async function main() {
   await writeTelemetryEventSafe("bot.startup", {
     botId: BOT_ID,
     mode: runtimeMode,
+    controlRunId: controlledRun?.runId ?? null,
+    modeSource: controlledRun ? "CONTROL_OVERRIDE" : "ENV_FILE",
     signerAddress,
     signatureType: SIGNATURE_TYPE,
     signatureTypeSource: SIGNATURE_TYPE_SOURCE,
@@ -720,6 +732,24 @@ async function main() {
     collateralGuardToken: !PAPER_TRADING && COLLATERAL_GUARD_ENABLED ? PUSD_COLLATERAL_TOKEN : null,
   });
   await writeTelemetryEventSafe("bot.startup_config", resolveStartupConfigTelemetry());
+  if (controlledRun) {
+    const sessionId = getTelemetrySession()?.id;
+    if (!sessionId) throw new Error("Controlled run cannot start without a telemetry session ID");
+    const store = new ControlRuntimeStore(createControlPaths(controlledRun.controlDir));
+    await store.ensure();
+    botRuntimeControl = createBotRuntimeControl({
+      store,
+      runId: controlledRun.runId,
+      mode: runtimeMode,
+      sessionId,
+      bot: {
+        pid: process.pid,
+        startedAt: new Date(Date.now() - process.uptime() * 1_000).toISOString(),
+      },
+      onStop: () => requestShutdown("CONTROL_STOP"),
+    });
+    await botRuntimeControl.publish("RUNNING");
+  }
   scheduleShadowSettlementReconcile();
   const shadowSettlementTimer = setInterval(() => {
     scheduleShadowSettlementReconcile();

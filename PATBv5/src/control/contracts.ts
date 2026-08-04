@@ -62,6 +62,8 @@ export interface ControlRunView {
   requestedMode: RequestedMode;
   modeSource: "CONTROL_OVERRIDE";
   requestedAt: string;
+  stopRequestedAt: string | null;
+  forceEligibleAt: string | null;
   wrapperPid: number | null;
   botPid: number | null;
   sessionId: string | null;
@@ -86,6 +88,8 @@ export interface SpawnRunRequest {
 export interface WrapperHandle {
   identity: ProcessIdentity;
   completion: Promise<{ exitCode: number; signal: string | null }>;
+  releaseStart(): Promise<void>;
+  abortStart(): Promise<void>;
 }
 export type ProcessInspection = "alive" | "absent" | "identity_mismatch";
 export interface RuntimeProcessAdapter {

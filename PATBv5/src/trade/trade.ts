@@ -61,6 +61,13 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
     const LIVE_EXIT_SUBMIT_TIMEOUT_MS = Number.isFinite(configuredExitSubmitTimeoutMs) && configuredExitSubmitTimeoutMs > 0
         ? configuredExitSubmitTimeoutMs
         : 12_000;
+    const configuredEntryFillTimeoutMs = Number(process.env.LIVE_ENTRY_FILL_TIMEOUT_MS ?? 8_000);
+    // Entry buys use FAK. A live order therefore represents an unexpected
+    // resting order, not a completed position; cancel it promptly if no fill
+    // reaches the balance endpoint.
+    const LIVE_ENTRY_FILL_TIMEOUT_MS = Number.isFinite(configuredEntryFillTimeoutMs) && configuredEntryFillTimeoutMs > 0
+        ? configuredEntryFillTimeoutMs
+        : 8_000;
     const EXIT_RECONCILIATION_QUERY_TIMEOUT_MS = 5_000;
     const unresolvedExitReconciliationTrades = new Set<any>();
 
@@ -879,6 +886,46 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
             });
         }
     };
+    const finalizeMatchedExitOrder = async (
+        trade: any,
+        side: Market.Up | Market.Down,
+        tokenId: string,
+        filledSize: number,
+        exitPrice: number,
+        orderId: string,
+        exitReason: string,
+        errorContext: string | null,
+    ): Promise<void> => {
+        // The order endpoint is authoritative. Balance reads may lag a confirmed fill;
+        // retaining an OPEN position in that interval permits a duplicate sell.
+        markPositionClosed(trade);
+        removeExitOrder(trade, { marketSlug: trade.marketSlug, tokenId, side });
+        await writeTelemetryEventSafe("live_trade.sell", buildSellTelemetryPayload(trade, {
+            side: side === Market.Up ? "UP" : "DOWN",
+            tokenId,
+            reason: exitReason,
+            errorContext,
+            exitPrice,
+            shares: filledSize,
+            cashBefore: null,
+            cashAfter: null,
+            feeUsd: 0,
+            rebateUsd: 0,
+            orderId,
+            reconciliationSource: "provider_matched_response",
+        }));
+        await emitExitEvent("trade.exit_filled", trade, {
+            orderId,
+            side,
+            tokenId,
+            filledSize,
+            avgPrice: exitPrice,
+            pnlEstimate: null,
+            reconciliationSource: "provider_matched_response",
+        });
+        clearPendingExitIntent(trade);
+        playCliTradeSound("sell");
+    };
     const cancelExistingExitOrder = async (
         trade: any,
         order: Record<string, any>,
@@ -1117,9 +1164,9 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
 
             if (status.status === "matched") {
                 const exitPrice = Number.isFinite(status.avgPrice) ? Number(status.avgPrice) : Number(openOrder.price ?? 0);
-                if (this.holdingStatus !== Market.Up && this.holdingStatus !== Market.Down) {
-                    this.positionState = "CLOSED";
-                }
+                // A matched order is terminal even when the balance API has not yet
+                // reflected the fill; otherwise the next exit evaluation can resubmit.
+                markPositionClosed(this);
                 await writeTelemetryEventSafe("live_trade.sell", buildSellTelemetryPayload(this, {
                     side: openOrder.side === Market.Up ? "UP" : "DOWN",
                     tokenId: openOrder.tokenId,
@@ -2115,7 +2162,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
 
             // Poll balance every 1 second until up token balance is received
             try {
-                await this.waitForBalance("up");
+                await this.waitForBalance("up", LIVE_ENTRY_FILL_TIMEOUT_MS);
             } catch (error: any) {
                 const timeoutAt = new Date().toISOString();
                 let providerOrderStatus = await getLiveEntryOrderStatus(this, orderId);
@@ -2145,7 +2192,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                     mcSimulatedDirection,
                     mcBullPaths,
                     mcBearPaths,
-                    timeoutMs: 60000,
+                    timeoutMs: LIVE_ENTRY_FILL_TIMEOUT_MS,
                     tokenType: "up",
                     errorMessage: error?.message ?? String(error),
                     providerOrderStatus: providerOrderStatus.status,
@@ -2191,7 +2238,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                         mcSimulatedDirection,
                         mcBullPaths,
                         mcBearPaths,
-                        timeoutMs: 60000,
+                        timeoutMs: LIVE_ENTRY_FILL_TIMEOUT_MS,
                         tokenType: "up",
                         providerOrderStatus: providerOrderStatus.status,
                         providerFilledSize: providerOrderStatus.filledSize ?? null,
@@ -2537,7 +2584,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
 
             // Poll balance every 1 second until down token balance is received
             try {
-                await this.waitForBalance("down");
+                await this.waitForBalance("down", LIVE_ENTRY_FILL_TIMEOUT_MS);
             } catch (error: any) {
                 const timeoutAt = new Date().toISOString();
                 let providerOrderStatus = await getLiveEntryOrderStatus(this, orderId);
@@ -2567,7 +2614,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                     mcSimulatedDirection,
                     mcBullPaths,
                     mcBearPaths,
-                    timeoutMs: 60000,
+                    timeoutMs: LIVE_ENTRY_FILL_TIMEOUT_MS,
                     tokenType: "down",
                     errorMessage: error?.message ?? String(error),
                     providerOrderStatus: providerOrderStatus.status,
@@ -2613,7 +2660,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                         mcSimulatedDirection,
                         mcBullPaths,
                         mcBearPaths,
-                        timeoutMs: 60000,
+                        timeoutMs: LIVE_ENTRY_FILL_TIMEOUT_MS,
                         tokenType: "down",
                         providerOrderStatus: providerOrderStatus.status,
                         providerFilledSize: providerOrderStatus.filledSize ?? null,
@@ -2904,7 +2951,14 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
             console.log("✅ Order posted successfully:", order);
 
             const orderStatus = String(order?.status ?? "").toLowerCase();
-            if (String(order?.orderID ?? order?.orderId ?? "") && orderStatus === "live") {
+            const orderId = String(order?.orderID ?? order?.orderId ?? "");
+            if (orderId && orderStatus === "matched") {
+                await finalizeMatchedExitOrder(
+                    this, Market.Up, this.upTokenId, actualBalance, orderPrice, orderId, exitReason, exitErrorContext,
+                );
+                return true;
+            }
+            if (orderId && orderStatus === "live") {
                 await registerAcceptedExitOrder(
                     this,
                     Market.Up,
@@ -3208,7 +3262,14 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
             console.log("✅ Order posted successfully:", order);
 
             const orderStatus = String(order?.status ?? "").toLowerCase();
-            if (String(order?.orderID ?? order?.orderId ?? "") && orderStatus === "live") {
+            const orderId = String(order?.orderID ?? order?.orderId ?? "");
+            if (orderId && orderStatus === "matched") {
+                await finalizeMatchedExitOrder(
+                    this, Market.Down, this.downTokenId, actualBalance, orderPrice, orderId, exitReason, exitErrorContext,
+                );
+                return true;
+            }
+            if (orderId && orderStatus === "live") {
                 await registerAcceptedExitOrder(
                     this,
                     Market.Down,

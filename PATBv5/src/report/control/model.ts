@@ -43,6 +43,7 @@ export type ReportSourceSummary = Omit<ReportSource, 'internalPath'>;
 
 export interface ReportRecord {
   id: string;
+  sourceId: string | null;
   fileName: string;
   sourceName: string | null;
   sourceKind: 'session' | 'upload' | 'legacy';
@@ -339,6 +340,7 @@ export class ReportCatalog {
 
       byFileName.set(entry.name, {
         id: stableId('report', entry.name),
+        sourceId: null,
         fileName: entry.name,
         sourceName: files.length > 0 ? path.basename(String(files[0])) : null,
         sourceKind: 'legacy',
@@ -354,6 +356,10 @@ export class ReportCatalog {
     return [...byFileName.values()].sort(
       (a, b) => Date.parse(b.generatedAt) - Date.parse(a.generatedAt),
     );
+  }
+
+  findReportForSource(sourceId: string): ReportRecord | null {
+    return this.listReports().find((report) => report.sourceId === sourceId) ?? null;
   }
 
   getReport(reportId: string): ReportRecord | null {
@@ -481,6 +487,7 @@ export class ReportJobManager {
       const fileName = path.basename(generated.outputPath);
       const record: ReportRecord = {
         id: stableId('report', fileName),
+        sourceId: source.id,
         fileName,
         sourceName: source.name,
         sourceKind: source.kind,

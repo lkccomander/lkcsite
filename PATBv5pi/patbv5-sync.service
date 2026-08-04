@@ -1,0 +1,9 @@
+[Unit]
+Description=Apply the latest PATBv5 Samba release
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/mnt/pifiles
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/patbv5-sync-release

@@ -117,6 +117,7 @@ async function testStaleSnapshotForcesReconnectWhenPongsStop(): Promise<void> {
     feed.wsConnected = true;
     feed.lastConnectedAtMs = now - 20_000;
     feed.lastPongReceivedAtMs = now - 13_000;
+    feed.consecutiveStaleSubscriptionRefreshes = 3;
     feed.forceReconnect = (reason: string) => {
         reconnectReason = reason;
     };
@@ -127,8 +128,8 @@ async function testStaleSnapshotForcesReconnectWhenPongsStop(): Promise<void> {
     feed.stateByAsset["up-token"] = {
         buyPrice: 0.51,
         sellPrice: 0.49,
-        marketTimestampMs: now - 3_000,
-        receivedAtMs: now - 3_000,
+        marketTimestampMs: now - 13_000,
+        receivedAtMs: now - 13_000,
         lastEventType: "book",
         websocketMessageCount: 10,
         firstWebsocketSeenAtMs: now - 20_000,
@@ -136,8 +137,8 @@ async function testStaleSnapshotForcesReconnectWhenPongsStop(): Promise<void> {
     feed.stateByAsset["down-token"] = {
         buyPrice: 0.49,
         sellPrice: 0.51,
-        marketTimestampMs: now - 3_000,
-        receivedAtMs: now - 3_000,
+        marketTimestampMs: now - 13_000,
+        receivedAtMs: now - 13_000,
         lastEventType: "book",
         websocketMessageCount: 10,
         firstWebsocketSeenAtMs: now - 20_000,
@@ -149,11 +150,102 @@ async function testStaleSnapshotForcesReconnectWhenPongsStop(): Promise<void> {
     assert.equal(refreshReason, null);
 }
 
+async function testStaleSnapshotResubscribesBeforeForcedReconnect(): Promise<void> {
+    const feed = new PolymarketMarketFeed({
+        slug: "test-market",
+        upTokenId: "up-token",
+        downTokenId: "down-token",
+    }) as any;
+
+    const now = Date.now();
+    let reconnectReason: string | null = null;
+    let refreshReason: string | null = null;
+    feed.wsConnected = true;
+    feed.lastConnectedAtMs = now - 20_000;
+    feed.lastPongReceivedAtMs = now - 100;
+    feed.forceReconnect = (reason: string) => {
+        reconnectReason = reason;
+    };
+    feed.refreshSubscriptionIfNeeded = (reason: string) => {
+        refreshReason = reason;
+    };
+    feed.fetchRestSnapshot = async () => null;
+    for (const tokenId of ["up-token", "down-token"]) {
+        feed.stateByAsset[tokenId] = {
+            buyPrice: 0.51,
+            sellPrice: 0.49,
+            marketTimestampMs: now - 8_000,
+            receivedAtMs: now - 8_000,
+            lastEventType: "book",
+            websocketMessageCount: 10,
+            firstWebsocketSeenAtMs: now - 20_000,
+        };
+    }
+
+    await feed.getLatestSnapshot();
+    assert.equal(reconnectReason, null, "expected first stale snapshot to re-subscribe before reconnecting");
+    assert.equal(refreshReason, "stale_snapshot");
+
+    feed.consecutiveStaleSubscriptionRefreshes = 3;
+    refreshReason = null;
+    await feed.getLatestSnapshot();
+    assert.equal(reconnectReason, "websocket_unresponsive");
+    assert.equal(refreshReason, null);
+}
+
+async function testStaleSnapshotRefreshesWhenMessagesStillFlow(): Promise<void> {
+    const feed = new PolymarketMarketFeed({
+        slug: "test-market",
+        upTokenId: "up-token",
+        downTokenId: "down-token",
+    }) as any;
+
+    const now = Date.now();
+    let reconnectReason: string | null = null;
+    let refreshReason: string | null = null;
+
+    feed.wsConnected = true;
+    feed.lastConnectedAtMs = now - 20_000;
+    feed.lastPongReceivedAtMs = now - 13_000;
+    feed.forceReconnect = (reason: string) => {
+        reconnectReason = reason;
+    };
+    feed.refreshSubscriptionIfNeeded = (reason: string) => {
+        refreshReason = reason;
+    };
+    feed.fetchRestSnapshot = async () => null;
+    feed.stateByAsset["up-token"] = {
+        buyPrice: 0.51,
+        sellPrice: 0.49,
+        marketTimestampMs: now - 6_000,
+        receivedAtMs: now - 6_000,
+        lastEventType: "book",
+        websocketMessageCount: 10,
+        firstWebsocketSeenAtMs: now - 20_000,
+    };
+    feed.stateByAsset["down-token"] = {
+        buyPrice: 0.49,
+        sellPrice: 0.51,
+        marketTimestampMs: now - 200,
+        receivedAtMs: now - 200,
+        lastEventType: "book",
+        websocketMessageCount: 10,
+        firstWebsocketSeenAtMs: now - 20_000,
+    };
+
+    await feed.getLatestSnapshot();
+
+    assert.equal(reconnectReason, null);
+    assert.equal(refreshReason, "stale_snapshot");
+}
+
 async function run(): Promise<void> {
     await testDisconnectedFeedDoesNotBuildWebsocketSnapshot();
     await testRestFallbackFailureResetsActiveFallbackWindow();
     await testReconnectOpenRecoversFromCachedSnapshot();
     await testStaleSnapshotForcesReconnectWhenPongsStop();
+    await testStaleSnapshotResubscribesBeforeForcedReconnect();
+    await testStaleSnapshotRefreshesWhenMessagesStillFlow();
 }
 
 void run().catch((error) => {

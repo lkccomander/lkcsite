@@ -113,6 +113,7 @@ async function run(): Promise<void> {
     assert.equal(completed.status, 'completed', completed.error ?? 'report job should complete');
     assert.ok(completed.reportUrl);
     const generated = reportCatalog.listReports().find((report) => report.id === completed.reportId);
+    assert.equal(generated?.sourceId, paperSource.id);
     assert.equal(generated?.mode, 'PAPER');
     assert.ok(generated && existsSync(join(paths.reportsDir, generated.fileName)));
     assert.match(readFileSync(paths.reportIndexFile, 'utf8'), /"mode": "PAPER"/);
@@ -186,6 +187,17 @@ async function run(): Promise<void> {
       const apiJob = await jobResponse.json() as any;
       const apiCompleted = await waitForApiJob(baseUrl, apiJob.id);
       assert.equal(apiCompleted.status, 'completed', apiCompleted.error ?? 'API report job should complete');
+
+      const duplicateJobResponse = await fetch(`${baseUrl}/api/report-jobs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceId: uploadPayload.source.id }),
+      });
+      assert.equal(duplicateJobResponse.status, 409);
+      const duplicatePayload = await duplicateJobResponse.json() as any;
+      assert.match(duplicatePayload.error, /already exists/i);
+      assert.equal(duplicatePayload.report.sourceId, uploadPayload.source.id);
+      assert.equal(duplicatePayload.report.reportUrl, apiCompleted.reportUrl);
 
       const paperReports = await fetch(`${baseUrl}/api/reports?mode=PAPER`).then((response) => response.json()) as any;
       assert.ok(paperReports.reports.length >= 2);

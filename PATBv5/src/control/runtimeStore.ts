@@ -45,7 +45,9 @@ function isMissingFile(error: unknown): boolean {
 
 async function readJson<T>(path: string): Promise<T | null> {
   try {
-    return JSON.parse(await readFile(path, "utf8")) as T;
+    const raw = await readFile(path, "utf8");
+    if (raw.trim().length === 0) return null;
+    return JSON.parse(raw) as T;
   } catch (error) {
     if (isMissingFile(error)) return null;
     throw error;

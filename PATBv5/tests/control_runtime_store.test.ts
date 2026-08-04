@@ -50,6 +50,9 @@ async function run(): Promise<void> {
     const audit = await readFile(paths.audit, "utf8");
     assert.match(audit, /stop\.requested/);
 
+    await writeFile(paths.controllerState, "\n", "utf8");
+    assert.equal(await store.readControllerState(), null);
+
     const longLogPath = join(paths.logsDir, "long-run.log");
     await writeFile(longLogPath, [
       "x".repeat(300 * 1024),

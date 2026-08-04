@@ -1,9 +1,11 @@
 import type { ActivityEvent } from "../types";
 
 export type ActivityFilter = "trades" | "all";
+export const MAX_ACTIVITY_FEED_ITEMS = 30;
 
 export function filterActivityFeed(events: ActivityEvent[], filter: ActivityFilter): ActivityEvent[] {
-  return filter === "all" ? events : events.filter((event) => event.category !== "feed");
+  const filtered = filter === "all" ? events : events.filter((event) => event.category !== "feed");
+  return filtered.slice(0, MAX_ACTIVITY_FEED_ITEMS);
 }
 
 export function nextFeedTab(current: ActivityFilter, key: string): ActivityFilter {

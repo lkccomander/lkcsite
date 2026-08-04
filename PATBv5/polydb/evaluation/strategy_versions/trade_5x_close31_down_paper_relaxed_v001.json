@@ -1,0 +1,95 @@
+{
+  "id": "trade_5x_close31_down_paper_relaxed_v001",
+  "strategyName": "trade_5x_close31_down_paper_relaxed",
+  "configHash": "sha256:35e8c83ef1f5c7f5702536f16891c4c7def38f16bce3d04eb16d75d28815eaea",
+  "configSnapshot": {
+    "market": {
+      "market_coin": "btc",
+      "market_period": "5"
+    },
+    "max_retries": 3,
+    "strategy": "trade_5x_close31_down_paper_relaxed",
+    "trade_5x_close31_down_paper_relaxed": {
+      "cooldown_after_loss_markets": 0,
+      "daily_stop_loss_usd": 25,
+      "down_bias_filter": false,
+      "down_block_if_btc_trend_up": false,
+      "down_block_neutral_momentum": true,
+      "down_max_entry_price": 0.87,
+      "down_min_entry_price": 0.43,
+      "down_min_mc_convergence": 0.6,
+      "down_require_directional_momentum": false,
+      "down_require_mc_direction_agreement": false,
+      "emergency_swap_price": [
+        0,
+        0.2
+      ],
+      "entry_price_ratio": [
+        0.1,
+        0.36
+      ],
+      "entry_time_ratio": 0.06,
+      "exit_price_ratio_range": [
+        [
+          0,
+          0.45
+        ],
+        [
+          0.86,
+          1
+        ]
+      ],
+      "exit_reprice_after_ms": 1500,
+      "exit_reprice_enabled": true,
+      "exit_reprice_max_attempts": 2,
+      "forced_exit_seconds_before_close": 8,
+      "latest_entry_seconds_before_close": 12,
+      "maker_rebate_bps": 0,
+      "max_allowed_spread": 0.03,
+      "max_entry_feed_age_ms": 700,
+      "max_entry_feed_latency_ms": 400,
+      "max_entry_feed_rtt_ms": 650,
+      "max_entry_fill_delay_ms": 12000,
+      "max_entry_price": 0.87,
+      "max_feed_age_ms": 500,
+      "max_market_transition_grace_ms": 1000,
+      "max_open_positions": 1,
+      "max_price_change_after_signal": 0.025,
+      "max_rtt_ms": 500,
+      "max_seconds_to_close": null,
+      "max_trades_per_market": 1,
+      "min_entry_price": 0.43,
+      "min_fee_adjusted_edge": 0.02,
+      "min_observed_markets_before_trade": 5,
+      "min_seconds_to_close": 31,
+      "opposite_side_cooldown_seconds": 120,
+      "paper_disable_up_entries": false,
+      "prevent_opposite_side_reentry": true,
+      "recent_ws_fallback_cooldown_ms": 5000,
+      "reject_if_price_moves_against_us_fast": true,
+      "reject_if_recent_ws_fallback": true,
+      "reject_on_missing_websocket": true,
+      "require_fee_adjusted_edge": true,
+      "require_reject_reason": true,
+      "require_websocket": true,
+      "session_stop_loss_usd": 10,
+      "stop_loss_max_spread": 0.035,
+      "stop_loss_offset": 0.13,
+      "stop_loss_price": 0.4,
+      "stop_loss_spread_wait_ms": 2000,
+      "take_profit_price": 0.86,
+      "up_max_entry_price": 0.86,
+      "up_min_btc_delta1m": 0.0005,
+      "up_min_entry_price": 0.1,
+      "up_min_mc_convergence": 0.7,
+      "up_min_momentum_confidence": 0.35,
+      "up_require_directional_momentum": false,
+      "up_require_mc_direction_agreement": true,
+      "up_requires_btc_momentum": true,
+      "use_passive_maker_orders": true
+    },
+    "trade_usd": 5
+  },
+  "createdAt": "2026-08-03T04:06:46.230Z",
+  "status": "PAPER_TESTING"
+}

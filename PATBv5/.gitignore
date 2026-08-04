@@ -10,6 +10,12 @@ polydb/reports/
 graphify-out/
 *.tsbuildinfo
 
+# Local agent/tooling state and accidental ad-hoc SQL scratch files
+.hallmark/
+.superpowers/
+SELECT*.sql
+SEL2ECT*.sql
+
 # Generated local JSON state / analysis artifacts
 checker_history.json
 sessions_fresh_comparable_report.json

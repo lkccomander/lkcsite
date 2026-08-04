@@ -8,6 +8,37 @@ import {
     type ShadowSettlement,
 } from "./shadowSettlement";
 
+const WINDOWS_RENAME_RETRY_DELAYS_MS = [25, 50, 100, 200, 400];
+
+function isTransientRenameError(error: unknown): boolean {
+    if (!error || typeof error !== "object" || !("code" in error)) {
+        return false;
+    }
+
+    const code = (error as { code?: unknown }).code;
+    return code === "EPERM" || code === "EACCES" || code === "EBUSY";
+}
+
+function delay(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function replaceFileWithRetry(temporaryPath: string, path: string): Promise<void> {
+    for (let attempt = 0; ; attempt += 1) {
+        try {
+            await rename(temporaryPath, path);
+            return;
+        } catch (error) {
+            const retryDelay = WINDOWS_RENAME_RETRY_DELAYS_MS[attempt];
+            if (!isTransientRenameError(error) || retryDelay === undefined) {
+                throw error;
+            }
+
+            await delay(retryDelay);
+        }
+    }
+}
+
 export interface PendingShadowSignal {
     signalId: string;
     reason: string;
@@ -123,8 +154,13 @@ export async function persistPendingShadowSettlementBatch(
 
     const path = batchPath(directory, batch.batchId);
     const temporaryPath = join(directory, `.${batch.batchId}.${process.pid}.${randomUUID()}.tmp`);
-    await writeFile(temporaryPath, `${JSON.stringify(batch, null, 2)}\n`, "utf8");
-    await rename(temporaryPath, path);
+    try {
+        await writeFile(temporaryPath, `${JSON.stringify(batch, null, 2)}\n`, "utf8");
+        await replaceFileWithRetry(temporaryPath, path);
+    } catch (error) {
+        await rm(temporaryPath, { force: true });
+        throw error;
+    }
 }
 
 export async function listPendingShadowSettlementBatches(

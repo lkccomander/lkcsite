@@ -26,6 +26,7 @@ export type TelemetryEventType =
     | "market.snapshot_rejected"
     | "feed.connected"
     | "feed.subscription"
+    | "feed.transition"
     | "feed.disconnected"
     | "feed.reconnect_scheduled"
     | "feed.reconnect_forced"

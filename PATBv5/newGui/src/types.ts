@@ -1,5 +1,31 @@
 export type TapeTone = "positive" | "negative" | "warning" | "info";
 
+export type RequestedMode = "PAPER" | "LIVE";
+export type ControllerState = "STOPPED" | "STARTING" | "PAPER" | "LIVE" | "STOPPING" | "FINALIZING" | "ERROR";
+
+export interface ControlRunView {
+  runId: string;
+  requestedMode: RequestedMode;
+  modeSource: "CONTROL_OVERRIDE";
+  requestedAt: string;
+  stopRequestedAt: string | null;
+  forceEligibleAt: string | null;
+  wrapperPid: number | null;
+  botPid: number | null;
+  sessionId: string | null;
+  heartbeatUpdatedAt: string | null;
+}
+
+export interface ControlStatus {
+  state: ControllerState;
+  canStart: boolean;
+  canStop: boolean;
+  canForceStop: boolean;
+  activeRun: ControlRunView | null;
+  error: string | null;
+  logTail: string[];
+}
+
 export interface HeaderData {
   botId: string;
   strategyLabel: string;

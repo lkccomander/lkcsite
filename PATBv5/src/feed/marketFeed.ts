@@ -26,8 +26,10 @@ const FEED_PONG_TIMEOUT_MS = 12000;
 const FEED_FALLBACK_DEBOUNCE_MS = 5000;
 const FEED_WEBSOCKET_SNAPSHOT_GRACE_MS = 2000;
 const FEED_RECONNECT_STABLE_RESET_MS = 10000;
-const FEED_FORCE_RECONNECT_WAITING_FOR_BOTH_SIDES_MS = 9000;
+const FEED_FORCE_RECONNECT_WAITING_FOR_BOTH_SIDES_MS = FEED_FORCE_WEBSOCKET_WAIT_MS;
 const FEED_LOW_MESSAGE_COUNT_GRACE = 2;
+const FEED_FORCE_RECONNECT_MIN_RESUBSCRIBES = 3;
+const FEED_FORCE_RECONNECT_COOLDOWN_MS = 30_000;
 
 interface FeedState {
     buyPrice: number;
@@ -141,6 +143,7 @@ export class PolymarketMarketFeed implements MarketFeed {
     private readonly stats: {
         connectedCount: number;
         disconnectedCount: number;
+        intentionalCloseCount: number;
         reconnectAttemptCount: number;
         errorCount: number;
         tickCount: number;
@@ -182,6 +185,8 @@ export class PolymarketMarketFeed implements MarketFeed {
     private lastReconnectScheduledAtMs: number | null = null;
     private activeFallback: ActiveFallbackState | null = null;
     private lastTransportErrorCategory: TransportErrorCategory = "socket_error";
+    private consecutiveStaleSubscriptionRefreshes = 0;
+    private lastForcedReconnectAtMs: number | null = null;
 
     constructor(options: MarketFeedOptions) {
         this.slug = options.slug;
@@ -194,6 +199,7 @@ export class PolymarketMarketFeed implements MarketFeed {
         this.stats = {
             connectedCount: 0,
             disconnectedCount: 0,
+            intentionalCloseCount: 0,
             reconnectAttemptCount: 0,
             errorCount: 0,
             tickCount: 0,
@@ -243,6 +249,7 @@ export class PolymarketMarketFeed implements MarketFeed {
             wsReconnectedAt: this.stats.wsReconnectedAtMs ? new Date(this.stats.wsReconnectedAtMs).toISOString() : null,
             connectedCount: this.stats.connectedCount,
             disconnectedCount: this.stats.disconnectedCount,
+            intentionalCloseCount: this.stats.intentionalCloseCount,
             reconnectAttemptCount: this.stats.reconnectAttemptCount,
             errorCount: this.stats.errorCount,
             tickCount: this.stats.tickCount,
@@ -275,6 +282,7 @@ export class PolymarketMarketFeed implements MarketFeed {
             wsReconnectedAt: stats.wsReconnectedAt,
             connectedCount: stats.connectedCount,
             disconnectedCount: stats.disconnectedCount,
+            intentionalCloseCount: stats.intentionalCloseCount,
             reconnectAttemptCount: stats.reconnectAttemptCount,
             errorCount: stats.errorCount,
             tickCount: stats.tickCount,
@@ -415,25 +423,15 @@ export class PolymarketMarketFeed implements MarketFeed {
             });
 
             socket.on("close", (code, reason) => {
-                this.stopPingLoop();
                 clearTimeout(timeout);
-                this.captureConnectedDuration();
-                this.wsConnected = false;
-                this.stats.disconnectedCount += 1;
-                this.stats.wsDisconnectedAtMs = Date.now();
+                const intentionalClose = this.recordSocketClose(code, reason.toString());
                 if (this.ws === socket) {
                     this.ws = null;
                 }
-                void writeTelemetryEventSafe("feed.disconnected", {
-                    slug: this.slug,
-                    source: "websocket",
-                    code,
-                    reason: reason.toString(),
-                    reconnectAttemptCount: this.stats.reconnectAttemptCount,
-                    wsDisconnectedAt: new Date(this.stats.wsDisconnectedAtMs).toISOString(),
-                });
                 settle();
-                scheduleReconnect(this.pendingReconnectReason ?? (opened ? `close_${code}` : "preopen_close"));
+                if (!intentionalClose) {
+                    scheduleReconnect(this.pendingReconnectReason ?? (opened ? `close_${code}` : "preopen_close"));
+                }
             });
         });
 
@@ -482,12 +480,53 @@ export class PolymarketMarketFeed implements MarketFeed {
         });
     }
 
+    private recordSocketClose(code: number, reason: string): boolean {
+        this.stopPingLoop();
+        this.captureConnectedDuration();
+        this.wsConnected = false;
+
+        if (this.stopped) {
+            this.stats.intentionalCloseCount += 1;
+            void writeTelemetryEventSafe("feed.transition", {
+                slug: this.slug,
+                source: "websocket",
+                code,
+                reason,
+                intentionalCloseCount: this.stats.intentionalCloseCount,
+            });
+            return true;
+        }
+
+        this.stats.disconnectedCount += 1;
+        this.stats.wsDisconnectedAtMs = Date.now();
+        void writeTelemetryEventSafe("feed.disconnected", {
+            slug: this.slug,
+            source: "websocket",
+            code,
+            reason,
+            reconnectAttemptCount: this.stats.reconnectAttemptCount,
+            wsDisconnectedAt: new Date(this.stats.wsDisconnectedAtMs).toISOString(),
+        });
+        return false;
+    }
+
     async getLatestSnapshot(): Promise<PriceSnapshot | null> {
         const websocketSnapshot = this.buildWebsocketSnapshot();
         const websocketReady = this.hasReceivedBothSidesOverWebsocket();
         const effectiveStaleThresholdMs = this.getEffectiveStaleThresholdMs(websocketSnapshot);
 
         if (websocketSnapshot && websocketSnapshot.staleMs <= effectiveStaleThresholdMs) {
+            return websocketSnapshot;
+        }
+
+        const websocketSnapshotWithinGrace = Boolean(
+            websocketSnapshot
+            && this.wsConnected
+            && websocketReady
+            && websocketSnapshot.staleMs <= effectiveStaleThresholdMs + FEED_WEBSOCKET_SNAPSHOT_GRACE_MS,
+        );
+
+        if (websocketSnapshotWithinGrace && websocketSnapshot) {
             return websocketSnapshot;
         }
 
@@ -514,16 +553,6 @@ export class PolymarketMarketFeed implements MarketFeed {
 
         if (!websocketSnapshot && (startupGraceActive || (this.wsConnected && !websocketReady && connectedForMs < FEED_FORCE_WEBSOCKET_WAIT_MS))) {
             return null;
-        }
-
-        if (
-            websocketSnapshot &&
-            this.wsConnected &&
-            websocketReady &&
-            websocketSnapshot.staleMs > effectiveStaleThresholdMs &&
-            websocketSnapshot.staleMs <= effectiveStaleThresholdMs + FEED_WEBSOCKET_SNAPSHOT_GRACE_MS
-        ) {
-            return websocketSnapshot;
         }
 
         return this.fetchRestSnapshot(websocketSnapshot ? "stale_websocket" : "missing_websocket");
@@ -561,8 +590,24 @@ export class PolymarketMarketFeed implements MarketFeed {
     }
 
     private shouldForceReconnectForUnresponsiveWebsocket(now: number): boolean {
-        return this.lastPongReceivedAtMs > 0
-            && now - this.lastPongReceivedAtMs >= FEED_PONG_TIMEOUT_MS;
+        const lastMessageReceivedAtMs = this.getLastWebsocketMessageReceivedAtMs();
+        const marketFlowStale = lastMessageReceivedAtMs <= 0
+            || now - lastMessageReceivedAtMs >= FEED_STALE_MS + FEED_WEBSOCKET_SNAPSHOT_GRACE_MS;
+        if (!marketFlowStale) {
+            return false;
+        }
+
+        const pongStale = this.lastPongReceivedAtMs <= 0
+            || now - this.lastPongReceivedAtMs >= FEED_PONG_TIMEOUT_MS;
+        const repeatedResubscribeFailure = this.consecutiveStaleSubscriptionRefreshes
+            >= FEED_FORCE_RECONNECT_MIN_RESUBSCRIBES;
+        const cooldownActive = this.lastForcedReconnectAtMs !== null
+            && now - this.lastForcedReconnectAtMs < FEED_FORCE_RECONNECT_COOLDOWN_MS;
+
+        // Quiet books can legitimately stop emitting updates. Treat a stale
+        // snapshot as a re-subscription problem first, and reconnect only
+        // after a second failure signal or repeated re-subscriptions.
+        return !cooldownActive && (pongStale || repeatedResubscribeFailure);
     }
 
     private async handleMessage(rawMessage: string): Promise<void> {
@@ -724,6 +769,10 @@ export class PolymarketMarketFeed implements MarketFeed {
         const snapshot = this.buildWebsocketSnapshot();
         if (!snapshot) {
             return;
+        }
+
+        if (snapshot.staleMs <= this.getEffectiveStaleThresholdMs(snapshot)) {
+            this.consecutiveStaleSubscriptionRefreshes = 0;
         }
 
         await this.maybeEmitFallbackRecovered(eventType, snapshot);
@@ -1001,6 +1050,12 @@ export class PolymarketMarketFeed implements MarketFeed {
         );
     }
 
+    private getLastWebsocketMessageReceivedAtMs(): number {
+        const upState = this.stateByAsset[this.upTokenId];
+        const downState = this.stateByAsset[this.downTokenId];
+        return Math.max(upState.receivedAtMs, downState.receivedAtMs);
+    }
+
     private sendSubscription(reason: string): void {
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
             return;
@@ -1086,6 +1141,9 @@ export class PolymarketMarketFeed implements MarketFeed {
             return;
         }
         this.lastSubscriptionRefreshAt = now;
+        if (reason === "stale_snapshot") {
+            this.consecutiveStaleSubscriptionRefreshes += 1;
+        }
         this.sendSubscription(reason);
     }
 
@@ -1151,7 +1209,16 @@ export class PolymarketMarketFeed implements MarketFeed {
             return;
         }
 
+        const now = Date.now();
+        if (
+            this.lastForcedReconnectAtMs !== null
+            && now - this.lastForcedReconnectAtMs < FEED_FORCE_RECONNECT_COOLDOWN_MS
+        ) {
+            return;
+        }
+
         this.pendingReconnectReason = reason;
+        this.lastForcedReconnectAtMs = now;
         void writeTelemetryEventSafe("feed.reconnect_forced", {
             slug: this.slug,
             source: "websocket",

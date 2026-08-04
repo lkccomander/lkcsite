@@ -223,7 +223,11 @@ const sharedClient = `
   };
   async function readJson(response) {
     const payload = await response.json().catch(() => ({ error: response.statusText }));
-    if (!response.ok) throw new Error(payload.error || 'Request failed');
+    if (!response.ok) {
+      const error = new Error(payload.error || 'Request failed');
+      error.payload = payload;
+      throw error;
+    }
     return payload;
   }
 `;
@@ -428,7 +432,19 @@ const generatorClient = `
         const job = await fetch('/api/report-jobs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sourceId:selectedSource.id}) }).then(readJson);
         if (reportWindow && !reportWindow.closed) reportWindow.location.replace('/report-job-waiting?jobId=' + encodeURIComponent(job.id));
         await pollJob(job.id);
-      } catch (error) { showJobError(error); }
+      } catch (error) {
+        const existingReport = error?.payload?.report;
+        if (existingReport?.reportUrl) {
+          document.getElementById('job-status').textContent = 'EXISTS';
+          document.getElementById('state-dot').className = 'state-dot completed';
+          document.getElementById('job-log').textContent = 'A report for this source already exists. Opening the existing report instead of generating a duplicate.';
+          const link = document.getElementById('open-result'); link.href = existingReport.reportUrl; link.classList.remove('hidden');
+          if (reportWindow && !reportWindow.closed) reportWindow.location.replace(existingReport.reportUrl);
+          generateButton.disabled = false;
+          return;
+        }
+        showJobError(error);
+      }
     });
 
     loadDashboard().catch((error) => {

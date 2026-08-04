@@ -19,6 +19,7 @@ export interface MarketFeedStats {
     wsReconnectedAt: string | null;
     connectedCount: number;
     disconnectedCount: number;
+    intentionalCloseCount: number;
     reconnectAttemptCount: number;
     errorCount: number;
     tickCount: number;

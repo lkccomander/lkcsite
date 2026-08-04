@@ -187,6 +187,21 @@ async function testSellMatchedClosesPosition() {
     assert.equal(Object.keys(trade.openExitOrders).length, 0);
 }
 
+async function testMatchedSellDoesNotRetryWhenBalanceRefreshLags() {
+    const client = buildClient({
+        // The balance endpoint can lag the matching-engine acknowledgement. A confirmed
+        // exit must still be terminal and must not submit another sell.
+        upBalances: [{ balance: usdWei(2) }, { balance: usdWei(2) }, { balance: usdWei(2) }],
+        createAndPostOrder: async () => ({ success: true, status: "matched", orderID: "matched-order" }),
+    });
+    const trade = makeTrade(client);
+
+    assert.equal(await trade.sellUpToken(), true);
+    assert.equal(trade.positionState, "CLOSED");
+    assert.equal(await trade.sellUpToken(), false);
+    assert.equal(client.calls.createAndPostOrder, 1, "a matched exit must never be submitted twice");
+}
+
 async function testSellLiveCreatesPendingExit() {
     const client = buildClient({
         upBalances: [
@@ -532,6 +547,7 @@ async function testEntryBlockedByExitPending() {
 
 async function main() {
     await testSellMatchedClosesPosition();
+    await testMatchedSellDoesNotRetryWhenBalanceRefreshLags();
     await testSellLiveCreatesPendingExit();
     await testAmbiguousSellReconcilesProviderFill();
     await testAmbiguousSellRegistersOpenOrder();
