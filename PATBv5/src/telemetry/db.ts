@@ -1,6 +1,6 @@
-import { appendFile, mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "fs/promises";
+import { appendFile, copyFile, mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "fs/promises";
 import os from "os";
-import { dirname, resolve } from "path";
+import { basename, dirname, resolve } from "path";
 import { randomUUID } from "crypto";
 import { readOptionalConfigEnv } from "../config/secrets";
 
@@ -174,6 +174,7 @@ const TELEMETRY_ROOT = configuredTelemetryRoot
     );
 const TELEMETRY_DB_PATH = resolve(TELEMETRY_ROOT, "events.jsonl");
 const TELEMETRY_SESSIONS_DIR = resolve(TELEMETRY_ROOT, "sessions");
+const COMPLETED_SESSION_SHARE_DIR = readOptionalConfigEnv("TELEMETRY_COMPLETED_SESSIONS_DIR");
 const LEGACY_PAPER_BALANCE_STATE_PATH = resolve(TELEMETRY_ROOT, "paper-balance.json");
 const telemetryRetentionConfig = resolveTelemetryRetentionConfig({
     rotateBytes: readOptionalConfigEnv("TELEMETRY_ROTATE_BYTES"),
@@ -412,6 +413,17 @@ export function getTelemetryDbPath(): string {
 
 export function getTelemetrySessionsDir(): string {
     return TELEMETRY_SESSIONS_DIR;
+}
+
+/** Best-effort archival of a closed session. Failure must never block shutdown. */
+export async function archiveCompletedTelemetrySession(): Promise<string | null> {
+    const session = telemetrySession;
+    if (!session || !COMPLETED_SESSION_SHARE_DIR) return null;
+    const target = resolve(COMPLETED_SESSION_SHARE_DIR, basename(session.sessionPath));
+    if (target === session.sessionPath) return target;
+    await mkdir(dirname(target), { recursive: true });
+    await copyFile(session.sessionPath, target);
+    return target;
 }
 
 export function __resetTelemetryModuleState(): void {

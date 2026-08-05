@@ -37,6 +37,7 @@ import { getCurrentTime, retryWithInstantRetry, sleep } from "./utils";
 import { playCliAlertSound } from "./utils/cliAlert";
 import {
   getTelemetryBotId,
+  archiveCompletedTelemetrySession,
   getTelemetryDbPath,
   getTelemetrySession,
   getTelemetrySessionsDir,
@@ -535,6 +536,12 @@ async function main() {
       reason,
       endingBalance,
     });
+    try {
+      const archivedPath = await archiveCompletedTelemetrySession();
+      if (archivedPath) console.log(chalk.gray(`Archived completed telemetry session: ${archivedPath}`));
+    } catch (error) {
+      console.warn("Completed telemetry session archive failed:", error);
+    }
   };
 
   const processManualTradeRequest = async (trade: Trade): Promise<void> => {
@@ -1277,5 +1284,10 @@ main().catch(async (error) => {
     error: error instanceof Error ? error.message : String(error),
     details: blockedCollateral ? error.details : undefined,
   });
+  try {
+    await archiveCompletedTelemetrySession();
+  } catch (archiveError) {
+    console.warn("Completed telemetry session archive failed:", archiveError);
+  }
   process.exit(1);
 });
