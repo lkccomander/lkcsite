@@ -312,7 +312,7 @@ down_require_mc_direction_agreement = false
 down_min_mc_convergence = 0.60
 down_block_if_btc_trend_up = false
 
-up_require_directional_momentum = false
+up_require_directional_momentum = true
 up_require_mc_direction_agreement = true
 up_requires_btc_momentum = true
 up_min_btc_delta1m = 0.0005

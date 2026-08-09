@@ -44,6 +44,11 @@ async function run(): Promise<void> {
     assert.equal(relaxed.paper_disable_up_entries, false);
     assert.equal(relaxed.entry_time_ratio, 0.06);
     assert.equal(relaxed.latest_entry_seconds_before_close, 12);
+    assert.equal(
+        relaxed.up_require_directional_momentum,
+        true,
+        "the relaxed PAPER profile must only admit UP entries with confirmed upward momentum",
+    );
     assert.equal(relaxed.down_min_mc_convergence, 0.60);
     assert.equal(relaxed.max_allowed_spread, 0.03);
     assert.equal(relaxed.min_entry_price, 0.43);
