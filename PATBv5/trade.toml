@@ -57,7 +57,7 @@ max_allowed_spread = 0.04
 
 down_require_directional_momentum = false
 down_block_neutral_momentum = true
-down_require_mc_direction_agreement = false
+down_require_mc_direction_agreement = true
 down_min_mc_convergence = 0.62
 #down_block_if_btc_trend_up = false
 down_block_if_btc_trend_up = false
