@@ -279,6 +279,7 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
             "trade_5x_close31_paper",
             "trade_5x_close31_down_paper",
             "trade_5x_close31_down_paper_relaxed",
+            "trade_5x_close31_down_paper_learning",
         ].includes(globalThis.__CONFIG__.strategy)
             || activeTradeConfig?.require_reject_reason !== false;
         if (!requireRejectReason) {
@@ -880,6 +881,7 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
             case "trade_5x_close31_paper":
             case "trade_5x_close31_down_paper":
             case "trade_5x_close31_down_paper_relaxed": {
+            case "trade_5x_close31_down_paper_learning": {
                 const trade4 = getTrade4LikeConfig(globalThis.__CONFIG__)!;
                 const [entryRatioMin, entryRatioMax] = trade4.entry_price_ratio;
                 const secondsToClose = this.remainingTime;
@@ -1101,6 +1103,7 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
                             "trade_5x_close31_paper",
                             "trade_5x_close31_down_paper",
                             "trade_5x_close31_down_paper_relaxed",
+                            "trade_5x_close31_down_paper_learning",
                         ].includes(globalThis.__CONFIG__.strategy);
                         const rejectionDiagnosticContext = buildRejectionDiagnosticContext({
                             trade: this,

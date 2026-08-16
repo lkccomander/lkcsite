@@ -15,7 +15,10 @@ async function run(): Promise<void> {
             { type: "feed.reconnect_forced", timestamp: "2026-07-16T09:00:02.000Z", payload: { slug: "market-1", reason: "websocket_unresponsive" } },
             { type: "feed.disconnected", timestamp: "2026-07-16T09:00:03.000Z", payload: { slug: "market-1", code: 1006 } },
             { type: "feed.error", timestamp: "2026-07-16T09:00:04.000Z", payload: { slug: "market-1", source: "websocket", error: "EE certificate key too weak" } },
-            { type: "feed.summary", timestamp: "2026-07-16T09:05:00.000Z", payload: { slug: "market-1", fallbackCount: 99, averageRttMs: 150, maxRttMs: 300, p95RttMs: 200 } },
+            { type: "feed.rtt", timestamp: "2026-07-16T09:00:05.000Z", payload: { slug: "market-1", rttMs: 100 } },
+            { type: "feed.rtt", timestamp: "2026-07-16T09:00:06.000Z", payload: { slug: "market-1", rttMs: 200 } },
+            { type: "feed.rtt", timestamp: "2026-07-16T09:00:07.000Z", payload: { slug: "market-1", rttMs: 300 } },
+            { type: "feed.summary", timestamp: "2026-07-16T09:05:00.000Z", payload: { slug: "market-1", fallbackCount: 99, averageRttMs: 150, maxRttMs: 300 } },
         ];
         writeFileSync(file, `${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
 
@@ -39,6 +42,8 @@ async function run(): Promise<void> {
         assert.deepEqual(window.disconnectCodes, { "1006": 1 });
         assert.deepEqual(window.websocketErrorCategories, { tls_certificate_policy: 1 });
         assert.equal(window.rttAvg, 150);
+        assert.equal(window.rttP95, 300);
+        assert.equal(report.rttP95, 300);
     } finally {
         rmSync(dir, { recursive: true, force: true });
     }

@@ -210,6 +210,22 @@ function getRecentSessionLabel(report: SessionReport): string {
   return report.sessionIds.slice(0, 2).join(' · ');
 }
 
+function getTelemetrySourceLabel(report: SessionReport): string {
+  const source = report.files[0];
+  if (!source) {
+    return 'Telemetry source file unavailable';
+  }
+
+  const normalized = source.replace(/\\/g, '/');
+  const segments = normalized.split('/').filter(Boolean);
+  const tail = segments.slice(-3).join('/');
+  const inPatbv5Root = normalized.includes('/PATBv5/');
+
+  return inPatbv5Root
+    ? `Source file: ${tail}`
+    : `Source file: ${tail} · external telemetry root`;
+}
+
 function buildChangeRows(report: SessionReport): Array<{
   label: string;
   value: string;
@@ -251,7 +267,7 @@ function buildChangeRows(report: SessionReport): Array<{
       color: report.trades.some((trade) => trade.makerMode) ? 'green' : 'gray'
     },
     {
-      label: 'Fallback pressure',
+      label: 'Fallback event pressure',
       value: formatNumber(report.fallbackCount),
       status: report.fallbackCount > Math.max(report.sessionIds.length * 20, 20) ? 'ELEVATED' : 'STABLE',
       color: report.fallbackCount > Math.max(report.sessionIds.length * 20, 20) ? 'amber' : 'green'
@@ -509,6 +525,9 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
           <div style={{ fontSize: 11, color: colors.slate.faint, marginTop: 2 }}>
             {getRecentSessionLabel(report)}
           </div>
+          <div style={{ fontSize: 11, color: colors.slate.faint, marginTop: 2 }}>
+            {getTelemetrySourceLabel(report)}
+          </div>
           {report.analysisScope === 'tail' && (
             <div style={{ fontSize: 10, color: colors.amber.text, fontWeight: 800, marginTop: 3, letterSpacing: '.04em' }}>
               {`TAIL SLICE · LAST ${formatNumber(report.tailLines ?? 0)} EVENTS`}
@@ -566,7 +585,7 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
             <Metric
               label="WS Fallbacks"
               value={formatNumber(report.fallbackCount)}
-              sub={`${report.feedWindows.filter((window) => window.status !== 'OK').length} stressed windows`}
+              sub={`${report.feedWindows.filter((window) => window.status !== 'OK').length} stressed windows · raw fallback events`}
               color={report.fallbackCount > Math.max(report.sessionIds.length * 20, 20) ? colors.amber.text : colors.green.text}
             />
           </div>
@@ -778,7 +797,7 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
       <ReportPanel id="feed">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
             <Metric label="RTT avg" value={`${formatNumber(report.rttAvg, 0)}ms`} sub={`p95=${formatNumber(report.rttP95, 0)}ms · max=${formatNumber(report.rttMax, 0)}ms`} />
-            <Metric label="Total fallbacks" value={formatNumber(report.fallbackCount)} sub={`${report.feedWindows.length} feed windows`} color={report.fallbackCount > Math.max(report.sessionIds.length * 20, 20) ? colors.amber.text : colors.green.text} />
+            <Metric label="Fallback events" value={formatNumber(report.fallbackCount)} sub={`${report.feedWindows.length} feed windows · raw event count`} color={report.fallbackCount > Math.max(report.sessionIds.length * 20, 20) ? colors.amber.text : colors.green.text} />
             <Metric label="Reconnect scheduled" value={formatNumber(report.reconnectScheduledCount)} sub={`${report.feedWindows.filter((window) => window.reconnectEvents > 0).length} affected windows`} />
             <Metric label="Forced reconnects" value={formatNumber(report.forcedReconnectCount)} sub="explicit feed reconnects" />
             <Metric label="Disconnects" value={formatNumber(report.disconnectCount)} sub={Object.entries(report.disconnectCodes).sort((a, b) => b[1] - a[1])[0]?.[0] ? `dominant code ${Object.entries(report.disconnectCodes).sort((a, b) => b[1] - a[1])[0][0]}` : 'no close codes'} />
@@ -791,6 +810,7 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
                 <span style={{ width: 160 }}>Window</span>
                 <span style={{ width: 70, textAlign: 'right' }}>Fallbacks</span>
                 <span style={{ width: 90, textAlign: 'right' }}>Avg RTT</span>
+                <span style={{ width: 80, textAlign: 'right' }}>P95 RTT</span>
                 <span style={{ width: 80, textAlign: 'right' }}>Max RTT</span>
                 <span style={{ flex: 1, textAlign: 'right' }}>Reconnects</span>
                 <span style={{ width: 76, textAlign: 'right' }}>Status</span>
@@ -802,6 +822,7 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ report }) => {
                     <span style={{ width: 160, color: colors.slate.body, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{window.slug}</span>
                     <span style={{ width: 70, textAlign: 'right', fontWeight: 700, color: colors[tone].text }}>{formatNumber(window.fallbacks)}</span>
                     <span style={{ width: 90, textAlign: 'right' }}>{formatNumber(window.rttAvg, 0)}ms</span>
+                    <span style={{ width: 80, textAlign: 'right' }}>{formatNumber(window.rttP95, 0)}ms</span>
                     <span style={{ width: 80, textAlign: 'right' }}>{formatNumber(window.rttMax, 0)}ms</span>
                     <span style={{ flex: 1, textAlign: 'right', color: colors.slate.muted }}>{formatNumber(window.reconnectEvents)}</span>
                     <span style={{ width: 76, textAlign: 'right' }}><Pill label={window.status} color={tone} small /></span>

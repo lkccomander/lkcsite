@@ -1502,3 +1502,72 @@ References:
 - Polymarket fees: https://docs.polymarket.com/trading/fees
 - Polymarket order behavior: https://docs.polymarket.com/trading/orders/overview
 
+## PAPER telemetry lifecycle verification — 2026-08-11
+
+- Session: `0c73aac5-d77a-4a75-a50c-0f35654e1e64`; strategy: `trade_5x_close31_down_paper_relaxed`; mode: `PAPER`.
+- The session terminated cleanly and intentionally: `feed.summary` recorded `shutdown_SIGTERM`, followed by `bot.shutdown` with `reason=SIGTERM` and `endingBalance=$84.41`. This is not evidence of a crash or an unflushed shutdown.
+- The final `recent_ws_fallback` rejection was correct. A `stale_snapshot` fallback occurred at `00:04:30.486Z`; the candidate entry was evaluated `4,039 ms` later, while `recentWsFallbackCooldownMs=5,000`. The decision was therefore rejected with about `961 ms` of cooldown still remaining.
+- Feed condition at shutdown was otherwise healthy: `5,793` websocket ticks, `0` REST ticks, no disconnects, average latency `88.16 ms`, average RTT `178.96 ms`, and one stale-snapshot fallback. The fallback protection acted as designed; it was not sustained transport failure.
+- The file was not yet visible on the network telemetry share when verified. The pasted terminal telemetry is complete enough to validate the lifecycle and gate behavior.
+
+## Profitability plan review - 2026-08-15
+
+- Primary objective remains real profitability, not merely improving the PAPER curve.
+- Recent Pi-session review showed a material balance drawdown from approximately `$101.28` to `$86.91` across the long-running PAPER session, with realized exits skewing toward `stop_loss` rather than `take_profit`.
+- That result does not satisfy the standing evaluation gate from `2026-07-29`: positive expectancy after modeled fees/slippage, profit factor above `1.0`, and enough completed DOWN trades before considering another adjustment.
+- The session also does not justify LIVE promotion. Stability improved in many windows, but repeated websocket fallback and stale-snapshot bursts still occurred, and the realized P&L remained negative.
+
+### Working priorities
+
+- [ ] Improve PAPER execution realism first so profitability signals are less likely to be simulator artifacts.
+- [ ] Reduce bad entries and stop-loss frequency before increasing aggressiveness or loosening gates.
+- [ ] Keep stability and profitability as separate tracked goals: transport health must remain acceptable, but positive expectancy is the real promotion gate.
+- [ ] Require profitability reviews to report at minimum: completed trades, win rate, average win, average loss, expectancy, profit factor, and drawdown versus control.
+- [ ] Leave the current PAPER session running unchanged through the next observation window and review it tomorrow for acceptance ratio, trade frequency, side mix, realized P&L, and drawdown before changing filters again.
+
+### Immediate profitability plan
+
+- [ ] Rework PAPER fills to model queue ahead, depth, partial fills, missed fills, and adverse movement while resting.
+- [ ] Reclassify executions as maker or taker from simulated behavior rather than requested intent, and apply conservative fees accordingly.
+- [ ] Analyze realized losers by side, entry price bucket, momentum state, MC convergence bucket, and feed condition to isolate the highest-damage entry patterns.
+- [ ] Preserve a control profile and test changes in isolated PAPER experiments rather than editing the baseline in place.
+- [ ] Do not move to production until a fresh PAPER cohort demonstrates positive expectancy, profit factor greater than `1.0`, controlled drawdown, and acceptable feed behavior over a meaningful sample.
+
+### Executable checklist
+
+#### Phase 1 — Make PAPER harder to fool
+
+- [ ] Add a telemetry field that records whether each PAPER entry or exit was immediately marketable at decision time.
+- [ ] Record displayed bid, ask, mid, and spread at order placement and at simulated fill time for every `paper_trade.buy` and `paper_trade.sell`.
+- [ ] Add simulated outcomes for `full_fill`, `partial_fill`, `missed_fill`, `cancelled`, and `repriced_fill` instead of always resolving to a complete fill.
+- [ ] Persist simulated queue-ahead and depth-consumed estimates on PAPER fills so trade review can separate strong fills from optimistic fills.
+- [ ] Determine maker/taker status from simulated execution outcome and write explicit `executionRole=maker|taker` telemetry.
+- [ ] Apply nonzero taker fees whenever liquidity is consumed; keep maker rebates conservative and optional.
+- [ ] Add regression tests covering partial fills, missed stop-loss exits, and price-moving-away while a GTC order is resting.
+
+#### Phase 2 — Find where the losses come from
+
+- [ ] Build a trade review script that groups realized P&L by `side`, `sell reason`, `entry price bucket`, `seconds before close`, `momentum direction`, `momentum confidence bucket`, `MC convergence bucket`, and `feed fallback presence`.
+- [ ] Add a loser-focused report section: top loss buckets, average loser, median loser, worst loser, and count of losses after fallback or reconnect windows.
+- [ ] Compare `UP` and `DOWN` expectancy separately on the active relaxed profile.
+- [ ] Compute reward-to-risk by bucket: average winner divided by average loser, not just win rate.
+- [ ] Flag patterns where stop-loss exits cluster in a specific entry-price band or low-confidence momentum band.
+
+#### Phase 3 — Change strategy safely
+
+- [ ] Keep the current profile as control and create separate experiment profiles for each hypothesis instead of stacking changes in one config.
+- [ ] Test one hypothesis at a time, starting with the highest-damage loser bucket from Phase 2.
+- [ ] Candidate hypothesis order:
+- [ ] Tighten or block weak entry-price bands that produce repeated stop losses.
+- [ ] Raise minimum momentum confidence for the losing side/bucket only if data shows weak alignment.
+- [ ] Raise minimum MC convergence only if accepted losing trades cluster near threshold.
+- [ ] Shorten stop-loss patience only if PAPER realism changes show exits are too late, not merely because P&L is red.
+- [ ] Expand take-profit only if winners are frequent enough and current exits are consistently truncating good trades.
+
+#### Phase 4 — Promotion gate
+
+- [ ] Do not consider production until a fresh cohort shows at least `50` completed trades for the active experiment and positive expectancy after modeled fees.
+- [ ] Require profit factor `> 1.0`, controlled drawdown versus control, and no evidence that the result depends on optimistic fills.
+- [ ] Require feed stability to remain within the configured fallback gates during the same cohort.
+- [ ] Run the same report against control and experiment before selecting the next production candidate.
+

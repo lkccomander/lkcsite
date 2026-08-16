@@ -25,6 +25,28 @@ function updateFeedWindowStatus(window: FeedWindow): void {
   window.status = window.fallbacks >= 20 ? 'SPIKE' : window.fallbacks >= 7 ? 'ELEVATED' : 'OK';
 }
 
+function getFeedWindowKey(window: FeedWindow): string {
+  return `${window.slug}::${window.start}`;
+}
+
+function setFeedWindowSample(samplesByWindow: Map<string, number[]>, window: FeedWindow, rtt: number): void {
+  if (!(rtt > 0)) return;
+  const key = getFeedWindowKey(window);
+  const samples = samplesByWindow.get(key);
+  if (samples) {
+    samples.push(rtt);
+  } else {
+    samplesByWindow.set(key, [rtt]);
+  }
+}
+
+function calculateP95(samples: number[]): number {
+  if (samples.length === 0) return 0;
+  const sorted = [...samples].sort((left, right) => left - right);
+  const p95Index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * 0.95) - 1));
+  return sorted[p95Index];
+}
+
 function getOrCreateFeedWindow(report: SessionReport, slugValue: unknown, timestampValue: unknown): FeedWindow {
   const slug = typeof slugValue === 'string' && slugValue.length > 0 ? slugValue : 'unknown';
   const timestamp = typeof timestampValue === 'string' && timestampValue.length > 0
@@ -84,23 +106,23 @@ async function readLastLines(filePath: string, n: number): Promise<string[]> {
   }
 }
 
-function processLine(line: string, report: SessionReport): void {
+function processLine(line: string, report: SessionReport, rttSamplesByWindow: Map<string, number[]>): void {
   try {
     const event = JSON.parse(line);
-    processEvent(event, report);
+    processEvent(event, report, rttSamplesByWindow);
   } catch {
     // Skip malformed JSON lines.
   }
 }
 
-async function processFullFile(filePath: string, report: SessionReport): Promise<void> {
+async function processFullFile(filePath: string, report: SessionReport, rttSamplesByWindow: Map<string, number[]>): Promise<void> {
   const input = createReadStream(filePath, { encoding: 'utf8' });
   const lines = createInterface({ input, crlfDelay: Infinity });
 
   for await (const line of lines) {
     if (line.length === 0) continue;
     report.totalEvents++;
-    processLine(line, report);
+    processLine(line, report, rttSamplesByWindow);
   }
 }
 
@@ -175,18 +197,19 @@ export async function parseTelemetry(files: string[], tailLines?: number): Promi
   };
   Object.defineProperty(report, 'rttSamples', { enumerable: false, writable: true, value: [] });
   Object.defineProperty(report, 'seenShadowSignalIds', { enumerable: false, writable: true, value: new Set<string>() });
+  const rttSamplesByWindow = new Map<string, number[]>();
 
   // Process each file
   for (const file of files) {
     try {
       if (tailLines === undefined) {
-        await processFullFile(file, report);
+        await processFullFile(file, report, rttSamplesByWindow);
       } else {
         const lines = await readLastLines(file, tailLines);
         report.totalEvents += lines.length;
 
         for (const line of lines) {
-          processLine(line, report);
+          processLine(line, report, rttSamplesByWindow);
         }
       }
     } catch (error) {
@@ -195,13 +218,13 @@ export async function parseTelemetry(files: string[], tailLines?: number): Promi
   }
 
   // Calculate derived metrics
-  calculateDerivedMetrics(report);
+  calculateDerivedMetrics(report, rttSamplesByWindow);
   
   return report;
 }
 
 // Process individual telemetry events
-function processEvent(event: any, report: SessionReport): void {
+function processEvent(event: any, report: SessionReport, rttSamplesByWindow: Map<string, number[]>): void {
   const eventType = event.type || event.event;
   const payload = event.payload || {};
 
@@ -406,6 +429,11 @@ function processEvent(event: any, report: SessionReport): void {
       if (rtt > 0) {
         report.rttSamples.push(rtt);
       }
+      setFeedWindowSample(
+        rttSamplesByWindow,
+        getOrCreateFeedWindow(report, payload.slug, event.timestamp),
+        rtt,
+      );
       break;
       
     case 'feed.fallback':
@@ -487,7 +515,7 @@ function isNewSignalReason(reason: string): boolean {
 }
 
 // Calculate derived metrics after processing all events
-function calculateDerivedMetrics(report: SessionReport): void {
+function calculateDerivedMetrics(report: SessionReport, rttSamplesByWindow: Map<string, number[]>): void {
   report.feedWindows.sort((left, right) => left.start.localeCompare(right.start));
   if (report.fallbackCount === 0 && report.feedWindows.length > 0) {
     report.fallbackCount = report.feedWindows.reduce((sum, window) => sum + window.fallbacks, 0);
@@ -495,6 +523,12 @@ function calculateDerivedMetrics(report: SessionReport): void {
       for (const [reason, count] of Object.entries(window.fallbackReasons)) {
         report.fallbackReasons[reason] = (report.fallbackReasons[reason] || 0) + count;
       }
+    }
+  }
+  for (const window of report.feedWindows) {
+    const derivedP95 = calculateP95(rttSamplesByWindow.get(getFeedWindowKey(window)) ?? []);
+    if (derivedP95 > 0) {
+      window.rttP95 = derivedP95;
     }
   }
   // Calculate net PnL and total fees

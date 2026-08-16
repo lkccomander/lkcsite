@@ -85,6 +85,7 @@ const ConfigSchema = z.object({
     "trade_5x_close31_paper",
     "trade_5x_close31_down_paper",
     "trade_5x_close31_down_paper_relaxed",
+    "trade_5x_close31_down_paper_learning",
   ]),
   trade_usd: z.number(),
   max_retries: z.number().default(3),
@@ -112,6 +113,7 @@ const ConfigSchema = z.object({
   trade_5x_close31_paper: Trade4Schema.optional(),
   trade_5x_close31_down_paper: Trade4Schema.optional(),
   trade_5x_close31_down_paper_relaxed: Trade4Schema.optional(),
+  trade_5x_close31_down_paper_learning: Trade4Schema.optional(),
 }).superRefine((config, ctx) => {
   if (!config[config.strategy]) {
     ctx.addIssue({
@@ -153,6 +155,14 @@ export function getTrade4LikeConfig(config: Config | undefined = globalThis.__CO
   }
   if (config.strategy === "trade_5x_close31_down_paper_relaxed") {
     return config.trade_5x_close31_down_paper_relaxed
+      ?? config.trade_5x_close31_down_paper
+      ?? config.trade_5x_close31_paper
+      ?? config.trade_5x
+      ?? config.trade_4;
+  }
+  if (config.strategy === "trade_5x_close31_down_paper_learning") {
+    return config.trade_5x_close31_down_paper_learning
+      ?? config.trade_5x_close31_down_paper_relaxed
       ?? config.trade_5x_close31_down_paper
       ?? config.trade_5x_close31_paper
       ?? config.trade_5x
