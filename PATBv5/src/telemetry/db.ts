@@ -113,6 +113,7 @@ export interface TelemetryRetentionConfig {
 
 const DEFAULT_TELEMETRY_ROTATE_BYTES = 256 * 1024 * 1024;
 const DEFAULT_TELEMETRY_MAX_TOTAL_BYTES = 5 * 1024 * 1024 * 1024;
+const DEFAULT_FEED_TICK_MIN_INTERVAL_MS = 5000;
 
 export function resolveTelemetryRetentionConfig(input: {
     rotateBytes?: string;
@@ -190,6 +191,7 @@ let telemetryVersionContext: Record<string, unknown> | null = null;
 let telemetryOriginHost: string | null = resolveOriginHost();
 let telemetryWriteQueue: Promise<void> = Promise.resolve();
 let lastArchiveTimestampMs = 0;
+let lastFeedTickWrittenAtMs = 0;
 
 const MANAGED_ARCHIVE_PATTERN = /^events\.\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.jsonl$/;
 
@@ -357,10 +359,27 @@ export function getTelemetryVersionContext(): Record<string, unknown> | null {
     return telemetryVersionContext;
 }
 
+function shouldSkipTelemetryEvent(type: TelemetryEventType): boolean {
+    if (type !== "feed.tick") {
+        return false;
+    }
+
+    const now = Date.now();
+    if (now - lastFeedTickWrittenAtMs < DEFAULT_FEED_TICK_MIN_INTERVAL_MS) {
+        return true;
+    }
+    lastFeedTickWrittenAtMs = now;
+    return false;
+}
+
 export async function writeTelemetryEvent<TPayload = Record<string, unknown>>(
     type: TelemetryEventType,
     payload: TPayload
 ): Promise<void> {
+    if (shouldSkipTelemetryEvent(type)) {
+        return;
+    }
+
     const event: TelemetryEvent<TPayload> = {
         type,
         payload,
@@ -381,6 +400,10 @@ export async function writeTelemetryEventToSession<TPayload = Record<string, unk
     payload: TPayload,
     target: TelemetrySessionTarget,
 ): Promise<void> {
+    if (shouldSkipTelemetryEvent(type)) {
+        return;
+    }
+
     const event: TelemetryEvent<TPayload> = {
         type,
         payload,
@@ -433,6 +456,7 @@ export function __resetTelemetryModuleState(): void {
     telemetryOriginHost = resolveOriginHost();
     telemetryWriteQueue = Promise.resolve();
     lastArchiveTimestampMs = 0;
+    lastFeedTickWrittenAtMs = 0;
 }
 
 export function __setTelemetryOriginHostForTests(originHost: string | null): void {

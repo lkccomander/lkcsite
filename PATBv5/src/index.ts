@@ -83,6 +83,10 @@ const EXTERNAL_REFERENCE_REFRESH_MS = 5000;
 const NEXT_MARKET_PREFETCH_WINDOW_SECS = 30;
 const BENCHMARK_REFRESH_FAILURE_BACKOFF_MS = 30_000;
 const SHADOW_SETTLEMENT_RECONCILE_INTERVAL_MS = 30_000;
+const FEED_DEGRADATION_GUARD_MIN_SESSION_MS = 2 * 60 * 60 * 1000;
+const FEED_DEGRADATION_GUARD_MIN_FALLBACKS = 300;
+const FEED_DEGRADATION_GUARD_MIN_STALES = 1000;
+const FEED_DEGRADATION_GUARD_MIN_DISCONNECTS = 50;
 const BOT_ID = getTelemetryBotId();
 const BOT_DISPLAY_NAME = "Polymarket Arbitrage Trading Bot V5";
 const MANUAL_TRADE_REQUEST_PATH = resolve(__dirname, "..", "manual-trade-request.json");
@@ -107,6 +111,17 @@ function roundCurrency(value: number): number {
 
 function roundMetric(value: number): number {
   return Math.round(value * 10000) / 10000;
+}
+
+function shouldAbortForFeedDegradation(
+  sessionStartedAtMs: number,
+  stats: ReturnType<PolymarketMarketFeed["getStats"]>,
+): boolean {
+  const sessionAgeMs = Date.now() - sessionStartedAtMs;
+  return sessionAgeMs >= FEED_DEGRADATION_GUARD_MIN_SESSION_MS
+    && stats.fallbackCount >= FEED_DEGRADATION_GUARD_MIN_FALLBACKS
+    && stats.staleCount >= FEED_DEGRADATION_GUARD_MIN_STALES
+    && stats.disconnectedCount >= FEED_DEGRADATION_GUARD_MIN_DISCONNECTS;
 }
 
 function shouldStartUiServer(): boolean {
@@ -344,6 +359,7 @@ async function main() {
   const controlledRun = readControlledRunConfig();
   let botRuntimeControl: ReturnType<typeof createBotRuntimeControl> | null = null;
   await startTelemetrySession(runtimeMode);
+  const sessionStartedAtMs = Date.now();
   const versionContext = await initializeVersionContext(globalThis.__CONFIG__);
   setTelemetryVersionContext(versionContext);
 
@@ -1225,6 +1241,12 @@ async function main() {
           }
 
           const stats = marketFeed.getStats();
+          if (shouldAbortForFeedDegradation(sessionStartedAtMs, stats)) {
+            await marketFeed.emitSummaryTelemetry("feed_degradation_abort");
+            throw new Error(
+              `feed degradation guard tripped: fallbacks=${stats.fallbackCount} stale=${stats.staleCount} disconnects=${stats.disconnectedCount}`,
+            );
+          }
           const graceActive = Date.now() < trade.marketTransitionGraceUntilMs;
           if (!processingSnapshot && !graceActive && (!stats.wsConnected || Date.now() - lastDecisionAtMs >= 1000)) {
             const snapshot = await marketFeed.getLatestSnapshot();
@@ -1275,7 +1297,7 @@ main().catch(async (error) => {
     const sessionBalance = await loadPersistedPaperBalance(PAPER_STARTING_USD);
     await savePersistedPaperBalance(sessionBalance);
     await writeTelemetryEventSafe("bot.shutdown", {
-      reason: "startup_error",
+      reason: blockedCollateral ? "fatal_collateral_guard" : "fatal_runtime_error",
       endingBalance: sessionBalance,
     });
   }

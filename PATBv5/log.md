@@ -1571,3 +1571,40 @@ References:
 - [ ] Require feed stability to remain within the configured fallback gates during the same cohort.
 - [ ] Run the same report against control and experiment before selecting the next production candidate.
 
+## 2026-08-16 05:14 UTC
+
+### Progress note
+
+- Reviewed the latest telemetry session `d38f9c3c-87a3-4c34-9cfa-bfec06c4af5d` and confirmed the bot was healthy enough to run but produced `0` accepted entries, `0` orders, and `0` executed trades.
+- Confirmed the main blockers in the latest session were entry gating rather than crashes: `directional_momentum_required`, `entry_price_window`, `down_blocked_neutral_momentum`, `entry_latency_gate`, and `max_feed_age_ms`.
+- Reviewed the latest session-review HTML reports and found a reporting issue: per-window `rttP95` was effectively unusable because windows were defaulting to `0` unless the summary payload carried p95 directly.
+- Updated report generation so per-window `rttP95` is derived from raw `feed.rtt` samples when available.
+- Updated the report UI to clarify that fallback totals are raw fallback-event counts, not final feed-summary state, and to show when report source files come from an external telemetry root.
+- Preserved the old `trade_5x_close31_down_paper_relaxed` profile as a legacy traced profile instead of overwriting it.
+- Created and activated a new tracing-friendly paper-learning strategy: `trade_5x_close31_down_paper_learning`.
+- Added strategy version metadata in `polydb/evaluation/strategy_versions/trade_5x_close31_down_paper_learning_v001.json`.
+
+### Active learning profile
+
+- Active strategy in `trade.toml` is now `trade_5x_close31_down_paper_learning`.
+- Learning-profile deltas versus legacy relaxed profile:
+- wider entry window: `entry_price_ratio = [0.08, 0.46]`
+- wider price bounds: `0.40` to `0.90`
+- looser feed tolerances: latency `500ms`, RTT `750ms`, entry age `900ms`, max feed age `650ms`
+- wider spread gate: `0.04`
+- `DOWN` no longer blocks neutral momentum
+- `UP` no longer requires directional momentum or MC-direction agreement
+- softer `UP` BTC momentum thresholds: delta `0.0003`, confidence `0.20`, MC convergence `0.65`
+
+### Constraints hit today
+
+- Could not run the Node/TS report test suite end-to-end from this environment because the Windows/WSL bridge failed during command execution.
+- Static code and diff review completed, but runtime verification of regenerated reports remains pending.
+
+### Resume here tomorrow
+
+- Regenerate session-review reports using the new report parser/template changes and confirm that per-window `P95 RTT` is populated meaningfully.
+- Run a fresh PAPER session under `trade_5x_close31_down_paper_learning`.
+- Review whether accepted entries, orders, and completed paper trades start appearing.
+- Compare new telemetry against the legacy relaxed profile to verify that higher trade throughput is being achieved without completely destroying selectivity.
+

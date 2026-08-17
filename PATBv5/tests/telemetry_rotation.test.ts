@@ -138,6 +138,18 @@ async function testHistoricalSessionWriteDoesNotPolluteActiveSession(): Promise<
     assert.equal(managedEvents[0].sessionId, "historical-session");
 }
 
+async function testFeedTickTelemetryIsThrottled(): Promise<void> {
+    await resetStore();
+
+    await telemetry.writeTelemetryEvent("feed.tick", { seq: 1 });
+    await telemetry.writeTelemetryEvent("feed.tick", { seq: 2 });
+    await telemetry.writeTelemetryEvent("feed.tick", { seq: 3 });
+
+    const events = await readEvents(join(telemetryRoot, "events.jsonl"));
+    assert.equal(events.length, 1, "expected feed.tick writes inside the throttle window to collapse");
+    assert.equal((events[0].payload as { seq?: number }).seq, 1);
+}
+
 async function run(): Promise<void> {
     try {
         await testRotationPruningAndLegacyPreservation();
@@ -145,6 +157,7 @@ async function run(): Promise<void> {
         await testQueueRecoversAfterOversizedFileError();
         await testInvalidRetentionConfigurationFallsBack();
         await testHistoricalSessionWriteDoesNotPolluteActiveSession();
+        await testFeedTickTelemetryIsThrottled();
         console.log("telemetry rotation tests passed");
     } finally {
         telemetry.__resetTelemetryModuleState();

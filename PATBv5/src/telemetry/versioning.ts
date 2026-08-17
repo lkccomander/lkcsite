@@ -48,8 +48,8 @@ type GitMetadata = {
   gitDirty: boolean;
 };
 
-const WORKSPACE_ROOT = resolve(__dirname, "..", "..", "..");
-const EVALUATION_ROOT = resolve(WORKSPACE_ROOT, "PATBv5", "polydb", "evaluation");
+const WORKSPACE_ROOT = resolve(__dirname, "..", "..");
+const EVALUATION_ROOT = resolve(WORKSPACE_ROOT, "polydb", "evaluation");
 const STRATEGY_VERSIONS_DIR = resolve(EVALUATION_ROOT, "strategy_versions");
 const BOT_BUILDS_DIR = resolve(EVALUATION_ROOT, "bot_builds");
 const REPOS_DIR = resolve(EVALUATION_ROOT, "repos");

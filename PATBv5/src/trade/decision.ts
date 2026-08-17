@@ -880,7 +880,7 @@ export function attachDecisionMethods(TradeClass: new (...args: any[]) => any) {
             case "trade_5x":
             case "trade_5x_close31_paper":
             case "trade_5x_close31_down_paper":
-            case "trade_5x_close31_down_paper_relaxed": {
+            case "trade_5x_close31_down_paper_relaxed":
             case "trade_5x_close31_down_paper_learning": {
                 const trade4 = getTrade4LikeConfig(globalThis.__CONFIG__)!;
                 const [entryRatioMin, entryRatioMax] = trade4.entry_price_ratio;
