@@ -85,6 +85,7 @@ export interface PendingExitReconciliationRecord {
 export type PositionState =
     | "NONE"
     | "OPEN"
+    | "ENTRY_RECONCILING"
     | "EXIT_PENDING"
     | "EXIT_PARTIAL"
     | "CLOSED"

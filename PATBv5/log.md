@@ -1608,3 +1608,89 @@ References:
 - Review whether accepted entries, orders, and completed paper trades start appearing.
 - Compare new telemetry against the legacy relaxed profile to verify that higher trade throughput is being achieved without completely destroying selectivity.
 
+## 2026-08-17
+
+### Pending
+
+- [ ] Run a fresh PAPER validation session on `trade_5x_close31_down_paper_learning` after the latest telemetry fixes.
+- [ ] Confirm new sessions record non-`unknown` `gitCommit`, `gitBranch`, and `botBuildVersionId` in `versionContext`.
+- [ ] Verify `feed.tick` telemetry volume is materially reduced after the new central throttle.
+- [ ] Confirm the feed degradation guard aborts pathological long-running degraded sessions instead of letting them run for many hours.
+- [ ] Review the first post-fix session for `feed.summary` and any `feed_degradation_abort` evidence.
+- [ ] Add the next telemetry-noise reduction pass for `trade.signal_rejected`, ideally by aggregation or controlled sampling.
+- [ ] Tighten handling for `subscription_missing` and `stale_snapshot`, since both still show up as dominant fallback reasons in recent sessions.
+- [ ] Re-run `npm run build` and keep the project compiling clean after each follow-up fix batch.
+
+### Live/Paper forensic review - 2026-08-17
+
+- Reviewed PAPER session `930ec601-45fe-4de0-96ea-971c912e93ad` from Monday, August 17, 2026. The session ended positive in PAPER, but the main conclusion was not "promote to LIVE"; it was that the large entry filters (`up_bias_filter`, `entry_time_ratio`, `min_fee_adjusted_edge`, `entry_price_window`) all rejected sets of trades with negative aggregate shadow P&L.
+- Reviewed LIVE session `1a49c37f-2822-4db0-a6ca-38c44c28b1c5` from Monday, August 17, 2026. It closed slightly positive overall, but exposed a critical execution-state issue: an order was `matched` at the provider, the bot timed out waiting for token balance confirmation, and only later recovered the real open position via `trade.position_resolved` with `reason=entry_timeout_balance_detected`.
+- The first LIVE trade was profitable, but its success does not clear the system for scale because the position-reconciliation path was not safe enough for unattended promotion.
+- The second LIVE trade was a normal losing `DOWN` trade that hit `stop_loss`; this confirms the current profile still accepts some weak or ambiguous `DOWN` entries in live conditions.
+
+### Operating conclusion - 2026-08-17
+
+- The current bottleneck is epistemic and operational at the same time: not enough stable-sample evidence of edge, plus at least one unresolved LIVE execution bug.
+- Do not scale LIVE until the fill-reconciliation path is hardened and a frozen configuration produces a clean sample.
+- Keep the strategy simplification idea on the table, but execution correctness comes first.
+
+### Seven-day rescue plan - starting Monday, August 17, 2026
+
+#### Day 1 - Freeze baseline and stop contaminating samples
+
+- [ ] Freeze one exact strategy/configuration snapshot for evaluation and record its config hash, strategy version id, build version id, and git commit in the log before any further validation runs.
+- [ ] Treat any strategy/filter change before the next clean cohort as a cohort reset.
+- [ ] Confirm new sessions record non-`unknown` `gitCommit`, `gitBranch`, and `botBuildVersionId` in `versionContext`.
+- [ ] Re-run `npm run build` and keep the project compiling clean after each follow-up fix batch.
+
+#### Day 2 - Fix LIVE entry reconciliation before more real-money exposure
+
+- [ ] Reproduce and trace the `entry_timeout_balance_detected` path from LIVE session `1a49c37f-2822-4db0-a6ca-38c44c28b1c5`.
+- [ ] Make the post-fill state machine treat provider `matched/filled` status plus delayed balance visibility as a first-class reconciliation flow rather than an ambiguous timeout.
+- [ ] Add telemetry that records: provider order status poll results, balance-check attempts, time-to-balance-visibility, and final reconciliation outcome for every live entry.
+- [ ] Add regression coverage for "provider matched before token balance appears" so an open position cannot be temporarily misclassified as flat.
+
+#### Day 3 - Validate transport and degraded-session controls
+
+- [ ] Verify `feed.tick` telemetry volume is materially reduced after the new central throttle.
+- [ ] Confirm the feed degradation guard aborts pathological long-running degraded sessions instead of letting them run for many hours.
+- [ ] Review the first post-fix session for `feed.summary` and any `feed_degradation_abort` evidence.
+- [ ] Tighten handling for `subscription_missing` and `stale_snapshot`, since both still show up as dominant fallback reasons in recent sessions.
+- [ ] Add the next telemetry-noise reduction pass for `trade.signal_rejected`, ideally by aggregation or controlled sampling.
+
+#### Day 4 - Repair the momentum signal instead of routing around it
+
+- [ ] Audit why momentum stays `NEUTRAL` almost all the time under current thresholds and verify the candle inputs, lookback alignment, and bucket math.
+- [ ] Produce one explicit before/after diagnostic for momentum on real telemetry: delta1m, delta5m, confidence, vol ratio, and final direction on sampled trades.
+- [ ] Do not rely on disabled guards like "allow neutral momentum" as a substitute for fixing the module if the math itself is wrong.
+
+#### Day 5 - Rebuild PAPER realism and keep the cohort clean
+
+- [ ] Run a fresh PAPER validation session on `trade_5x_close31_down_paper_learning` only after the execution and telemetry fixes above are in place.
+- [ ] Continue the existing realism work: queue ahead, depth, partial fills, missed fills, adverse movement while resting, and maker/taker classification from simulated behavior.
+- [ ] Keep the current profile as the frozen control while collecting the first clean post-fix cohort.
+
+#### Day 6 - Measure edge correctly
+
+- [ ] Build or refresh the trade review report so it outputs: completed trades, win rate, average win, average loss, expectancy, profit factor, drawdown, hold-time distribution, and feed-quality-at-entry splits.
+- [ ] Add explicit loser-bucket analysis by side, entry price bucket, momentum state, MC convergence bucket, and feed condition.
+- [ ] Separate technical failures from market failures: losses caused by execution/reconciliation issues must not be mixed into strategy-edge conclusions.
+
+#### Day 7 - Decide what to do next
+
+- [ ] Decide whether the frozen profile is good enough to keep gathering a full cohort, or whether simplification should start immediately after execution is proven safe.
+- [ ] If simplification is needed, start from a reduced filter set instead of adding more knobs: preserve `entry_price_window`, a basic feed-health gate, and the minimum `DOWN` quality gate that survives the report evidence.
+- [ ] Do not scale LIVE position size unless the execution path is clean and the frozen cohort shows positive expectancy after realistic fees/slippage.
+
+### Promotion gate update - 2026-08-17
+
+- LIVE can continue only in minimal-risk diagnostic mode while Days 1-3 are being completed; do not treat it as scalable production.
+- Do not authorize scaled LIVE from single-session P&L, win rate, or one successful `DOWN` capture.
+- The next real promotion decision requires both:
+- a clean execution/reconciliation path in live conditions
+- a stable PAPER or micro-LIVE cohort under a frozen configuration with positive expectancy after realistic execution assumptions
+
+### Carry-forward tasks folded into the rescue plan
+
+- Existing compile-check, version-context, feed-summary, degradation-guard, telemetry-noise, and fallback-handling tasks remain active and are now part of the seven-day plan above rather than separate disconnected TODOs.
+

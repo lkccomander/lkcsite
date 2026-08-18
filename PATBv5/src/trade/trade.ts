@@ -475,6 +475,18 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
     };
     const isPendingEntryReconciliationActive = (trade: any): boolean =>
         Boolean(trade.pendingEntryReconciliation?.orderId);
+    const derivePendingEntryPositionState = (
+        providerOrderStatus: string | null | undefined,
+    ): "ENTRY_RECONCILING" | "ERROR" => {
+        switch (providerOrderStatus) {
+            case "matched":
+            case "partial":
+            case "live":
+                return "ENTRY_RECONCILING";
+            default:
+                return "ERROR";
+        }
+    };
     const emitExitEvent = async (type: "trade.exit_attempt" | "trade.exit_pending" | "trade.exit_partial" | "trade.exit_filled" | "trade.exit_failed" | "trade.exit_submission_uncertain" | "trade.exit_skipped_existing_live_order" | "trade.exit_skipped_stale_snapshot" | "trade.exit_balance_reserved_by_live_order", trade: any, payload: Record<string, unknown>): Promise<void> => {
         await writeTelemetryEventSafe(type, {
             strategy: globalThis.__CONFIG__.strategy,
@@ -695,7 +707,7 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
             return true;
         }
 
-        trade.positionState = "ERROR";
+        trade.positionState = derivePendingEntryPositionState(status.status);
         return false;
     };
     const buildSellTelemetryPayload = (
@@ -2215,8 +2227,8 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                     providerAvgPrice: providerOrderStatus.avgPrice ?? null,
                     lastCheckedAt: timeoutAt,
                 };
-                this.positionState = "ERROR";
-                playCliAlertSound("critical");
+                this.positionState = derivePendingEntryPositionState(providerOrderStatus.status);
+                playCliAlertSound(this.positionState === "ENTRY_RECONCILING" ? "error" : "critical");
                 await writeTelemetryEventSafe("trade.entry_order_status_after_timeout", {
                     ...buildBuyTelemetryPayload(this, {
                         entrySignal,
@@ -2637,8 +2649,8 @@ export function attachTradeMethods(TradeClass: new (...args: any[]) => any) {
                     providerAvgPrice: providerOrderStatus.avgPrice ?? null,
                     lastCheckedAt: timeoutAt,
                 };
-                this.positionState = "ERROR";
-                playCliAlertSound("critical");
+                this.positionState = derivePendingEntryPositionState(providerOrderStatus.status);
+                playCliAlertSound(this.positionState === "ENTRY_RECONCILING" ? "error" : "critical");
                 await writeTelemetryEventSafe("trade.entry_order_status_after_timeout", {
                     ...buildBuyTelemetryPayload(this, {
                         entrySignal,
