@@ -1649,6 +1649,7 @@ References:
 - [ ] Make the post-fill state machine treat provider `matched/filled` status plus delayed balance visibility as a first-class reconciliation flow rather than an ambiguous timeout.
 - [ ] Add telemetry that records: provider order status poll results, balance-check attempts, time-to-balance-visibility, and final reconciliation outcome for every live entry.
 - [ ] Add regression coverage for "provider matched before token balance appears" so an open position cannot be temporarily misclassified as flat.
+- [ ] Next patch after introducing `ENTRY_RECONCILING`: extract the duplicated LIVE entry-timeout handling for `UP` and `DOWN` into one helper, then add richer reconciliation telemetry (`balanceCheckAttempts`, `firstProviderMatchedAt`, `timeToBalanceVisibilityMs`, `reconciliationOutcome`).
 
 #### Day 3 - Validate transport and degraded-session controls
 
