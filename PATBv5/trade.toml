@@ -342,7 +342,7 @@ opposite_side_cooldown_seconds = 120
 ## PAPER learning profile. Loosens price, feed, and momentum gates
 ## so paper mode can collect enough executed trades to learn from.
 entry_price_ratio = [0.08, 0.46]
-entry_time_ratio = 0.06
+entry_time_ratio = 0.05
 
 min_entry_price = 0.40
 max_entry_price = 0.90
@@ -370,8 +370,8 @@ max_trades_per_market = 1
 max_open_positions = 1
 cooldown_after_loss_markets = 0
 
-session_stop_loss_usd = 10
-daily_stop_loss_usd = 25
+session_stop_loss_usd = 100
+daily_stop_loss_usd = 150
 
 require_fee_adjusted_edge = true
 min_fee_adjusted_edge = 0.02

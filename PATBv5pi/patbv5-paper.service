@@ -11,6 +11,7 @@ Environment=NODE_ENV=production
 Environment=PAPER_TRADING=true
 Environment=BOT_ID=polymarket-bot-v5-pi-paper
 Environment=TELEMETRY_ROOT=/home/pi/PATBv5/polydb/telemetry
+Environment=TELEMETRY_COMPLETED_SESSIONS_DIR=/mnt/bot-telemetry/sessions
 ExecStart=/home/pi/PATBv5/scripts/pi_paper_run.sh
 Restart=always
 RestartSec=5
